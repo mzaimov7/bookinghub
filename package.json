@@ -1,0 +1,10 @@
+{
+  "name": "bookinghub-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "frontend:install": "npm --prefix frontend install",
+    "frontend:start": "npm --prefix frontend run dev",
+    "backend:test": "./backend/mvnw test"
+  }
+}

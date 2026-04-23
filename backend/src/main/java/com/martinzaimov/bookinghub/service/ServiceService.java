@@ -6,6 +6,7 @@ import com.martinzaimov.bookinghub.repo.ServiceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -21,11 +22,11 @@ public class ServiceService {
         this.images = images;
     }
 
-    public List<ServiceOTD> search(String query, Long categoryId, String city) {
+    public List<ServiceOTD> search(String query, Long categoryId, String city, BigDecimal minPrice, BigDecimal maxPrice) {
         String q = normalize(query);
         String c = normalize(city);
 
-        return repo.search(q, categoryId, c)
+        return repo.search(q, categoryId, c, minPrice, maxPrice)
                 .stream()
                 .map(this::toDto)
                 .toList();

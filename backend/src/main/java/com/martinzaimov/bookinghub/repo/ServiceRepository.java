@@ -18,6 +18,8 @@ public interface ServiceRepository extends JpaRepository<Service, Long> {
         where s.active = true
           and (:categoryId is null or s.category.id = :categoryId)
           and (:city is null or lower(s.city) = lower(:city))
+          and (:minPrice is null or s.price >= :minPrice)
+          and (:maxPrice is null or s.price <= :maxPrice)
           and (
               :q is null
               or lower(s.title) like lower(concat('%', :q, '%'))
@@ -28,6 +30,8 @@ public interface ServiceRepository extends JpaRepository<Service, Long> {
     List<Service> search(
             @Param("q") String q,
             @Param("categoryId") Long categoryId,
-            @Param("city") String city
+            @Param("city") String city,
+            @Param("minPrice") java.math.BigDecimal minPrice,
+            @Param("maxPrice") java.math.BigDecimal maxPrice
     );
 }

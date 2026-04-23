@@ -1,18 +1,40 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getAuth, getRole, isLoggedIn, logoutLocal } from "../../lib/authStore";
 import logoPng from "../../assets/BookingHub-logo.png";
 
-export default function Header({ categories = [], onCategoryPick, onSearchSubmit }) {
+export default function Header({ categories = [], recentSearches = [], onCategoryPick, onSearchSubmit, onRecentSearchPick }) {
   const navigate = useNavigate();
+  const searchRef = useRef(null);
   const [openCats, setOpenCats] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
+  const [openRecentSearches, setOpenRecentSearches] = useState(false);
+  const [openFilters, setOpenFilters] = useState(false);
   const [query, setQuery] = useState("");
-  const [city, setCity] = useState("");
+  const [filters, setFilters] = useState({
+    city: "",
+    categoryId: "",
+    minPrice: "",
+    maxPrice: "",
+  });
 
   const role = getRole();
   const auth = getAuth();
   const catItems = useMemo(() => categories.slice(0, 10), [categories]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (!searchRef.current?.contains(event.target)) {
+        setOpenRecentSearches(false);
+        setOpenFilters(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   function normalize(value) {
     if (value == null) return null;
@@ -22,9 +44,14 @@ export default function Header({ categories = [], onCategoryPick, onSearchSubmit
 
   function handleSubmit(event) {
     event.preventDefault();
+    setOpenRecentSearches(false);
+    setOpenFilters(false);
     onSearchSubmit?.({
       query: normalize(query),
-      city: normalize(city),
+      city: normalize(filters.city),
+      categoryId: normalize(filters.categoryId),
+      minPrice: normalize(filters.minPrice),
+      maxPrice: normalize(filters.maxPrice),
     });
   }
 
@@ -44,6 +71,15 @@ export default function Header({ categories = [], onCategoryPick, onSearchSubmit
     return false;
   }
 
+  function labelForRecentSearch(item) {
+    const parts = [item?.query, item?.city].filter(Boolean);
+    const categoryName = categories.find((category) => category.id === item?.categoryId)?.name || null;
+    const priceRange = item?.minPrice != null || item?.maxPrice != null
+      ? `${item?.minPrice != null ? `${item.minPrice} lv` : "Any"} - ${item?.maxPrice != null ? `${item.maxPrice} lv` : "Any"}`
+      : null;
+    return [...parts, categoryName, priceRange].filter(Boolean).join(" • ") || "Recent search";
+  }
+
   return (
     <div style={{ borderBottom: "1px solid #e5e7eb", background: "#fff", position: "sticky", top: 0, zIndex: 20 }}>
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "12px 16px", display: "flex", alignItems: "center", gap: 14 }}>
@@ -51,42 +87,151 @@ export default function Header({ categories = [], onCategoryPick, onSearchSubmit
           <img src={logoPng} alt="BookingHub" style={{ height: 40, display: "block" }} />
         </Link>
 
-        <form onSubmit={handleSubmit} style={{ flex: 1, display: "flex", gap: 10 }}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", border: "2px solid #2563eb", borderRadius: 999, padding: "8px 12px" }}>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Какво търсиш днес?"
-              style={{ border: "none", outline: "none", width: "100%", fontSize: 14 }}
-            />
-            <button type="submit" title="Search" style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18 }}>
-              🔎
-            </button>
-          </div>
+        <div ref={searchRef} style={{ flex: 1, position: "relative" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", border: "2px solid #2563eb", borderRadius: 999, padding: "8px 12px" }}>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onFocus={() => {
+                  if (role === "CLIENT" && recentSearches.length > 0) {
+                    setOpenRecentSearches(true);
+                  }
+                }}
+                placeholder="What are you looking for?"
+                style={{ border: "none", outline: "none", width: "100%", fontSize: 14 }}
+              />
+              <button type="submit" title="Search" style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18 }}>
+                🔎
+              </button>
+            </div>
 
-          <input
-            value={city}
-            onChange={(event) => setCity(event.target.value)}
-            placeholder="Град..."
-            style={{ width: 160, border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 12px", outline: "none" }}
-          />
-        </form>
+            <button
+              type="button"
+              onClick={() => setOpenFilters((current) => !current)}
+              style={filterButton}
+            >
+              Filters
+            </button>
+          </form>
+
+          {openFilters && (
+            <div style={filtersDropdown}>
+              <div style={filtersHeader}>
+                <div style={filtersTitle}>Search filters</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilters({
+                      city: "",
+                      categoryId: "",
+                      minPrice: "",
+                      maxPrice: "",
+                    });
+                  }}
+                  style={clearFiltersButton}
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div style={filtersGrid}>
+                <label style={filterField}>
+                  <span style={filterLabel}>City</span>
+                  <input
+                    value={filters.city}
+                    onChange={(event) => setFilters((current) => ({ ...current, city: event.target.value }))}
+                    placeholder="Sofia"
+                    style={filterInput}
+                  />
+                </label>
+
+                <label style={filterField}>
+                  <span style={filterLabel}>Category</span>
+                  <select
+                    value={filters.categoryId}
+                    onChange={(event) => setFilters((current) => ({ ...current, categoryId: event.target.value }))}
+                    style={filterInput}
+                  >
+                    <option value="">All categories</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label style={filterField}>
+                  <span style={filterLabel}>Min price</span>
+                  <input
+                    value={filters.minPrice}
+                    onChange={(event) => setFilters((current) => ({ ...current, minPrice: event.target.value }))}
+                    placeholder="20"
+                    inputMode="numeric"
+                    style={filterInput}
+                  />
+                </label>
+
+                <label style={filterField}>
+                  <span style={filterLabel}>Max price</span>
+                  <input
+                    value={filters.maxPrice}
+                    onChange={(event) => setFilters((current) => ({ ...current, maxPrice: event.target.value }))}
+                    placeholder="120"
+                    inputMode="numeric"
+                    style={filterInput}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {role === "CLIENT" && recentSearches.length > 0 && openRecentSearches && (
+            <div style={recentSearchDropdown}>
+              <div style={recentSearchDropdownHeader}>Recent searches</div>
+              <div style={recentSearchDropdownList}>
+                {recentSearches.slice(0, 8).map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setOpenRecentSearches(false);
+                      setQuery(item?.query || "");
+                      setFilters({
+                        city: item?.city || "",
+                        categoryId: item?.categoryId != null ? String(item.categoryId) : "",
+                        minPrice: item?.minPrice != null ? String(item.minPrice) : "",
+                        maxPrice: item?.maxPrice != null ? String(item.maxPrice) : "",
+                      });
+                      onRecentSearchPick?.(item);
+                    }}
+                    style={recentSearchItem}
+                    title={labelForRecentSearch(item)}
+                  >
+                    <span style={recentSearchIcon}>↺</span>
+                    <span style={recentSearchText}>{labelForRecentSearch(item)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {role !== "BUSINESS" && (
             <>
-              <button onClick={() => requireLogin("Любими") || alert("Любими: ще го добавим след малко.")} title="Favorites" style={iconBtn}>
-                ❤️
+              <button onClick={() => requireLogin("Любими") || go("/favorites")} title="Favorites" style={iconBtn}>
+                <span style={heartGlyph}>♥</span>
               </button>
-              <button onClick={() => requireLogin("Резервации") || alert("Резервации: ще го добавим след малко.")} title="My bookings" style={iconBtn}>
-                📅
+              <button onClick={() => requireLogin("Резервации") || go("/my-bookings")} title="My bookings" style={iconBtn}>
+                <span style={iconGlyph}>📘</span>
               </button>
             </>
           )}
 
           <div style={{ position: "relative" }}>
             <button onClick={() => setOpenProfile((current) => !current)} title="Profile" style={iconBtn}>
-              👤
+              <span style={iconGlyph}>👤</span>
             </button>
 
             {openProfile && (
@@ -106,6 +251,7 @@ export default function Header({ categories = [], onCategoryPick, onSearchSubmit
 
                     {role === "CLIENT" && (
                       <>
+                        <MenuItem label="My profile" onClick={() => go("/my-profile")} />
                         <MenuItem label="Моите резервации" onClick={() => go("/my-bookings")} />
                         <MenuItem label="Любими" onClick={() => go("/favorites")} />
                       </>
@@ -198,11 +344,153 @@ function MenuItem({ label, onClick, danger }) {
 }
 
 const iconBtn = {
-  border: "1px solid #e5e7eb",
-  background: "#fff",
-  borderRadius: 12,
-  width: 42,
-  height: 42,
+  border: "1px solid #dbeafe",
+  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+  borderRadius: 14,
+  width: 44,
+  height: 44,
   cursor: "pointer",
+  boxShadow: "0 8px 18px rgba(37, 99, 235, 0.08)",
+};
+
+const iconGlyph = {
+  display: "inline-block",
   fontSize: 18,
+  color: "#1d4ed8",
+  fontWeight: 900,
+  lineHeight: 1,
+};
+
+const heartGlyph = {
+  display: "inline-block",
+  fontSize: 20,
+  color: "#2563eb",
+  fontWeight: 900,
+  lineHeight: 1,
+};
+
+const recentSearchDropdown = {
+  position: "absolute",
+  left: 0,
+  right: 0,
+  top: 54,
+  background: "#fff",
+  border: "1px solid #dbeafe",
+  borderRadius: 20,
+  boxShadow: "0 24px 60px rgba(15,23,42,0.14)",
+  overflow: "hidden",
+  zIndex: 70,
+};
+
+const recentSearchDropdownHeader = {
+  padding: "12px 16px 10px",
+  fontSize: 11,
+  fontWeight: 900,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "#64748b",
+  background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+  borderBottom: "1px solid #eff6ff",
+};
+
+const recentSearchDropdownList = {
+  display: "grid",
+};
+
+const recentSearchItem = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  width: "100%",
+  textAlign: "left",
+  padding: "13px 16px",
+  border: "none",
+  background: "#fff",
+  cursor: "pointer",
+  color: "#0f172a",
+};
+
+const recentSearchIcon = {
+  color: "#2563eb",
+  fontWeight: 900,
+  flexShrink: 0,
+};
+
+const recentSearchText = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  fontWeight: 700,
+};
+
+const filterButton = {
+  border: "1px solid #cbd5e1",
+  background: "#fff",
+  borderRadius: 14,
+  padding: "10px 14px",
+  cursor: "pointer",
+  fontWeight: 800,
+  color: "#0f172a",
+  boxShadow: "0 10px 24px rgba(15,23,42,0.06)",
+};
+
+const filtersDropdown = {
+  position: "absolute",
+  left: 0,
+  right: 0,
+  top: 54,
+  background: "#fff",
+  border: "1px solid #dbeafe",
+  borderRadius: 22,
+  boxShadow: "0 24px 60px rgba(15,23,42,0.14)",
+  padding: 16,
+  zIndex: 75,
+};
+
+const filtersHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  marginBottom: 14,
+};
+
+const filtersTitle = {
+  fontWeight: 900,
+  color: "#0f172a",
+};
+
+const clearFiltersButton = {
+  border: "none",
+  background: "transparent",
+  color: "#2563eb",
+  cursor: "pointer",
+  fontWeight: 800,
+};
+
+const filtersGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 12,
+};
+
+const filterField = {
+  display: "grid",
+  gap: 6,
+};
+
+const filterLabel = {
+  fontSize: 12,
+  fontWeight: 800,
+  color: "#334155",
+};
+
+const filterInput = {
+  width: "100%",
+  boxSizing: "border-box",
+  border: "1px solid #cbd5e1",
+  borderRadius: 12,
+  padding: "11px 12px",
+  outline: "none",
+  background: "#fff",
 };

@@ -57,13 +57,14 @@ public class AuthService {
         );
     }
 
+    @Transactional
     public AuthResponse loginAsDev(String requestedRole) {
         String role = requestedRole == null ? "" : requestedRole.trim().toUpperCase();
 
         return switch (role) {
-            case "CLIENT" -> AuthResponse.of(null, "dev_client", "dev-client@bookinghub.local", "CLIENT", true);
-            case "BUSINESS" -> AuthResponse.of(null, "dev_business", "dev-business@bookinghub.local", "BUSINESS", true);
-            case "ADMIN" -> AuthResponse.of(null, "dev_admin", "dev-admin@bookinghub.local", "ADMIN", true);
+            case "CLIENT" -> toAuthResponse(ensureDevClient(), true);
+            case "BUSINESS" -> toAuthResponse(ensureDevBusiness(), true);
+            case "ADMIN" -> toAuthResponse(ensureDevAdmin(), true);
             default -> throw new IllegalArgumentException("Invalid dev role");
         };
     }
@@ -117,4 +118,63 @@ public class AuthService {
 
     private boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
     private String safeTrim(String s) { return isBlank(s) ? null : s.trim(); }
+
+    private AuthResponse toAuthResponse(User user, boolean devMode) {
+        return AuthResponse.of(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole().name(),
+                devMode
+        );
+    }
+
+    private User ensureDevClient() {
+        User user = users.findByUsernameIgnoreCase("dev_client")
+                .orElseGet(() -> createDevUser("dev_client", "dev-client@bookinghub.local", User.Role.CLIENT));
+
+        if (clientProfiles.findById(user.getId()).isEmpty()) {
+            ClientProfile profile = new ClientProfile();
+            profile.setUser(user);
+            profile.setFirstName("Dev");
+            profile.setLastName("Client");
+            profile.setPhone("0000000000");
+            clientProfiles.save(profile);
+        }
+
+        return user;
+    }
+
+    private User ensureDevBusiness() {
+        User user = users.findByUsernameIgnoreCase("dev_business")
+                .orElseGet(() -> createDevUser("dev_business", "dev-business@bookinghub.local", User.Role.BUSINESS));
+
+        if (businessProfiles.findById(user.getId()).isEmpty()) {
+            BusinessProfile profile = new BusinessProfile();
+            profile.setUser(user);
+            profile.setProviderType(BusinessProfile.ProviderType.COMPANY);
+            profile.setBusinessName("Dev Business");
+            profile.setCity("Sofia");
+            profile.setAddress("Development Street 1");
+            profile.setPhone("0000000001");
+            businessProfiles.save(profile);
+        }
+
+        return user;
+    }
+
+    private User ensureDevAdmin() {
+        return users.findByUsernameIgnoreCase("dev_admin")
+                .orElseGet(() -> createDevUser("dev_admin", "dev-admin@bookinghub.local", User.Role.ADMIN));
+    }
+
+    private User createDevUser(String username, String email, User.Role role) {
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPasswordHash(encoder.encode("dev-pass-123"));
+        user.setRole(role);
+        user.setActive(true);
+        return users.save(user);
+    }
 }

@@ -2,6 +2,13 @@
  * Frontend model layer.
  * These types describe the in-memory data shape after lib/mapper translates backend responses.
  *
+ * @typedef {Object} AuthModel
+ * @property {number | null} userId
+ * @property {string} username
+ * @property {string} email
+ * @property {"CLIENT" | "BUSINESS" | "ADMIN" | string} role
+ * @property {boolean} devMode
+ *
  * @typedef {Object} CategoryModel
  * @property {number} id
  * @property {string} name

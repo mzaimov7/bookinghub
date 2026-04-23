@@ -1,4 +1,12 @@
 /**
+ * @typedef {Object} AuthResponse
+ * @property {number | null} userId
+ * @property {string} username
+ * @property {string} email
+ * @property {"CLIENT" | "BUSINESS" | "ADMIN" | string} role
+ * @property {boolean} devMode
+ */
+/**
  * @typedef {Object} CategoryResponse
  * @property {number} id
  * @property {string} name

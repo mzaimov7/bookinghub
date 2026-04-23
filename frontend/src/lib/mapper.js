@@ -1,4 +1,18 @@
 /**
+ * @param {import("../types/api").AuthResponse} item
+ * @returns {import("../types/models").AuthModel}
+ */
+export function mapAuth(item) {
+  return {
+    userId: item?.userId == null ? null : Number(item.userId),
+    username: item?.username ?? "",
+    email: item?.email ?? "",
+    role: item?.role ?? "CLIENT",
+    devMode: Boolean(item?.devMode),
+  };
+}
+
+/**
  * @param {import("../types/api").CategoryResponse} item
  * @returns {import("../types/models").CategoryModel}
  */

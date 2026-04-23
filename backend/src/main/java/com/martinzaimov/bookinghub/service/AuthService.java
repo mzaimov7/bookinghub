@@ -1,5 +1,7 @@
 package com.martinzaimov.bookinghub.service;
 
+import com.martinzaimov.bookinghub.dto.AuthResponse;
+import com.martinzaimov.bookinghub.dto.LoginRequest;
 import com.martinzaimov.bookinghub.dto.RegisterRequest;
 import com.martinzaimov.bookinghub.entity.BusinessProfile;
 import com.martinzaimov.bookinghub.entity.ClientProfile;
@@ -27,6 +29,43 @@ public class AuthService {
         this.clientProfiles = clientProfiles;
         this.businessProfiles = businessProfiles;
         this.encoder = encoder;
+    }
+
+    @Transactional(readOnly = true)
+    public AuthResponse login(LoginRequest req) {
+        String identifier = safeTrim(req.identifier);
+        if (identifier == null) {
+            throw new IllegalArgumentException("Username or email is required");
+        }
+
+        User user = users.findByUsernameIgnoreCaseOrEmailIgnoreCase(identifier, identifier)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid username/email or password"));
+
+        if (!user.isActive()) {
+            throw new IllegalArgumentException("This account is disabled");
+        }
+        if (!encoder.matches(req.password, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Invalid username/email or password");
+        }
+
+        return AuthResponse.of(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole().name(),
+                false
+        );
+    }
+
+    public AuthResponse loginAsDev(String requestedRole) {
+        String role = requestedRole == null ? "" : requestedRole.trim().toUpperCase();
+
+        return switch (role) {
+            case "CLIENT" -> AuthResponse.of(null, "dev_client", "dev-client@bookinghub.local", "CLIENT", true);
+            case "BUSINESS" -> AuthResponse.of(null, "dev_business", "dev-business@bookinghub.local", "BUSINESS", true);
+            case "ADMIN" -> AuthResponse.of(null, "dev_admin", "dev-admin@bookinghub.local", "ADMIN", true);
+            default -> throw new IllegalArgumentException("Invalid dev role");
+        };
     }
 
     @Transactional
@@ -62,14 +101,15 @@ public class AuthService {
             cp.setPhone(safeTrim(req.phone));
             clientProfiles.save(cp);
         } else {
-            if (isBlank(req.providerType) || isBlank(req.businessName) || isBlank(req.city) || isBlank(req.address)) {
-                throw new IllegalArgumentException("Business name, provider type, city and address are required");
+            if (isBlank(req.providerType) || isBlank(req.businessName) || isBlank(req.city)) {
+                throw new IllegalArgumentException("Business name, provider type and city are required");
             }
             BusinessProfile bp = new BusinessProfile();
             bp.setUser(u);
-            bp.setProviderType(BusinessProfile.ProviderType.valueOf(req.providerType.trim().toUpperCase()));            bp.setBusinessName(req.businessName.trim());
+            bp.setProviderType(BusinessProfile.ProviderType.valueOf(req.providerType.trim().toUpperCase()));
+            bp.setBusinessName(req.businessName.trim());
             bp.setCity(req.city.trim());
-            bp.setAddress(req.address.trim());
+            bp.setAddress(safeTrim(req.address));
             bp.setPhone(safeTrim(req.businessPhone));
             businessProfiles.save(bp);
         }

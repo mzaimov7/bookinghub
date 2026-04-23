@@ -30,7 +30,7 @@ public class BusinessProfile {
     @Column(name = "city", length = 120, nullable = false)
     private String city;
 
-    @Column(name = "address", length = 255, nullable = false)
+    @Column(name = "address", length = 255)
     private String address;
 
     @Column(name = "phone", length = 30)

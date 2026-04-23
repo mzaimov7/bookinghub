@@ -100,6 +100,7 @@ export default function Header({ categories = [], onCategoryPick, onSearchSubmit
                   <>
                     <div style={{ padding: "10px 12px", fontSize: 13, opacity: 0.8 }}>
                       @{auth?.username} • {role}
+                      {auth?.devMode ? " • DEV" : ""}
                     </div>
                     <div style={{ height: 1, background: "#e5e7eb" }} />
 

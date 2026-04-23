@@ -1,5 +1,6 @@
 package com.martinzaimov.bookinghub.controller;
 
+import com.martinzaimov.bookinghub.dto.LoginRequest;
 import com.martinzaimov.bookinghub.dto.RegisterRequest;
 import com.martinzaimov.bookinghub.service.AuthService;
 import jakarta.validation.Valid;
@@ -14,6 +15,16 @@ public class AuthController {
 
     public AuthController(AuthService auth) {
         this.auth = auth;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
+        return ResponseEntity.ok(auth.login(req));
+    }
+
+    @PostMapping("/dev-login/{role}")
+    public ResponseEntity<?> loginAsDev(@PathVariable String role) {
+        return ResponseEntity.ok(auth.loginAsDev(role));
     }
 
     @PostMapping("/register")

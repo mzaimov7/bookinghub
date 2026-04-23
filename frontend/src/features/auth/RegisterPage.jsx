@@ -1,23 +1,27 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { register } from "./api";
+import logoPng from "../../assets/BookingHub-logo.png";
+
+const initialForm = {
+  username: "",
+  email: "",
+  password: "",
+  firstName: "",
+  lastName: "",
+  phone: "",
+  businessName: "",
+  city: "",
+  address: "",
+  businessPhone: "",
+};
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [role, setRole] = useState("CLIENT");
   const [providerType, setProviderType] = useState("COMPANY");
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    password: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-    businessName: "",
-    city: "",
-    address: "",
-    businessPhone: "",
-  });
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState(initialForm);
 
   function onChange(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -27,99 +31,440 @@ export default function RegisterPage() {
     event.preventDefault();
 
     const payload = {
-      username: form.username,
-      email: form.email,
+      username: form.username.trim(),
+      email: form.email.trim(),
       password: form.password,
       role,
     };
 
     if (role === "CLIENT") {
-      payload.firstName = form.firstName;
-      payload.lastName = form.lastName;
-      payload.phone = form.phone || null;
+      payload.firstName = form.firstName.trim();
+      payload.lastName = form.lastName.trim();
+      payload.phone = form.phone.trim() || null;
     } else {
       payload.providerType = providerType;
-      payload.businessName = form.businessName;
-      payload.city = form.city;
-      payload.address = form.address;
-      payload.businessPhone = form.businessPhone || null;
+      payload.businessName = form.businessName.trim();
+      payload.city = form.city.trim();
+      payload.address = form.address.trim() || null;
+      payload.businessPhone = form.businessPhone.trim() || null;
     }
+
+    setLoading(true);
 
     try {
       await register(payload);
-      alert("Регистрацията е успешна. Можеш да влезеш.");
+      alert("Account created successfully. You can sign in now.");
       navigate("/login");
     } catch (error) {
       alert(error.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div style={wrap}>
-      <div style={card}>
-        <h2 style={{ margin: 0 }}>Регистрация</h2>
-        <p style={{ marginTop: 6, opacity: 0.75 }}>Създай акаунт като клиент или бизнес.</p>
+    <div style={shell}>
+      <div style={backdropGlowOne} />
+      <div style={backdropGlowTwo} />
 
-        <form onSubmit={onSubmit} style={{ marginTop: 14 }}>
-          <label style={label}>Тип акаунт</label>
-          <select value={role} onChange={(event) => setRole(event.target.value)} style={input}>
-            <option value="CLIENT">Клиент</option>
-            <option value="BUSINESS">Бизнес</option>
-          </select>
+      <div style={layout}>
+        <img src={logoPng} alt="BookingHub" style={logoStyle} />
 
-          <label style={label}>Потребителско име</label>
-          <input name="username" value={form.username} onChange={onChange} style={input} required />
+        <section style={formPanel}>
+          <div style={card}>
+            <div style={formHeader}>
+              <span style={eyebrow}>Create Account</span>
+              <h2 style={title}>Register</h2>
+            </div>
 
-          <label style={label}>Имейл</label>
-          <input name="email" value={form.email} onChange={onChange} style={input} type="email" required />
+            <div style={selectorGrid}>
+              <RoleCard
+                active={role === "CLIENT"}
+                title="Client"
+                subtitle="Personal account"
+                onClick={() => setRole("CLIENT")}
+              />
+              <RoleCard
+                active={role === "BUSINESS"}
+                title="Business"
+                subtitle="Service provider account"
+                onClick={() => setRole("BUSINESS")}
+              />
+            </div>
 
-          <label style={label}>Парола</label>
-          <input name="password" value={form.password} onChange={onChange} style={input} type="password" required />
+            <form onSubmit={onSubmit} style={formStyle}>
+              <div style={gridTwo}>
+                <Field
+                  label="Username"
+                  name="username"
+                  value={form.username}
+                  onChange={onChange}
+                  placeholder="Choose a username"
+                  disabled={loading}
+                  required
+                />
+                <Field
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={onChange}
+                  placeholder="name@email.com"
+                  disabled={loading}
+                  required
+                />
+              </div>
 
-          {role === "CLIENT" ? (
-            <>
-              <hr style={{ margin: "16px 0", opacity: 0.2 }} />
-              <label style={label}>Име</label>
-              <input name="firstName" value={form.firstName} onChange={onChange} style={input} required />
-              <label style={label}>Фамилия</label>
-              <input name="lastName" value={form.lastName} onChange={onChange} style={input} required />
-              <label style={label}>Телефон (по желание)</label>
-              <input name="phone" value={form.phone} onChange={onChange} style={input} />
-            </>
-          ) : (
-            <>
-              <hr style={{ margin: "16px 0", opacity: 0.2 }} />
-              <label style={label}>Тип доставчик</label>
-              <select value={providerType} onChange={(event) => setProviderType(event.target.value)} style={input}>
-                <option value="COMPANY">Фирма (COMPANY)</option>
-                <option value="INDIVIDUAL">Индивидуален доставчик (INDIVIDUAL)</option>
-              </select>
-              <label style={label}>Име на бизнес</label>
-              <input name="businessName" value={form.businessName} onChange={onChange} style={input} required />
-              <label style={label}>Град</label>
-              <input name="city" value={form.city} onChange={onChange} style={input} required />
-              <label style={label}>Адрес</label>
-              <input name="address" value={form.address} onChange={onChange} style={input} required />
-              <label style={label}>Телефон (по желание)</label>
-              <input name="businessPhone" value={form.businessPhone} onChange={onChange} style={input} />
-            </>
-          )}
+              <Field
+                label="Password"
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={onChange}
+                placeholder="Create a password"
+                disabled={loading}
+                required
+              />
 
-          <button type="submit" style={btn}>
-            Създай акаунт
-          </button>
+              {role === "CLIENT" ? (
+                <>
+                  <div style={sectionLabel}>Client profile</div>
+                  <div style={gridTwo}>
+                    <Field
+                      label="First name"
+                      name="firstName"
+                      value={form.firstName}
+                      onChange={onChange}
+                      placeholder="First name"
+                      disabled={loading}
+                      required
+                    />
+                    <Field
+                      label="Last name"
+                      name="lastName"
+                      value={form.lastName}
+                      onChange={onChange}
+                      placeholder="Last name"
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                  <Field
+                    label="Phone"
+                    name="phone"
+                    value={form.phone}
+                    onChange={onChange}
+                    placeholder="Optional"
+                    disabled={loading}
+                  />
+                </>
+              ) : (
+                <>
+                  <div style={sectionLabel}>Business profile</div>
 
-          <div style={{ marginTop: 12, fontSize: 14 }}>
-            Имаш акаунт? <Link to="/login">Вход</Link>
+                  <div style={providerGrid}>
+                    <ProviderCard
+                      active={providerType === "COMPANY"}
+                      title="Company"
+                      onClick={() => setProviderType("COMPANY")}
+                    />
+                    <ProviderCard
+                      active={providerType === "INDIVIDUAL"}
+                      title="Individual"
+                      onClick={() => setProviderType("INDIVIDUAL")}
+                    />
+                  </div>
+
+                  <Field
+                    label="Business name"
+                    name="businessName"
+                    value={form.businessName}
+                    onChange={onChange}
+                    placeholder="Business name"
+                    disabled={loading}
+                    required
+                  />
+
+                  <div style={gridTwo}>
+                    <Field
+                      label="City"
+                      name="city"
+                      value={form.city}
+                      onChange={onChange}
+                      placeholder="City"
+                      disabled={loading}
+                      required
+                    />
+                    <Field
+                      label="Phone"
+                      name="businessPhone"
+                      value={form.businessPhone}
+                      onChange={onChange}
+                      placeholder="Optional"
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <Field
+                    label="Address"
+                    name="address"
+                    value={form.address}
+                    onChange={onChange}
+                    placeholder="Optional"
+                    disabled={loading}
+                  />
+                </>
+              )}
+
+              <button type="submit" style={primaryButton} disabled={loading}>
+                {loading ? "Creating account..." : "Create account"}
+              </button>
+            </form>
+
+            <p style={registerText}>
+              Already have an account? <Link to="/login" style={registerLink}>Sign in</Link>
+            </p>
           </div>
-        </form>
+        </section>
       </div>
     </div>
   );
 }
 
-const wrap = { minHeight: "80vh", display: "grid", placeItems: "center", padding: 16 };
-const card = { width: "min(520px, 100%)", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 18 };
-const label = { display: "block", marginTop: 10, marginBottom: 6, fontWeight: 700 };
-const input = { width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid #cbd5e1" };
-const btn = { width: "100%", marginTop: 16, padding: "12px 14px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 900, background: "#2563eb", color: "#fff" };
+function Field({ label, required, ...props }) {
+  return (
+    <label style={fieldWrap}>
+      <span style={labelStyle}>
+        {label}
+        {required ? " *" : ""}
+      </span>
+      <input {...props} style={input} />
+    </label>
+  );
+}
+
+function RoleCard({ active, title, subtitle, onClick }) {
+  return (
+    <button type="button" onClick={onClick} style={{ ...roleCard, ...(active ? roleCardActive : null) }}>
+      <span style={roleCardTitle}>{title}</span>
+      <span style={roleCardSubtitle}>{subtitle}</span>
+    </button>
+  );
+}
+
+function ProviderCard({ active, title, onClick }) {
+  return (
+    <button type="button" onClick={onClick} style={{ ...providerCard, ...(active ? providerCardActive : null) }}>
+      {title}
+    </button>
+  );
+}
+
+const shell = {
+  minHeight: "100vh",
+  position: "relative",
+  overflow: "hidden",
+  background: "radial-gradient(circle at top left, #eff6ff 0%, #dbeafe 18%, #f8fafc 42%, #fffaf0 100%)",
+};
+
+const backdropGlowOne = {
+  position: "absolute",
+  top: -180,
+  left: -120,
+  width: 420,
+  height: 420,
+  borderRadius: "50%",
+  background: "rgba(59, 130, 246, 0.18)",
+  filter: "blur(40px)",
+};
+
+const backdropGlowTwo = {
+  position: "absolute",
+  right: -140,
+  bottom: -120,
+  width: 360,
+  height: 360,
+  borderRadius: "50%",
+  background: "rgba(245, 158, 11, 0.18)",
+  filter: "blur(44px)",
+};
+
+const layout = {
+  position: "relative",
+  zIndex: 1,
+  maxWidth: 760,
+  margin: "0 auto",
+  minHeight: "100vh",
+  padding: "32px 20px",
+  display: "grid",
+  gap: 18,
+  alignContent: "center",
+  justifyItems: "center",
+};
+
+const logoStyle = {
+  display: "block",
+  height: 60,
+  marginBottom: 6,
+};
+
+const formPanel = {
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+};
+
+const card = {
+  width: "min(620px, 100%)",
+  padding: 28,
+  borderRadius: 30,
+  background: "rgba(255,255,255,0.84)",
+  border: "1px solid rgba(255,255,255,0.7)",
+  boxShadow: "0 24px 80px rgba(15, 23, 42, 0.14)",
+  backdropFilter: "blur(18px)",
+};
+
+const formHeader = {
+  marginBottom: 18,
+};
+
+const eyebrow = {
+  display: "inline-block",
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#2563eb",
+};
+
+const title = {
+  margin: "10px 0 4px",
+  color: "#0f172a",
+  fontSize: 34,
+  lineHeight: 1.05,
+  textAlign: "center",
+};
+
+const selectorGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 12,
+  marginBottom: 18,
+};
+
+const roleCard = {
+  display: "grid",
+  gap: 6,
+  padding: "16px 18px",
+  borderRadius: 20,
+  border: "1px solid #dbeafe",
+  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+  textAlign: "left",
+  cursor: "pointer",
+};
+
+const roleCardActive = {
+  border: "1px solid #2563eb",
+  boxShadow: "0 10px 24px rgba(37, 99, 235, 0.14)",
+};
+
+const roleCardTitle = {
+  fontSize: 16,
+  fontWeight: 900,
+  color: "#0f172a",
+};
+
+const roleCardSubtitle = {
+  fontSize: 13,
+  color: "#64748b",
+};
+
+const formStyle = {
+  display: "grid",
+  gap: 14,
+};
+
+const gridTwo = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 12,
+};
+
+const fieldWrap = {
+  display: "grid",
+  gap: 6,
+};
+
+const labelStyle = {
+  color: "#0f172a",
+  fontSize: 13,
+  fontWeight: 800,
+};
+
+const input = {
+  width: "100%",
+  padding: "14px 15px",
+  borderRadius: 16,
+  border: "1px solid #cbd5e1",
+  background: "rgba(255,255,255,0.9)",
+  color: "#0f172a",
+  outline: "none",
+  fontSize: 15,
+  boxSizing: "border-box",
+};
+
+const sectionLabel = {
+  marginTop: 6,
+  color: "#2563eb",
+  fontSize: 12,
+  fontWeight: 900,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+};
+
+const providerGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 10,
+};
+
+const providerCard = {
+  padding: "12px 14px",
+  borderRadius: 16,
+  border: "1px solid #dbeafe",
+  background: "#f8fbff",
+  color: "#0f172a",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const providerCardActive = {
+  background: "#eff6ff",
+  border: "1px solid #2563eb",
+};
+
+const primaryButton = {
+  marginTop: 4,
+  padding: "15px 16px",
+  borderRadius: 16,
+  border: "none",
+  background: "linear-gradient(135deg, #0f172a 0%, #2563eb 100%)",
+  color: "#fff",
+  fontWeight: 900,
+  cursor: "pointer",
+  boxShadow: "0 16px 30px rgba(37, 99, 235, 0.28)",
+};
+
+const registerText = {
+  marginTop: 18,
+  marginBottom: 0,
+  color: "#475569",
+  fontSize: 14,
+  textAlign: "center",
+};
+
+const registerLink = {
+  color: "#2563eb",
+  fontWeight: 800,
+  textDecoration: "none",
+};

@@ -52,6 +52,7 @@
  * @typedef {Object} CategoryResponse
  * @property {number} id
  * @property {string} name
+ * @property {string | null} description
  *
  * @typedef {Object} ServiceResponse
  * @property {number} id

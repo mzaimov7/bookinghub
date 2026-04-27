@@ -88,6 +88,7 @@ export function mapCategory(item) {
   return {
     id: Number(item?.id ?? 0),
     name: item?.name ?? "",
+    description: item?.description ?? "",
   };
 }
 

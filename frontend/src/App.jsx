@@ -9,6 +9,7 @@ import BusinessDashboardPage from "./features/business/dashboard/BusinessDashboa
 import BusinessResourcesPage from "./features/business/resources/BusinessResourcesPage";
 import BusinessCreateServicePage from "./features/business/services/BusinessCreateServicePage";
 import HomePage from "./features/home/HomePage";
+import SearchResultsPage from "./features/search/SearchResultsPage";
 import ServiceDetailsPage from "./features/services/ServiceDetailsPage";
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
       <Routes>
         <Route path="/business/resources" element={<BusinessResourcesPage />} />
         <Route path="/" element={<HomePage />} />
+        <Route path="/search" element={<SearchResultsPage />} />
         <Route path="/services/:id" element={<ServiceDetailsPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

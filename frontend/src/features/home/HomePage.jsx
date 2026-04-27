@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Footer from "../../components/layout/Footer";
 import Header from "../../components/layout/Header";
+import CategoryDiscoverySection from "../../components/sections/CategoryDiscoverySection";
 import HeroCarousel from "../../components/sections/HeroCarousel";
+import PlatformStorySection from "../../components/sections/PlatformStorySection";
 import ServiceGrid from "../../components/sections/ServiceGrid";
-import { getRecentSearches, getFavoriteIds, addFavorite, removeFavorite, saveRecentSearch } from "../client/api";
+import { getRecentSearches, getFavoriteIds, addFavorite, removeFavorite } from "../client/api";
 import { getCategories, searchServices } from "./api";
 import { getRole, isLoggedIn } from "../../lib/authStore";
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [services, setServices] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
   const [favoriteIds, setFavoriteIds] = useState([]);
-  const [hasActiveSearch, setHasActiveSearch] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -33,46 +36,28 @@ export default function HomePage() {
     load();
   }, []);
 
-  async function onSearchSubmit(filters = {}) {
-    const data = await searchServices(filters);
-    setServices(data);
-    setHasActiveSearch(Boolean(filters.query || filters.city || filters.categoryId || filters.minPrice || filters.maxPrice));
-
-    if (isLoggedIn() && getRole() === "CLIENT") {
-      await saveRecentSearch({
-        query: filters.query || null,
-        city: filters.city || null,
-        categoryId: filters.categoryId ? Number(filters.categoryId) : null,
-        minPrice: filters.minPrice ? Number(filters.minPrice) : null,
-        maxPrice: filters.maxPrice ? Number(filters.maxPrice) : null,
-      }).catch(() => {});
-      setRecentSearches(await getRecentSearches().catch(() => []));
-    }
+  function onSearchSubmit(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.query) params.set("query", filters.query);
+    if (filters.city) params.set("city", filters.city);
+    if (filters.categoryId) params.set("categoryId", filters.categoryId);
+    if (filters.minPrice) params.set("minPrice", filters.minPrice);
+    if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+    navigate(`/search${params.toString() ? `?${params.toString()}` : ""}`);
   }
 
-  async function onCategoryPick(category) {
-    const data = await searchServices({ categoryId: String(category.id) });
-    setServices(data);
-    setHasActiveSearch(true);
-
-    if (isLoggedIn() && getRole() === "CLIENT") {
-      await saveRecentSearch({
-        query: null,
-        city: null,
-        categoryId: category.id,
-      }).catch(() => {});
-      setRecentSearches(await getRecentSearches().catch(() => []));
-    }
+  function onCategoryPick(category) {
+    navigate(`/search?categoryId=${category.id}`);
   }
 
-  async function onRecentSearchPick(item) {
-    await onSearchSubmit({
-      query: item.query || null,
-      city: item.city || null,
-      categoryId: item.categoryId ? String(item.categoryId) : null,
-      minPrice: item.minPrice != null ? String(item.minPrice) : null,
-      maxPrice: item.maxPrice != null ? String(item.maxPrice) : null,
-    });
+  function onRecentSearchPick(item) {
+    const params = new URLSearchParams();
+    if (item.query) params.set("query", item.query);
+    if (item.city) params.set("city", item.city);
+    if (item.categoryId != null) params.set("categoryId", String(item.categoryId));
+    if (item.minPrice != null) params.set("minPrice", String(item.minPrice));
+    if (item.maxPrice != null) params.set("maxPrice", String(item.maxPrice));
+    navigate(`/search${params.toString() ? `?${params.toString()}` : ""}`);
   }
 
   async function onToggleFavorite(serviceId) {
@@ -100,12 +85,14 @@ export default function HomePage() {
 
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 16px 18px" }}>
         <HeroCarousel />
+        <CategoryDiscoverySection categories={categories} onPickCategory={onCategoryPick} />
         <ServiceGrid
-          services={hasActiveSearch ? services : services.slice(0, 6)}
+          services={services.slice(0, 6)}
           favoriteIds={favoriteIds}
           onToggleFavorite={onToggleFavorite}
-          title={hasActiveSearch ? "Search results" : "Most popular right now"}
+          title="Most popular right now"
         />
+        <PlatformStorySection />
       </div>
 
       <Footer />

@@ -52,6 +52,7 @@
  * @typedef {Object} CategoryModel
  * @property {number} id
  * @property {string} name
+ * @property {string} description
  *
  * @typedef {Object} ServiceModel
  * @property {number} id

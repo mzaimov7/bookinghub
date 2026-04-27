@@ -18,3 +18,30 @@ export function resolveBackendImage(url) {
   if (url.startsWith("/")) return `http://localhost:8080${url}`;
   return url;
 }
+
+export function categoryFallbackImage(category) {
+  const value = `${category?.name || ""} ${category?.description || ""}`.toLowerCase();
+
+  if (
+    value.includes("hair") ||
+    value.includes("barber") ||
+    value.includes("beauty") ||
+    value.includes("salon") ||
+    value.includes("cosmetic")
+  ) {
+    return imgHaircut;
+  }
+
+  if (
+    value.includes("car") ||
+    value.includes("repair") ||
+    value.includes("service") ||
+    value.includes("electrical") ||
+    value.includes("diagnostic") ||
+    value.includes("auto")
+  ) {
+    return imgElectric;
+  }
+
+  return imgVip;
+}

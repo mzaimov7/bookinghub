@@ -10,7 +10,7 @@ export async function searchServices({ query, city, categoryId, minPrice, maxPri
   const params = new URLSearchParams();
   if (query) params.set("query", query);
   if (city) params.set("city", city);
-  if (categoryId) params.set("categoryId", categoryId);
+  if (categoryId && /^\d+$/.test(String(categoryId))) params.set("categoryId", categoryId);
   if (minPrice != null && minPrice !== "") params.set("minPrice", minPrice);
   if (maxPrice != null && maxPrice !== "") params.set("maxPrice", maxPrice);
 

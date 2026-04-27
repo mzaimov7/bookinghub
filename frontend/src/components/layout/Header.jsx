@@ -9,14 +9,7 @@ export default function Header({ categories = [], recentSearches = [], onCategor
   const [openCats, setOpenCats] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const [openRecentSearches, setOpenRecentSearches] = useState(false);
-  const [openFilters, setOpenFilters] = useState(false);
   const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState({
-    city: "",
-    categoryId: "",
-    minPrice: "",
-    maxPrice: "",
-  });
 
   const role = getRole();
   const auth = getAuth();
@@ -26,7 +19,6 @@ export default function Header({ categories = [], recentSearches = [], onCategor
     function handleClickOutside(event) {
       if (!searchRef.current?.contains(event.target)) {
         setOpenRecentSearches(false);
-        setOpenFilters(false);
       }
     }
 
@@ -45,14 +37,18 @@ export default function Header({ categories = [], recentSearches = [], onCategor
   function handleSubmit(event) {
     event.preventDefault();
     setOpenRecentSearches(false);
-    setOpenFilters(false);
-    onSearchSubmit?.({
+    const nextFilters = {
       query: normalize(query),
-      city: normalize(filters.city),
-      categoryId: normalize(filters.categoryId),
-      minPrice: normalize(filters.minPrice),
-      maxPrice: normalize(filters.maxPrice),
-    });
+    };
+
+    if (onSearchSubmit) {
+      onSearchSubmit(nextFilters);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    if (nextFilters.query) params.set("query", nextFilters.query);
+    navigate(`/search${params.toString() ? `?${params.toString()}` : ""}`);
   }
 
   function go(path) {
@@ -88,7 +84,7 @@ export default function Header({ categories = [], recentSearches = [], onCategor
         </Link>
 
         <div ref={searchRef} style={{ flex: 1, position: "relative" }}>
-          <form onSubmit={handleSubmit} style={{ display: "flex", gap: 10 }}>
+          <form onSubmit={handleSubmit}>
             <div style={{ flex: 1, display: "flex", alignItems: "center", border: "2px solid #2563eb", borderRadius: 999, padding: "8px 12px" }}>
               <input
                 value={query}
@@ -105,87 +101,7 @@ export default function Header({ categories = [], recentSearches = [], onCategor
                 🔎
               </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setOpenFilters((current) => !current)}
-              style={filterButton}
-            >
-              Filters
-            </button>
           </form>
-
-          {openFilters && (
-            <div style={filtersDropdown}>
-              <div style={filtersHeader}>
-                <div style={filtersTitle}>Search filters</div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilters({
-                      city: "",
-                      categoryId: "",
-                      minPrice: "",
-                      maxPrice: "",
-                    });
-                  }}
-                  style={clearFiltersButton}
-                >
-                  Clear
-                </button>
-              </div>
-
-              <div style={filtersGrid}>
-                <label style={filterField}>
-                  <span style={filterLabel}>City</span>
-                  <input
-                    value={filters.city}
-                    onChange={(event) => setFilters((current) => ({ ...current, city: event.target.value }))}
-                    placeholder="Sofia"
-                    style={filterInput}
-                  />
-                </label>
-
-                <label style={filterField}>
-                  <span style={filterLabel}>Category</span>
-                  <select
-                    value={filters.categoryId}
-                    onChange={(event) => setFilters((current) => ({ ...current, categoryId: event.target.value }))}
-                    style={filterInput}
-                  >
-                    <option value="">All categories</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label style={filterField}>
-                  <span style={filterLabel}>Min price</span>
-                  <input
-                    value={filters.minPrice}
-                    onChange={(event) => setFilters((current) => ({ ...current, minPrice: event.target.value }))}
-                    placeholder="20"
-                    inputMode="numeric"
-                    style={filterInput}
-                  />
-                </label>
-
-                <label style={filterField}>
-                  <span style={filterLabel}>Max price</span>
-                  <input
-                    value={filters.maxPrice}
-                    onChange={(event) => setFilters((current) => ({ ...current, maxPrice: event.target.value }))}
-                    placeholder="120"
-                    inputMode="numeric"
-                    style={filterInput}
-                  />
-                </label>
-              </div>
-            </div>
-          )}
 
           {role === "CLIENT" && recentSearches.length > 0 && openRecentSearches && (
             <div style={recentSearchDropdown}>
@@ -197,13 +113,18 @@ export default function Header({ categories = [], recentSearches = [], onCategor
                     onClick={() => {
                       setOpenRecentSearches(false);
                       setQuery(item?.query || "");
-                      setFilters({
-                        city: item?.city || "",
-                        categoryId: item?.categoryId != null ? String(item.categoryId) : "",
-                        minPrice: item?.minPrice != null ? String(item.minPrice) : "",
-                        maxPrice: item?.maxPrice != null ? String(item.maxPrice) : "",
-                      });
-                      onRecentSearchPick?.(item);
+                      if (onRecentSearchPick) {
+                        onRecentSearchPick(item);
+                        return;
+                      }
+
+                      const params = new URLSearchParams();
+                      if (item?.query) params.set("query", item.query);
+                      if (item?.city) params.set("city", item.city);
+                      if (item?.categoryId != null) params.set("categoryId", String(item.categoryId));
+                      if (item?.minPrice != null) params.set("minPrice", String(item.minPrice));
+                      if (item?.maxPrice != null) params.set("maxPrice", String(item.maxPrice));
+                      navigate(`/search${params.toString() ? `?${params.toString()}` : ""}`);
                     }}
                     style={recentSearchItem}
                     title={labelForRecentSearch(item)}
@@ -302,7 +223,11 @@ export default function Header({ categories = [], recentSearches = [], onCategor
                   <button
                     key={category.id}
                     onClick={() => {
-                      onCategoryPick?.(category);
+                      if (onCategoryPick) {
+                        onCategoryPick(category);
+                      } else {
+                        navigate(`/search?categoryId=${category.id}`);
+                      }
                       setOpenCats(false);
                     }}
                     style={{ width: "100%", textAlign: "left", padding: "12px 14px", border: "none", background: "#fff", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14 }}
@@ -421,76 +346,4 @@ const recentSearchText = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   fontWeight: 700,
-};
-
-const filterButton = {
-  border: "1px solid #cbd5e1",
-  background: "#fff",
-  borderRadius: 14,
-  padding: "10px 14px",
-  cursor: "pointer",
-  fontWeight: 800,
-  color: "#0f172a",
-  boxShadow: "0 10px 24px rgba(15,23,42,0.06)",
-};
-
-const filtersDropdown = {
-  position: "absolute",
-  left: 0,
-  right: 0,
-  top: 54,
-  background: "#fff",
-  border: "1px solid #dbeafe",
-  borderRadius: 22,
-  boxShadow: "0 24px 60px rgba(15,23,42,0.14)",
-  padding: 16,
-  zIndex: 75,
-};
-
-const filtersHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-  marginBottom: 14,
-};
-
-const filtersTitle = {
-  fontWeight: 900,
-  color: "#0f172a",
-};
-
-const clearFiltersButton = {
-  border: "none",
-  background: "transparent",
-  color: "#2563eb",
-  cursor: "pointer",
-  fontWeight: 800,
-};
-
-const filtersGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: 12,
-};
-
-const filterField = {
-  display: "grid",
-  gap: 6,
-};
-
-const filterLabel = {
-  fontSize: 12,
-  fontWeight: 800,
-  color: "#334155",
-};
-
-const filterInput = {
-  width: "100%",
-  boxSizing: "border-box",
-  border: "1px solid #cbd5e1",
-  borderRadius: 12,
-  padding: "11px 12px",
-  outline: "none",
-  background: "#fff",
 };

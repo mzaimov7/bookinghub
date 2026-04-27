@@ -7,7 +7,13 @@ function imageFor(service) {
   return resolveBackendImage(service?.coverImageUrl) || serviceFallbackImage(service);
 }
 
-export default function ServiceGrid({ services = [], favoriteIds = [], onToggleFavorite, title = "Примерни обяви" }) {
+export default function ServiceGrid({
+  services = [],
+  favoriteIds = [],
+  onToggleFavorite,
+  title = "Примерни обяви",
+  viewMode = "grid",
+}) {
   const navigate = useNavigate();
 
   function onReserveClick(event) {
@@ -49,22 +55,28 @@ export default function ServiceGrid({ services = [], favoriteIds = [], onToggleF
 
   return (
     <div style={{ marginTop: 18 }}>
-      <h3 style={{ margin: "10px 0" }}>{title}</h3>
+      {title ? <h3 style={{ margin: "10px 0" }}>{title}</h3> : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 }}>
+      <div
+        style={
+          viewMode === "list"
+            ? listWrap
+            : { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 }
+        }
+      >
         {services.map((service) => (
           <Link key={service.id} to={`/services/${service.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-            <div style={{ border: "1px solid #e5e7eb", borderRadius: 16, overflow: "hidden", background: "#fff" }}>
+            <div style={viewMode === "list" ? listCard : card}>
               <img
                 src={imageFor(service)}
                 alt={service.title}
-                style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }}
+                style={viewMode === "list" ? listImage : image}
                 onError={(event) => {
                   event.currentTarget.src = serviceFallbackImage(service);
                 }}
               />
 
-              <div style={{ padding: 12 }}>
+              <div style={viewMode === "list" ? listBody : body}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
                   <div style={{ fontWeight: 800 }}>{service.title}</div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -80,7 +92,7 @@ export default function ServiceGrid({ services = [], favoriteIds = [], onToggleF
                   </div>
                 </div>
 
-                <div style={{ marginTop: 6, opacity: 0.85, fontSize: 14 }}>{service.description}</div>
+                <div style={description}>{service.description}</div>
 
                 <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ fontSize: 13, opacity: 0.8 }}>
@@ -99,6 +111,22 @@ export default function ServiceGrid({ services = [], favoriteIds = [], onToggleF
     </div>
   );
 }
+
+const card = { border: "1px solid #e5e7eb", borderRadius: 16, overflow: "hidden", background: "#fff" };
+const image = { width: "100%", height: 160, objectFit: "cover", display: "block" };
+const body = { padding: 12 };
+const description = { marginTop: 6, opacity: 0.85, fontSize: 14 };
+const listWrap = { display: "grid", gap: 14 };
+const listCard = {
+  display: "grid",
+  gridTemplateColumns: "280px minmax(0, 1fr)",
+  border: "1px solid #e5e7eb",
+  borderRadius: 20,
+  overflow: "hidden",
+  background: "#fff",
+};
+const listImage = { width: "100%", height: "100%", minHeight: 210, objectFit: "cover", display: "block" };
+const listBody = { padding: 16 };
 
 const reserveBtn = {
   border: "1px solid #cbd5e1",

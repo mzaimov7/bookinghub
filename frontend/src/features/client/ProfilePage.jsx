@@ -4,7 +4,7 @@ import Footer from "../../components/layout/Footer";
 import Header from "../../components/layout/Header";
 import { getRole, isLoggedIn, updateStoredAuth } from "../../lib/authStore";
 import { resolveBackendImage, serviceFallbackImage } from "../../lib/assets";
-import { getFavoriteIds, getFavoriteServices, getMyBookings, getMyProfile, updateMyProfile } from "./api";
+import { changeMyPassword, getFavoriteIds, getFavoriteServices, getMyBookings, getMyProfile, updateMyProfile, uploadMyProfilePhoto, verifyMyPassword } from "./api";
 
 function bookingStatusTone(status) {
   if (status === "CONFIRMED") return { background: "#ecfdf5", color: "#047857", border: "#bbf7d0" };
@@ -14,10 +14,10 @@ function bookingStatusTone(status) {
 }
 
 function formatStatus(status) {
-  if (status === "PENDING") return "Pending";
-  if (status === "CONFIRMED") return "Confirmed";
-  if (status === "REJECTED") return "Rejected";
-  if (status === "CANCELED") return "Canceled";
+  if (status === "PENDING") return "Изчакваща";
+  if (status === "CONFIRMED") return "Потвърдена";
+  if (status === "REJECTED") return "Отказана";
+  if (status === "CANCELED") return "Отменена";
   return status;
 }
 
@@ -43,12 +43,23 @@ export default function ProfilePage() {
   const [bookingCount, setBookingCount] = useState(0);
   const [favoritePreview, setFavoritePreview] = useState([]);
   const [bookingPreview, setBookingPreview] = useState([]);
+  const [unlocked, setUnlocked] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState("");
+  const [unlocking, setUnlocking] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [form, setForm] = useState({
     username: "",
     email: "",
     firstName: "",
     lastName: "",
     phone: "",
+    photoUrl: null,
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   useEffect(() => {
@@ -74,6 +85,10 @@ export default function ProfilePage() {
           firstName: profile.firstName,
           lastName: profile.lastName,
           phone: profile.phone || "",
+          photoUrl: profile.photoUrl || null,
+        });
+        updateStoredAuth({
+          profilePhotoUrl: profile.photoUrl || null,
         });
         setFavoriteCount(favoriteIds.length);
         setBookingCount(bookings.length);
@@ -83,15 +98,45 @@ export default function ProfilePage() {
       .finally(() => setLoading(false));
   }, [navigate]);
 
-  const firstName = useMemo(() => form.firstName?.trim() || "Client", [form.firstName]);
+  const firstName = useMemo(() => form.firstName?.trim() || "Клиент", [form.firstName]);
+  const profileDisplayName = useMemo(() => {
+    const fullName = `${form.firstName?.trim() || ""} ${form.lastName?.trim() || ""}`.trim();
+    return fullName || form.username?.trim() || "Клиентски профил";
+  }, [form.firstName, form.lastName, form.username]);
 
   function onChange(event) {
     setNotice(null);
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   }
 
+  function onPasswordFormChange(event) {
+    setNotice(null);
+    setPasswordForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  async function onUnlock(event) {
+    event.preventDefault();
+    setUnlocking(true);
+    setNotice(null);
+
+    try {
+      await verifyMyPassword(unlockPassword);
+      setUnlocked(true);
+      setUnlockPassword("");
+      setNotice({ type: "success", text: "Детайлите на профила са отключени." });
+    } catch (error) {
+      setNotice({ type: "error", text: error.message });
+    } finally {
+      setUnlocking(false);
+    }
+  }
+
   async function onSubmit(event) {
     event.preventDefault();
+    if (!unlocked) {
+      setNotice({ type: "error", text: "Отключи профила с текущата си парола, за да редактираш данните." });
+      return;
+    }
     setSaving(true);
     setNotice(null);
 
@@ -109,7 +154,7 @@ export default function ProfilePage() {
         email: profile.email,
       });
 
-      setNotice({ type: "success", text: "Profile updated successfully." });
+      setNotice({ type: "success", text: "Профилът беше обновен успешно." });
     } catch (error) {
       setNotice({ type: "error", text: error.message });
     } finally {
@@ -117,20 +162,71 @@ export default function ProfilePage() {
     }
   }
 
+  async function onPasswordSubmit(event) {
+    event.preventDefault();
+    setPasswordSaving(true);
+    setNotice(null);
+
+    try {
+      await changeMyPassword(passwordForm);
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setNotice({ type: "success", text: "Паролата беше сменена успешно." });
+    } catch (error) {
+      setNotice({ type: "error", text: error.message });
+    } finally {
+      setPasswordSaving(false);
+    }
+  }
+
+  async function onPhotoChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setPhotoUploading(true);
+    setNotice(null);
+
+    try {
+      const profile = await uploadMyProfilePhoto(file);
+      setForm((current) => ({ ...current, photoUrl: profile.photoUrl || null }));
+      updateStoredAuth({ profilePhotoUrl: profile.photoUrl || null });
+      setNotice({ type: "success", text: "Профилната снимка беше обновена успешно." });
+    } catch (error) {
+      setNotice({ type: "error", text: error.message });
+    } finally {
+      setPhotoUploading(false);
+      event.target.value = "";
+    }
+  }
+
+  const profilePhoto = resolveBackendImage(form.photoUrl);
+
   return (
     <div style={page}>
       <Header />
       <div style={content}>
         <div style={hero}>
-          <div>
-            <div style={eyebrow}>Client Profile</div>
-            <h1 style={title}>My Profile</h1>
-            <p style={subtitle}>Welcome back, {firstName}. Keep your details current and jump back into the services you care about.</p>
+          <div style={heroIntro}>
+            <div style={profileHeroAvatarWrap}>
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="Профилна снимка" style={profileHeroAvatar} />
+              ) : (
+                <div style={profileHeroFallback}>👤</div>
+              )}
+            </div>
+            <div>
+            <div style={eyebrow}>Клиентски профил</div>
+            <h1 style={title}>{profileDisplayName}</h1>
+            <p style={subtitle}>Здравей, {firstName}. Поддържай данните си актуални и се връщай бързо към услугите, които те интересуват.</p>
+            </div>
           </div>
 
           <div style={heroStats}>
-            <StatCard label="Saved services" value={favoriteCount} tone="blue" />
-            <StatCard label="Booking requests" value={bookingCount} tone="green" />
+            <StatCard label="Любими услуги" value={favoriteCount} tone="blue" />
+            <StatCard label="Резервации" value={bookingCount} tone="green" />
           </div>
         </div>
 
@@ -139,10 +235,10 @@ export default function ProfilePage() {
             <div style={card}>
               <div style={sectionHeader}>
                 <div>
-                  <div style={sectionEyebrow}>Account</div>
-                  <div style={sectionTitle}>Profile details</div>
+                  <div style={sectionEyebrow}>Профил</div>
+                  <div style={sectionTitle}>Детайли за профила</div>
                 </div>
-                <div style={miniPill}>Client account</div>
+                <div style={miniPill}>Клиентски профил</div>
               </div>
 
               {notice && (
@@ -159,25 +255,121 @@ export default function ProfilePage() {
               )}
 
               {loading ? (
-                <div style={{ color: "#64748b" }}>Loading profile...</div>
+                <div style={{ color: "#64748b" }}>Зареждане на профила...</div>
               ) : (
-                <form onSubmit={onSubmit} style={formGrid}>
-                  <div style={gridTwo}>
-                    <Field label="Username" name="username" value={form.username} onChange={onChange} required />
-                    <Field label="Email" name="email" type="email" value={form.email} onChange={onChange} required />
-                  </div>
+                <div style={formGrid}>
+                  {!unlocked ? (
+                    <>
+                      <div style={lockedGrid}>
+                        <MaskedField label="Потребителско име" />
+                        <MaskedField label="Имейл" />
+                        <MaskedField label="Име" />
+                        <MaskedField label="Фамилия" />
+                        <MaskedField label="Телефон" />
+                      </div>
 
-                  <div style={gridTwo}>
-                    <Field label="First name" name="firstName" value={form.firstName} onChange={onChange} required />
-                    <Field label="Last name" name="lastName" value={form.lastName} onChange={onChange} required />
-                  </div>
+                      <form onSubmit={onUnlock} style={unlockCard}>
+                        <div>
+                          <div style={unlockTitle}>Отключи детайлите</div>
+                          <div style={unlockText}>Въведи текущата си парола, за да видиш и редактираш профилните данни.</div>
+                        </div>
+                        <div style={unlockRow}>
+                          <Field
+                            label="Текуща парола"
+                            name="unlockPassword"
+                            type="password"
+                            value={unlockPassword}
+                            onChange={(event) => setUnlockPassword(event.target.value)}
+                            required
+                          />
+                          <button type="submit" style={unlockButton} disabled={unlocking}>
+                            {unlocking ? "Проверка..." : "Отключи"}
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  ) : (
+                    <>
+                      <div style={photoCard}>
+                        <div style={photoCardTop}>
+                          <div>
+                            <div style={passwordTitle}>Профилна снимка</div>
+                            <div style={unlockText}>Качи снимка сега или на по-късен етап. Ако няма качена снимка, профилът ще остане със стандартната икона.</div>
+                          </div>
+                          <div style={profilePreviewAvatarWrap}>
+                            {profilePhoto ? (
+                              <img src={profilePhoto} alt="Профилна снимка" style={profilePreviewAvatar} />
+                            ) : (
+                              <div style={profilePreviewFallback}>👤</div>
+                            )}
+                          </div>
+                        </div>
 
-                  <Field label="Phone" name="phone" value={form.phone} onChange={onChange} />
+                        <label style={photoUploadButton}>
+                          <input type="file" accept="image/*" onChange={onPhotoChange} style={{ display: "none" }} />
+                          {photoUploading ? "Качване..." : "Добави снимка"}
+                        </label>
+                      </div>
 
-                  <button type="submit" style={saveButton} disabled={saving}>
-                    {saving ? "Saving..." : "Save changes"}
-                  </button>
-                </form>
+                      <form onSubmit={onSubmit} style={formGrid}>
+                        <div style={gridTwo}>
+                          <Field label="Потребителско име" name="username" value={form.username} onChange={onChange} required />
+                          <Field label="Имейл" name="email" type="email" value={form.email} onChange={onChange} required />
+                        </div>
+
+                        <div style={gridTwo}>
+                          <Field label="Име" name="firstName" value={form.firstName} onChange={onChange} required />
+                          <Field label="Фамилия" name="lastName" value={form.lastName} onChange={onChange} required />
+                        </div>
+
+                        <Field label="Телефон" name="phone" value={form.phone} onChange={onChange} />
+
+                        <button type="submit" style={saveButton} disabled={saving}>
+                          {saving ? "Запазване..." : "Запази промените"}
+                        </button>
+                      </form>
+
+                      <form onSubmit={onPasswordSubmit} style={passwordCard}>
+                        <div>
+                          <div style={passwordTitle}>Смяна на парола</div>
+                          <div style={unlockText}>Използвай текущата си парола и въведи нова, за да обновиш достъпа до профила.</div>
+                        </div>
+
+                        <div style={gridTwo}>
+                          <Field
+                            label="Текуща парола"
+                            name="currentPassword"
+                            type="password"
+                            value={passwordForm.currentPassword}
+                            onChange={onPasswordFormChange}
+                            required
+                          />
+                          <Field
+                            label="Нова парола"
+                            name="newPassword"
+                            type="password"
+                            value={passwordForm.newPassword}
+                            onChange={onPasswordFormChange}
+                            required
+                          />
+                        </div>
+
+                        <Field
+                          label="Потвърди новата парола"
+                          name="confirmPassword"
+                          type="password"
+                          value={passwordForm.confirmPassword}
+                          onChange={onPasswordFormChange}
+                          required
+                        />
+
+                        <button type="submit" style={saveButton} disabled={passwordSaving}>
+                          {passwordSaving ? "Запазване..." : "Смени паролата"}
+                        </button>
+                      </form>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </section>
@@ -186,28 +378,28 @@ export default function ProfilePage() {
             <div style={sideCard}>
               <div style={sideHeader}>
                 <div>
-                  <div style={sectionEyebrow}>Quick access</div>
-                  <div style={sideTitle}>Your client hub</div>
+                  <div style={sectionEyebrow}>Бърз достъп</div>
+                  <div style={sideTitle}>Твоето клиентско място</div>
                 </div>
               </div>
 
               <div style={quickLinks}>
-                <Link to="/favorites" style={quickLink}>Open favorites</Link>
-                <Link to="/my-bookings" style={quickLink}>Open bookings</Link>
+                <Link to="/favorites" style={quickLink}>Отвори любими</Link>
+                <Link to="/my-bookings" style={quickLink}>Отвори резервации</Link>
               </div>
             </div>
 
             <div style={sideCard}>
               <div style={sideHeader}>
                 <div>
-                  <div style={sectionEyebrow}>Favorites</div>
-                  <div style={sideTitle}>Saved services</div>
+                  <div style={sectionEyebrow}>Любими</div>
+                  <div style={sideTitle}>Любими услуги</div>
                 </div>
-                <Link to="/favorites" style={inlineLink}>View all</Link>
+                <Link to="/favorites" style={inlineLink}>Виж всички</Link>
               </div>
 
               {favoritePreview.length === 0 ? (
-                <div style={emptyState}>You have not saved any services yet.</div>
+                <div style={emptyState}>Все още нямаш любими услуги.</div>
               ) : (
                 <div style={previewGrid}>
                   {favoritePreview.map((item) => (
@@ -215,7 +407,7 @@ export default function ProfilePage() {
                       <img src={favoriteImage(item)} alt={item.title} style={favoritePreviewImage} />
                       <div style={favoritePreviewBody}>
                         <div style={favoritePreviewTitle}>{item.title}</div>
-                        <div style={favoritePreviewMeta}>{item.city} • {item.price} lv</div>
+                        <div style={favoritePreviewMeta}>{item.city} • €{item.price}</div>
                       </div>
                     </Link>
                   ))}
@@ -226,14 +418,14 @@ export default function ProfilePage() {
             <div style={sideCard}>
               <div style={sideHeader}>
                 <div>
-                  <div style={sectionEyebrow}>Bookings</div>
-                  <div style={sideTitle}>Latest requests</div>
+                  <div style={sectionEyebrow}>Резервации</div>
+                  <div style={sideTitle}>Последни заявки</div>
                 </div>
-                <Link to="/my-bookings" style={inlineLink}>View all</Link>
+                <Link to="/my-bookings" style={inlineLink}>Виж всички</Link>
               </div>
 
               {bookingPreview.length === 0 ? (
-                <div style={emptyState}>Your booking requests will appear here.</div>
+                <div style={emptyState}>Твоите резервации ще се появят тук.</div>
               ) : (
                 <div style={bookingPreviewList}>
                   {bookingPreview.map((item) => (
@@ -279,6 +471,15 @@ function Field({ label, ...props }) {
   );
 }
 
+function MaskedField({ label }) {
+  return (
+    <div style={fieldWrap}>
+      <span style={fieldLabel}>{label}</span>
+      <div style={maskedField}>••••••••••••</div>
+    </div>
+  );
+}
+
 const page = {
   minHeight: "100vh",
   background: "radial-gradient(circle at top left, rgba(219,234,254,0.55) 0%, rgba(248,250,252,0.96) 26%, #f8fafc 66%)",
@@ -294,9 +495,21 @@ const hero = {
   border: "1px solid #dbeafe",
   boxShadow: "0 28px 80px rgba(148,163,184,0.14)",
 };
+const heroIntro = { display: "grid", gridTemplateColumns: "92px minmax(0, 1fr)", gap: 18, alignItems: "center" };
 const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: "#2563eb" };
 const title = { margin: "10px 0 8px", fontSize: 38, lineHeight: 1.04, color: "#0f172a" };
 const subtitle = { margin: 0, maxWidth: 640, color: "#475569", lineHeight: 1.7 };
+const profileHeroAvatarWrap = {
+  width: 92,
+  height: 92,
+  borderRadius: 999,
+  overflow: "hidden",
+  border: "1px solid #bfdbfe",
+  background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
+  boxShadow: "0 18px 36px rgba(37,99,235,0.12)",
+};
+const profileHeroAvatar = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
+const profileHeroFallback = { width: "100%", height: "100%", display: "grid", placeItems: "center", fontSize: 34 };
 const heroStats = { display: "grid", gap: 12, alignContent: "start" };
 const statCard = { padding: 18, borderRadius: 20, border: "1px solid" };
 const statValue = { fontSize: 32, fontWeight: 900, lineHeight: 1 };
@@ -361,6 +574,92 @@ const gridTwo = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr
 const fieldWrap = { display: "grid", gap: 6 };
 const fieldLabel = { fontWeight: 800, color: "#0f172a", fontSize: 13 };
 const fieldInput = { width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 14, border: "1px solid #cbd5e1" };
+const maskedField = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "13px 14px",
+  borderRadius: 14,
+  border: "1px solid #cbd5e1",
+  background: "#f8fafc",
+  color: "#475569",
+  fontWeight: 900,
+  letterSpacing: "0.12em",
+};
+const lockedGrid = { display: "grid", gap: 12 };
+const unlockCard = {
+  marginTop: 4,
+  padding: 16,
+  borderRadius: 18,
+  border: "1px solid #dbe4f0",
+  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+  display: "grid",
+  gap: 14,
+};
+const passwordCard = {
+  marginTop: 8,
+  padding: 16,
+  borderRadius: 18,
+  border: "1px solid #dbe4f0",
+  background: "#f8fafc",
+  display: "grid",
+  gap: 14,
+};
+const photoCard = {
+  marginTop: 4,
+  padding: 16,
+  borderRadius: 18,
+  border: "1px solid #dbe4f0",
+  background: "#fff",
+  display: "grid",
+  gap: 14,
+};
+const photoCardTop = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 16,
+  alignItems: "center",
+  flexWrap: "wrap",
+};
+const profilePreviewAvatarWrap = {
+  width: 72,
+  height: 72,
+  borderRadius: 999,
+  overflow: "hidden",
+  border: "1px solid #bfdbfe",
+  background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
+  flexShrink: 0,
+};
+const profilePreviewAvatar = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
+const profilePreviewFallback = { width: "100%", height: "100%", display: "grid", placeItems: "center", fontSize: 28 };
+const photoUploadButton = {
+  display: "inline-flex",
+  width: "fit-content",
+  padding: "12px 16px",
+  borderRadius: 14,
+  background: "#0f172a",
+  color: "#fff",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+const unlockTitle = { fontSize: 20, fontWeight: 900, color: "#0f172a" };
+const passwordTitle = { fontSize: 20, fontWeight: 900, color: "#0f172a" };
+const unlockText = { marginTop: 6, color: "#64748b", lineHeight: 1.65 };
+const unlockRow = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: 12,
+  alignItems: "end",
+};
+const unlockButton = {
+  padding: "13px 16px",
+  borderRadius: 14,
+  border: "none",
+  background: "#0f172a",
+  color: "#fff",
+  fontWeight: 900,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
 const saveButton = { marginTop: 6, padding: "13px 16px", borderRadius: 14, border: "none", background: "#2563eb", color: "#fff", fontWeight: 900, cursor: "pointer" };
 const previewGrid = { display: "grid", gap: 12 };
 const favoritePreviewCard = {

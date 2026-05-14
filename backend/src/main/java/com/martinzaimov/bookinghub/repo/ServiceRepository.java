@@ -11,6 +11,9 @@ import java.util.Optional;
 public interface ServiceRepository extends JpaRepository<Service, Long> {
 
     Optional<Service> findByIdAndActiveTrue(Long id);
+    List<Service> findAllByBusinessUserIdOrderByIdDesc(Long businessUserId);
+    List<Service> findAllByBusinessUserIdAndActiveTrueOrderByIdDesc(Long businessUserId);
+    List<Service> findAllByActiveTrueOrderByIdDesc();
 
     @Query("""
         select s

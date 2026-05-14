@@ -34,11 +34,15 @@ public class CreateServiceRequest {
     @NotNull
     public List<Long> resourceIds;
 
-    // график (MVP)
     @NotBlank
-    public String date; // "2026-03-02"
+    public String opensAt;
 
-    public int slotMinutes = 30;
+    @NotBlank
+    public String closesAt;
+
+    public int slotIntervalMinutes = 30;
+
+    public int bookingHorizonDays = 90;
 
     // ✅ снимки (оставяме, за да не счупим upload/cover)
     public List<String> imageUrls;

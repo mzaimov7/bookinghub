@@ -8,6 +8,7 @@ public record BookingItemDTO(
         Long serviceId,
         Long slotId,
         String status,
+        String statusReason,
         String clientNote,
         LocalDateTime createdAt,
         LocalDateTime startAt,

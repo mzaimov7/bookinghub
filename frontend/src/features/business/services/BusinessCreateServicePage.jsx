@@ -1,12 +1,27 @@
+import { resolveBackendImage } from "../../../lib/assets";
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { createService, listActiveResources } from "./api";
+import { useNavigate, useParams } from "react-router-dom";
+import Header from "../../../components/layout/Header";
+import { getCategories } from "../../home/api";
+import { createService, getMyService, listActiveResources, updateService, uploadServiceImage } from "./api";
 
 export default function BusinessCreateServicePage() {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const isEditMode = Boolean(id);
+  const todayKey = new Date().toISOString().split("T")[0];
+  const [categories, setCategories] = useState([]);
   const [resources, setResources] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingResources, setLoadingResources] = useState(true);
+  const [loadingService, setLoadingService] = useState(isEditMode);
+  const [uploading, setUploading] = useState(false);
   const [openPicker, setOpenPicker] = useState(false);
+  const [error, setError] = useState("");
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [coverIndex, setCoverIndex] = useState(0);
   const [form, setForm] = useState({
     categoryId: "",
     title: "",
@@ -15,9 +30,10 @@ export default function BusinessCreateServicePage() {
     address: "",
     price: "",
     durationMinutes: "",
-    active: true,
-    date: "",
-    slotMinutes: 30,
+    opensAt: "09:00",
+    closesAt: "18:00",
+    slotIntervalMinutes: 30,
+    bookingHorizonDays: 90,
     resourceIds: [],
   });
 
@@ -51,9 +67,70 @@ export default function BusinessCreateServicePage() {
     }
   }
 
+  async function loadCategories() {
+    setLoadingCategories(true);
+
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch {
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  }
+
   useEffect(() => {
+    loadCategories();
     loadResources();
   }, []);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setLoadingService(false);
+      return;
+    }
+
+    let active = true;
+
+    async function loadService() {
+      setLoadingService(true);
+      setError("");
+
+      try {
+        const data = await getMyService(id);
+        if (!active) return;
+
+        setForm((current) => ({
+          ...current,
+          categoryId: data.categoryId ? String(data.categoryId) : "",
+          title: data.title ?? "",
+          description: data.description ?? "",
+          city: data.city ?? "",
+          address: data.address ?? "",
+          price: data.price ? String(data.price) : "",
+          durationMinutes: data.durationMinutes ? String(data.durationMinutes) : "",
+          opensAt: data.opensAt || "09:00",
+          closesAt: data.closesAt || "18:00",
+          slotIntervalMinutes: data.slotIntervalMinutes ? String(data.slotIntervalMinutes) : "30",
+          bookingHorizonDays: data.bookingHorizonDays ? String(data.bookingHorizonDays) : "90",
+          resourceIds: Array.isArray(data.resourceIds) ? data.resourceIds : [],
+        }));
+        setExistingImages(Array.isArray(data.imageUrls) ? data.imageUrls.filter(Boolean) : []);
+      } catch (loadError) {
+        if (!active) return;
+        setError(loadError?.message || "Failed to load listing");
+      } finally {
+        if (active) setLoadingService(false);
+      }
+    }
+
+    loadService();
+
+    return () => {
+      active = false;
+    };
+  }, [id, isEditMode]);
 
   async function onSubmit(event) {
     event.preventDefault();
@@ -66,12 +143,14 @@ export default function BusinessCreateServicePage() {
       address: form.address.trim(),
       price: Number(form.price),
       durationMinutes: Number(form.durationMinutes),
-      active: Boolean(form.active),
+      opensAt: form.opensAt,
+      closesAt: form.closesAt,
+      slotIntervalMinutes: Number(form.slotIntervalMinutes),
+      bookingHorizonDays: Number(form.bookingHorizonDays),
+      active: true,
       resourceIds: form.resourceIds.map(Number),
-      date: form.date,
-      slotMinutes: Number(form.slotMinutes),
-      imageUrls: [],
-      coverIndex: 0,
+      imageUrls: isEditMode ? null : [],
+      coverIndex,
     };
 
     if (!payload.categoryId || !payload.title || !payload.city || !payload.address) {
@@ -89,31 +168,100 @@ export default function BusinessCreateServicePage() {
       return;
     }
 
-    if (!payload.date) {
-      alert("Избери дата (YYYY-MM-DD).");
-      return;
-    }
-
     if (!payload.resourceIds.length) {
       alert("Избери поне един човек/екип.");
       return;
     }
 
     try {
-      const data = await createService(payload);
+      setUploading(true);
+      if (imageFiles.length > 3) {
+        throw new Error("You can upload up to 3 images.");
+      }
+
+      if (imageFiles.length) {
+        const uploadedUrls = [];
+        for (const file of imageFiles) {
+          const imageUrl = await uploadServiceImage(file);
+          if (imageUrl) uploadedUrls.push(imageUrl);
+        }
+        payload.imageUrls = uploadedUrls;
+      }
+
+      const data = isEditMode ? await updateService(id, payload) : await createService(payload);
       navigate(`/services/${data.id}`);
     } catch (error) {
-      alert(error.message);
+      setError(error.message);
+    } finally {
+      setUploading(false);
     }
   }
 
-  return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "18px 16px" }}>
-      <h2 style={{ marginTop: 0 }}>Създай нова обява</h2>
+  function onImagesChange(event) {
+    const files = Array.from(event.target.files || []).slice(0, 3);
+    setImageFiles(files);
+    setImagePreviews(files.map((file) => URL.createObjectURL(file)));
+    setCoverIndex(0);
+  }
 
-      <form onSubmit={onSubmit} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
-        <label style={label}>Категория (ID за момента)</label>
-        <input name="categoryId" value={form.categoryId} onChange={onChange} style={input} placeholder="пример: 1" />
+  if (loadingService) {
+    return <div style={{ padding: 24 }}>Зареждане на обявата…</div>;
+  }
+
+  return (
+    <div style={{ background: "#f8fafc", minHeight: "100vh" }}>
+      <Header categories={[]} recentSearches={[]} />
+
+      <div style={{ maxWidth: 880, margin: "0 auto", padding: "28px 16px 44px" }}>
+        <div style={heroCard}>
+          <h2 style={{ margin: "8px 0 10px", fontSize: 34, lineHeight: 1.05, color: "#0f172a" }}>
+            {isEditMode ? "Редактирай обявата си и добавяй още служители по-късно." : "Добави обява"}
+          </h2>
+          <p style={{ margin: 0, maxWidth: 620, color: "#475569", fontSize: 16, lineHeight: 1.6 }}>
+            {isEditMode
+              ? "Обнови детайлите на услугата, свържи нови хора или екипи и контролирай графика, по който клиентите резервират."
+              : "Добави обявата, свържи правилния служител или екип и задай работния график за резервации."}
+          </p>
+        </div>
+
+        {error && <div style={errorBox}>{error}</div>}
+
+        <form onSubmit={onSubmit} style={formCard}>
+        <label style={label}>Категория</label>
+        {loadingCategories ? (
+          <div style={categoryLoadingCard}>Зареждане на категории...</div>
+        ) : (
+          <div style={categoryGrid}>
+            {categories.map((category) => {
+              const active = form.categoryId === String(category.id);
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => setForm((current) => ({ ...current, categoryId: String(category.id) }))}
+                  style={{
+                    ...categoryCard,
+                    borderColor: active ? "#2563eb" : "#dbe4f0",
+                    background: active
+                      ? "linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%)"
+                      : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+                    boxShadow: active ? "0 0 0 3px rgba(37,99,235,0.12)" : "0 12px 24px rgba(15,23,42,0.04)",
+                  }}
+                >
+                  <div style={categoryCardTop}>
+                    <span style={categoryCardTitle}>{category.name}</span>
+                    <span style={{ ...categoryCheck, opacity: active ? 1 : 0.28 }}>
+                      {active ? "✓" : "○"}
+                    </span>
+                  </div>
+                  <span style={categoryCardText}>
+                    {category.description?.trim() || "Избери тази категория, ако най-добре описва обявата ти."}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <label style={label}>Заглавие</label>
         <input name="title" value={form.title} onChange={onChange} style={input} />
@@ -127,43 +275,123 @@ export default function BusinessCreateServicePage() {
         <label style={label}>Адрес</label>
         <input name="address" value={form.address} onChange={onChange} style={input} />
 
-        <label style={label}>Цена (лв)</label>
-        <input name="price" value={form.price} onChange={onChange} style={input} placeholder="пример: 25.00" />
+        <div style={metricBlock}>
+          <div style={metricField}>
+            <label style={label}>Цена</label>
+            <span style={metricHint}>В евро</span>
+            <input name="price" value={form.price} onChange={onChange} style={input} placeholder="25.00" />
+          </div>
+          <div style={metricField}>
+            <label style={label}>Продължителност</label>
+            <span style={metricHint}>В минути</span>
+            <input name="durationMinutes" value={form.durationMinutes} onChange={onChange} style={input} placeholder="60" />
+          </div>
+        </div>
 
-        <label style={label}>Продължителност (минути)</label>
-        <input name="durationMinutes" value={form.durationMinutes} onChange={onChange} style={input} placeholder="пример: 30" />
+        <div style={timeBlock}>
+          <label style={label}>Работно време</label>
+          <div style={timeRow}>
+            <div style={timeField}>
+              <span style={timeFieldLabel}>Начало</span>
+              <input type="time" name="opensAt" value={form.opensAt} onChange={onChange} style={input} />
+            </div>
+            <div style={timeDivider}>→</div>
+            <div style={timeField}>
+              <span style={timeFieldLabel}>Край</span>
+              <input type="time" name="closesAt" value={form.closesAt} onChange={onChange} style={input} />
+            </div>
+          </div>
+        </div>
 
-        <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 6 }}>
-          <input type="checkbox" name="active" checked={form.active} onChange={onChange} />
-          Активна обява
+        <div style={metricBlock}>
+          <div style={metricField}>
+            <label style={label}>Интервал за резервации</label>
+            <span style={metricHint}>В минути</span>
+            <input name="slotIntervalMinutes" value={form.slotIntervalMinutes} onChange={onChange} style={input} placeholder="30" />
+          </div>
+          <div style={metricField}>
+            <label style={label}>Хоризонт за резервации</label>
+            <span style={metricHint}>В дни</span>
+            <input name="bookingHorizonDays" value={form.bookingHorizonDays} onChange={onChange} style={input} placeholder="90" />
+          </div>
+        </div>
+
+        <div style={divider} />
+
+        <div style={sectionTitleWrap}>
+          <div style={sectionLead}>Галерия</div>
+          {isEditMode ? <h3 style={sectionSubtleTitle}>Запази или замени снимките на обявата</h3> : null}
+        </div>
+
+        <label style={uploadWrap}>
+          <span style={{ fontWeight: 700, color: "#64748b" }}>Добави снимки към обявата</span>
+          <input type="file" accept="image/*" multiple onChange={onImagesChange} style={{ marginTop: 8 }} />
         </label>
 
-        <hr style={{ border: 0, borderTop: "1px solid #e5e7eb", margin: "10px 0" }} />
+        {!imagePreviews.length && existingImages.length > 0 && (
+        <div style={previewGrid}>
+            {existingImages.map((src, index) => (
+              <div key={`${src}-${index}`} style={previewCardStatic}>
+                <img src={resolveBackendImage(src)} alt={`Current ${index + 1}`} style={previewImage} />
+                <div style={previewFooter}>
+                  <span>{index === 0 ? "Текуща корица" : `Текуща снимка ${index + 1}`}</span>
+                  <strong>Запазена</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
-        <h3 style={{ margin: "0 0 6px" }}>Кой изпълнява услугата</h3>
+        {imagePreviews.length > 0 && (
+          <div style={previewGrid}>
+            {imagePreviews.map((src, index) => (
+              <button
+                key={src}
+                type="button"
+                onClick={() => setCoverIndex(index)}
+                style={{
+                  ...previewCard,
+                  borderColor: coverIndex === index ? "#2563eb" : "#dbe4f0",
+                  boxShadow: coverIndex === index ? "0 0 0 3px rgba(37,99,235,0.12)" : "none",
+                }}
+              >
+                <img src={src} alt={`Preview ${index + 1}`} style={previewImage} />
+                <div style={previewFooter}>
+                  <span>{coverIndex === index ? "Основна снимка" : `Снимка ${index + 1}`}</span>
+                  {coverIndex === index ? <strong>Корица</strong> : <span>Задай като корица</span>}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div style={sectionTitleWrap}>
+          <div style={sectionLead}>Разпределение</div>
+          <h3 style={sectionSubtleTitle}>Кой ще обслужва тази обява</h3>
+        </div>
 
         {loadingResources ? (
-          <div style={{ opacity: 0.8 }}>Зареждам ресурси…</div>
+          <div style={{ opacity: 0.8 }}>Зареждане на активни служители и екипи...</div>
         ) : resources.length === 0 ? (
-          <div style={{ opacity: 0.8 }}>Нямаш активни ресурси. Добави от “Персонал и екипи”.</div>
+          <div style={{ opacity: 0.8 }}>Все още нямаш активни хора или екипи. Добави ги от „Персонал и екипи“.</div>
         ) : (
           <div>
             <button
               type="button"
               onClick={() => setOpenPicker((current) => !current)}
-              style={{ width: "100%", textAlign: "left", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 12, background: "#fff", cursor: "pointer", fontWeight: 900 }}
+              style={{ width: "100%", textAlign: "left", padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: 16, background: "#fff", cursor: "pointer", fontWeight: 900 }}
             >
-              {form.resourceIds.length ? `Избрани: ${form.resourceIds.length}` : "Избери персонал/екип"} ▾
+              {form.resourceIds.length ? `Избрани: ${form.resourceIds.length}` : "Избери служител или екип"} ▾
             </button>
 
             {openPicker && (
-              <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#fff", display: "grid", gap: 10 }}>
+              <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 16, padding: 12, background: "#fff", display: "grid", gap: 10 }}>
                 {resources.map((resource) => (
-                  <label key={resource.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <label key={resource.id} style={pickerRow}>
                     <input type="checkbox" checked={form.resourceIds.includes(resource.id)} onChange={() => toggleResource(resource.id)} />
-                    <img src={resource.photoUrl || "https://via.placeholder.com/36?text=%F0%9F%91%A4"} alt="" style={{ width: 36, height: 36, borderRadius: 999, objectFit: "cover", border: "1px solid #e5e7eb" }} />
+                    <img src={resolveBackendImage(resource.photoUrl) || "https://via.placeholder.com/36?text=%F0%9F%91%A4"} alt="" style={{ width: 36, height: 36, borderRadius: 999, objectFit: "cover", border: "1px solid #e5e7eb" }} />
                     <span style={{ fontWeight: 900 }}>{resource.name}</span>
-                    <span style={{ opacity: 0.7 }}>({resource.type})</span>
+                    <span style={{ opacity: 0.7 }}>{resource.type === "TEAM" ? "Екип" : "Служител"}</span>
                   </label>
                 ))}
 
@@ -175,21 +403,136 @@ export default function BusinessCreateServicePage() {
           </div>
         )}
 
-        <label style={label}>Дата</label>
-        <input type="date" name="date" value={form.date} onChange={onChange} style={input} />
+        <div style={divider} />
 
-        <label style={label}>Slot (минути)</label>
-        <input name="slotMinutes" value={form.slotMinutes} onChange={onChange} style={input} />
+        <div style={sectionTitleWrap}>
+          <div style={sectionLead}>График на резервациите</div>
+        </div>
+
+        <div style={scheduleHintList}>
+          <div style={scheduleHintItem}>• Клиентите ще виждат свободни часове според работното време, което задаваш тук.</div>
+          <div style={scheduleHintItem}>• Интервалът определя през колко минути да се показват часовете за резервация.</div>
+          <div style={scheduleHintItem}>• Хоризонтът определя колко дни напред клиентите могат да резервират.</div>
+          <div style={scheduleHintItem}>• Почивките и работните дни на служителите се управляват от менюто за персонала.</div>
+        </div>
 
         <button type="submit" style={btn}>
-          Публикувай
+          {uploading ? (isEditMode ? "Запазване..." : "Публикуване...") : isEditMode ? "Запази промените по обявата" : "Публикувай обявата"}
         </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
 
 const label = { fontWeight: 800 };
-const input = { width: "100%", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 12 };
-const btn = { marginTop: 10, padding: "12px 14px", borderRadius: 12, border: "none", background: "#2563eb", color: "#fff", fontWeight: 900, cursor: "pointer" };
+const input = { width: "100%", padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: 14, boxSizing: "border-box" };
+const btn = { marginTop: 6, padding: "14px 18px", borderRadius: 16, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", fontWeight: 900, cursor: "pointer" };
 const smallBtn = { width: "fit-content", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 12, padding: "8px 10px", cursor: "pointer", fontWeight: 800 };
+const grid2 = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 };
+const divider = { borderTop: "1px solid #e2e8f0", margin: "4px 0" };
+const sectionTitleWrap = { display: "grid", gap: 2 };
+const sectionEyebrow = { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.6, fontWeight: 900, color: "#64748b" };
+const sectionTitle = { margin: 0, fontSize: 20, color: "#0f172a" };
+const sectionLead = { fontSize: 18, fontWeight: 900, color: "#0f172a" };
+const sectionSubtleTitle = { margin: 0, fontSize: 14, color: "#64748b", fontWeight: 700, lineHeight: 1.5 };
+const formCard = { background: "#fff", border: "1px solid #dbe4f0", boxShadow: "0 22px 45px rgba(15, 23, 42, 0.08)", borderRadius: 24, padding: 22, display: "grid", gap: 12 };
+const heroCard = { marginBottom: 18, padding: "22px 24px", borderRadius: 28, background: "radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), rgba(255, 255, 255, 0.96) 58%), #fff", border: "1px solid rgba(148, 163, 184, 0.22)" };
+const errorBox = { marginBottom: 16, padding: 14, borderRadius: 16, border: "1px solid #fecaca", background: "#fff1f2", color: "#9f1239", fontWeight: 700 };
+const pickerRow = { display: "grid", gridTemplateColumns: "auto auto 1fr auto", gap: 10, alignItems: "center", padding: "8px 4px" };
+const metricBlock = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 12,
+};
+const metricField = {
+  display: "grid",
+  gap: 8,
+};
+const metricHint = {
+  fontSize: 13,
+  color: "#64748b",
+  fontWeight: 700,
+};
+const timeBlock = { display: "grid", gap: 10 };
+const timeRow = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+  gap: 12,
+  alignItems: "end",
+};
+const timeField = { display: "grid", gap: 8 };
+const timeFieldLabel = {
+  fontSize: 13,
+  fontWeight: 800,
+  color: "#475569",
+  textTransform: "uppercase",
+  letterSpacing: 0.6,
+};
+const timeDivider = {
+  paddingBottom: 12,
+  color: "#64748b",
+  fontWeight: 900,
+  textTransform: "uppercase",
+  letterSpacing: 0.6,
+};
+const scheduleHintList = {
+  display: "grid",
+  gap: 6,
+  color: "#64748b",
+  fontSize: 14,
+  lineHeight: 1.6,
+};
+const scheduleHintItem = {
+  color: "#64748b",
+};
+const categoryLoadingCard = {
+  padding: "14px 16px",
+  borderRadius: 18,
+  border: "1px solid #dbe4f0",
+  background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+  color: "#64748b",
+  fontWeight: 700,
+};
+const categoryGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 12,
+};
+const categoryCard = {
+  padding: "16px 16px 15px",
+  borderRadius: 20,
+  border: "1px solid #dbe4f0",
+  textAlign: "left",
+  cursor: "pointer",
+  display: "grid",
+  gap: 10,
+};
+const categoryCardTop = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  alignItems: "center",
+};
+const categoryCardTitle = {
+  fontSize: 16,
+  fontWeight: 900,
+  color: "#0f172a",
+};
+const categoryCardText = {
+  color: "#475569",
+  lineHeight: 1.6,
+  fontSize: 14,
+};
+const categoryCheck = {
+  color: "#2563eb",
+  fontWeight: 900,
+  fontSize: 18,
+  lineHeight: 1,
+};
+const uploadWrap = { display: "grid", padding: 12, border: "1px dashed #cbd5e1", borderRadius: 14, background: "#f8fafc" };
+const previewGrid = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 };
+const previewCard = { padding: 0, overflow: "hidden", borderRadius: 18, border: "1px solid #dbe4f0", background: "#fff", cursor: "pointer", textAlign: "left" };
+const previewCardStatic = { padding: 0, overflow: "hidden", borderRadius: 18, border: "1px solid #dbe4f0", background: "#fff", textAlign: "left" };
+const previewImage = { width: "100%", height: 180, objectFit: "cover", display: "block" };
+const previewFooter = { display: "flex", justifyContent: "space-between", gap: 8, padding: "10px 12px", fontSize: 13, color: "#334155" };

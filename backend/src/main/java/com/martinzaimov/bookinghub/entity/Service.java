@@ -2,6 +2,8 @@ package com.martinzaimov.bookinghub.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "services")
@@ -36,8 +38,29 @@ public class Service {
     @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
 
+    @Column(name = "opens_at")
+    private LocalTime opensAt;
+
+    @Column(name = "closes_at")
+    private LocalTime closesAt;
+
+    @Column(name = "slot_interval_minutes", nullable = false)
+    private Integer slotIntervalMinutes = 30;
+
+    @Column(name = "booking_horizon_days", nullable = false)
+    private Integer bookingHorizonDays = 90;
+
     @Column(name = "is_active", nullable = false)
     private boolean active;
+
+    @Column(name = "admin_deletion_reason", columnDefinition = "TEXT")
+    private String adminDeletionReason;
+
+    @Column(name = "admin_deleted_by_user_id")
+    private Long adminDeletedByUserId;
+
+    @Column(name = "admin_deleted_at")
+    private LocalDateTime adminDeletedAt;
 
     public Service() {}
 
@@ -50,7 +73,14 @@ public class Service {
     public String getAddress() { return address; }
     public BigDecimal getPrice() { return price; }
     public Integer getDurationMinutes() { return durationMinutes; }
+    public LocalTime getOpensAt() { return opensAt; }
+    public LocalTime getClosesAt() { return closesAt; }
+    public Integer getSlotIntervalMinutes() { return slotIntervalMinutes; }
+    public Integer getBookingHorizonDays() { return bookingHorizonDays; }
     public boolean isActive() { return active; }
+    public String getAdminDeletionReason() { return adminDeletionReason; }
+    public Long getAdminDeletedByUserId() { return adminDeletedByUserId; }
+    public LocalDateTime getAdminDeletedAt() { return adminDeletedAt; }
 
     public void setId(Long id) { this.id = id; }
     public void setBusinessUserId(Long businessUserId) { this.businessUserId = businessUserId; }
@@ -61,5 +91,12 @@ public class Service {
     public void setAddress(String address) { this.address = address; }
     public void setPrice(BigDecimal price) { this.price = price; }
     public void setDurationMinutes(Integer durationMinutes) { this.durationMinutes = durationMinutes; }
+    public void setOpensAt(LocalTime opensAt) { this.opensAt = opensAt; }
+    public void setClosesAt(LocalTime closesAt) { this.closesAt = closesAt; }
+    public void setSlotIntervalMinutes(Integer slotIntervalMinutes) { this.slotIntervalMinutes = slotIntervalMinutes; }
+    public void setBookingHorizonDays(Integer bookingHorizonDays) { this.bookingHorizonDays = bookingHorizonDays; }
     public void setActive(boolean active) { this.active = active; }
+    public void setAdminDeletionReason(String adminDeletionReason) { this.adminDeletionReason = adminDeletionReason; }
+    public void setAdminDeletedByUserId(Long adminDeletedByUserId) { this.adminDeletedByUserId = adminDeletedByUserId; }
+    public void setAdminDeletedAt(LocalDateTime adminDeletedAt) { this.adminDeletedAt = adminDeletedAt; }
 }

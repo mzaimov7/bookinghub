@@ -5,6 +5,8 @@ import com.martinzaimov.bookinghub.dto.ResourceOTD;
 import com.martinzaimov.bookinghub.dto.UpdateResourceRequest;
 import com.martinzaimov.bookinghub.service.BusinessResourceService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,5 +44,14 @@ public class BusinessResourceController {
     ) {
         service.update(businessUserId, id, req);
         return Map.of("ok", true);
+    }
+
+    @PostMapping(path = "/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Map<String, Object> uploadPhoto(
+            @RequestHeader("X-Business-User-Id") Long businessUserId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        String photoUrl = service.uploadPhoto(businessUserId, file);
+        return Map.of("photoUrl", photoUrl);
     }
 }

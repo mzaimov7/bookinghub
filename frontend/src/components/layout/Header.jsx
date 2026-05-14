@@ -1,19 +1,29 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getAuth, getRole, isLoggedIn, logoutLocal } from "../../lib/authStore";
 import logoPng from "../../assets/BookingHub-logo.png";
+import { resolveBackendImage } from "../../lib/assets";
+import { getMyBusinessProfile } from "../../features/business/profile/api";
+import { getMyProfile, getRecentSearches } from "../../features/client/api";
+import { getCategories } from "../../features/home/api";
 
-export default function Header({ categories = [], recentSearches = [], onCategoryPick, onSearchSubmit, onRecentSearchPick }) {
+export default function Header({ categories, recentSearches, onCategoryPick, onSearchSubmit, onRecentSearchPick }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const searchRef = useRef(null);
   const [openCats, setOpenCats] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const [openRecentSearches, setOpenRecentSearches] = useState(false);
   const [query, setQuery] = useState("");
+  const [loadedCategories, setLoadedCategories] = useState([]);
+  const [loadedRecentSearches, setLoadedRecentSearches] = useState([]);
+  const [loadedProfilePhotoUrl, setLoadedProfilePhotoUrl] = useState(null);
 
   const role = getRole();
   const auth = getAuth();
-  const catItems = useMemo(() => categories.slice(0, 10), [categories]);
+  const effectiveCategories = Array.isArray(categories) && categories.length > 0 ? categories : loadedCategories;
+  const effectiveRecentSearches = Array.isArray(recentSearches) && recentSearches.length > 0 ? recentSearches : loadedRecentSearches;
+  const catItems = useMemo(() => effectiveCategories.slice(0, 10), [effectiveCategories]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -27,6 +37,33 @@ export default function Header({ categories = [], recentSearches = [], onCategor
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadHeaderData() {
+      const currentRole = getRole();
+      const [nextCategories, nextRecentSearches, nextProfile] = await Promise.all([
+        getCategories().catch(() => []),
+        isLoggedIn() && currentRole === "CLIENT" ? getRecentSearches().catch(() => []) : Promise.resolve([]),
+        isLoggedIn() && currentRole === "CLIENT"
+          ? getMyProfile().catch(() => null)
+          : isLoggedIn() && currentRole === "BUSINESS"
+            ? getMyBusinessProfile().catch(() => null)
+            : Promise.resolve(null),
+      ]);
+
+      if (!active) return;
+      setLoadedCategories(nextCategories);
+      setLoadedRecentSearches(nextRecentSearches);
+      setLoadedProfilePhotoUrl(nextProfile?.photoUrl ?? null);
+    }
+
+    loadHeaderData();
+    return () => {
+      active = false;
+    };
+  }, [location.pathname, location.search]);
 
   function normalize(value) {
     if (value == null) return null;
@@ -69,12 +106,14 @@ export default function Header({ categories = [], recentSearches = [], onCategor
 
   function labelForRecentSearch(item) {
     const parts = [item?.query, item?.city].filter(Boolean);
-    const categoryName = categories.find((category) => category.id === item?.categoryId)?.name || null;
+    const categoryName = effectiveCategories.find((category) => category.id === item?.categoryId)?.name || null;
     const priceRange = item?.minPrice != null || item?.maxPrice != null
-      ? `${item?.minPrice != null ? `${item.minPrice} lv` : "Any"} - ${item?.maxPrice != null ? `${item.maxPrice} lv` : "Any"}`
+      ? `${item?.minPrice != null ? `€${item.minPrice}` : "Без мин."} - ${item?.maxPrice != null ? `€${item.maxPrice}` : "Без макс."}`
       : null;
-    return [...parts, categoryName, priceRange].filter(Boolean).join(" • ") || "Recent search";
+    return [...parts, categoryName, priceRange].filter(Boolean).join(" • ") || "Последно търсене";
   }
+
+  const profilePhotoUrl = resolveBackendImage(auth?.profilePhotoUrl || loadedProfilePhotoUrl);
 
   return (
     <div style={{ borderBottom: "1px solid #e5e7eb", background: "#fff", position: "sticky", top: 0, zIndex: 20 }}>
@@ -90,24 +129,24 @@ export default function Header({ categories = [], recentSearches = [], onCategor
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onFocus={() => {
-                  if (role === "CLIENT" && recentSearches.length > 0) {
+                  if (role === "CLIENT" && effectiveRecentSearches.length > 0) {
                     setOpenRecentSearches(true);
                   }
                 }}
-                placeholder="What are you looking for?"
+                placeholder="Какво търсиш?"
                 style={{ border: "none", outline: "none", width: "100%", fontSize: 14 }}
               />
-              <button type="submit" title="Search" style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18 }}>
+              <button type="submit" title="Търсене" style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18 }}>
                 🔎
               </button>
             </div>
           </form>
 
-          {role === "CLIENT" && recentSearches.length > 0 && openRecentSearches && (
+          {role === "CLIENT" && effectiveRecentSearches.length > 0 && openRecentSearches && (
             <div style={recentSearchDropdown}>
-              <div style={recentSearchDropdownHeader}>Recent searches</div>
+              <div style={recentSearchDropdownHeader}>Последни търсения</div>
               <div style={recentSearchDropdownList}>
-                {recentSearches.slice(0, 8).map((item) => (
+                {effectiveRecentSearches.slice(0, 8).map((item) => (
                   <button
                     key={item.id}
                     onClick={() => {
@@ -141,18 +180,33 @@ export default function Header({ categories = [], recentSearches = [], onCategor
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {role !== "BUSINESS" && (
             <>
-              <button onClick={() => requireLogin("Любими") || go("/favorites")} title="Favorites" style={iconBtn}>
+              <button onClick={() => requireLogin("Любими") || go("/favorites")} title="Любими" style={iconBtn}>
                 <span style={heartGlyph}>♥</span>
               </button>
-              <button onClick={() => requireLogin("Резервации") || go("/my-bookings")} title="My bookings" style={iconBtn}>
+              <button onClick={() => requireLogin("Резервации") || go("/my-bookings")} title="Моите резервации" style={iconBtn}>
                 <span style={iconGlyph}>📘</span>
               </button>
             </>
           )}
 
+          {role === "BUSINESS" && (
+            <>
+              <button onClick={() => go("/business")} title="Бизнес табло" style={iconBtn}>
+                <span style={iconGlyph}>▦</span>
+              </button>
+              <button onClick={() => go("/business/services/new")} title="Добави обява" style={iconBtn}>
+                <span style={iconGlyph}>＋</span>
+              </button>
+            </>
+          )}
+
           <div style={{ position: "relative" }}>
-            <button onClick={() => setOpenProfile((current) => !current)} title="Profile" style={iconBtn}>
-              <span style={iconGlyph}>👤</span>
+            <button onClick={() => setOpenProfile((current) => !current)} title="Профил" style={iconBtn}>
+              {profilePhotoUrl ? (
+                <img src={profilePhotoUrl} alt="Профил" style={headerProfileImage} />
+              ) : (
+                <span style={iconGlyph}>👤</span>
+              )}
             </button>
 
             {openProfile && (
@@ -172,7 +226,7 @@ export default function Header({ categories = [], recentSearches = [], onCategor
 
                     {role === "CLIENT" && (
                       <>
-                        <MenuItem label="My profile" onClick={() => go("/my-profile")} />
+                        <MenuItem label="Моят профил" onClick={() => go("/my-profile")} />
                         <MenuItem label="Моите резервации" onClick={() => go("/my-bookings")} />
                         <MenuItem label="Любими" onClick={() => go("/favorites")} />
                       </>
@@ -180,8 +234,9 @@ export default function Header({ categories = [], recentSearches = [], onCategor
 
                     {role === "BUSINESS" && (
                       <>
+                        <MenuItem label="Моят профил" onClick={() => go("/business/profile")} />
                         <MenuItem label="Бизнес табло" onClick={() => go("/business")} />
-                        <MenuItem label="Създай нова обява" onClick={() => go("/business/services/new")} />
+                        <MenuItem label="Добави обява" onClick={() => go("/business/services/new")} />
                         <MenuItem label="Моите обяви" onClick={() => go("/business/services")} />
                         <MenuItem label="Персонал и екипи" onClick={() => go("/business/resources")} />
                         <MenuItem label="Заявки / резервации" onClick={() => go("/business/bookings")} />
@@ -276,6 +331,15 @@ const iconBtn = {
   height: 44,
   cursor: "pointer",
   boxShadow: "0 8px 18px rgba(37, 99, 235, 0.08)",
+};
+
+const headerProfileImage = {
+  width: 28,
+  height: 28,
+  borderRadius: 999,
+  objectFit: "cover",
+  display: "block",
+  margin: "0 auto",
 };
 
 const iconGlyph = {

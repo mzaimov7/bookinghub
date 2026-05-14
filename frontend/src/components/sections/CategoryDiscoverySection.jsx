@@ -3,7 +3,7 @@ import { categoryFallbackImage } from "../../lib/assets";
 
 function categoryCaption(category) {
   if (category?.description?.trim()) return category.description.trim();
-  return "Explore services in this category.";
+  return "Разгледай услугите в тази категория.";
 }
 
 export default function CategoryDiscoverySection({ categories = [], onPickCategory }) {
@@ -13,9 +13,9 @@ export default function CategoryDiscoverySection({ categories = [], onPickCatego
     <section style={wrap}>
       <div style={header}>
         <div>
-          <div style={eyebrow}>Discover</div>
-          <h2 style={title}>Reserve by category</h2>
-          <p style={subtitle}>Choose the kind of service you need and jump straight into the matching listings.</p>
+          <div style={eyebrow}>Открий</div>
+          <h2 style={title}>Резервирай по категория</h2>
+          <p style={subtitle}>Избери типа услуга, от който имаш нужда, и премини направо към подходящите обяви.</p>
         </div>
       </div>
 

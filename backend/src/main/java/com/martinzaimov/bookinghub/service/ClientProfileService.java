@@ -7,20 +7,34 @@ import com.martinzaimov.bookinghub.entity.Favorite;
 import com.martinzaimov.bookinghub.entity.FavoriteId;
 import com.martinzaimov.bookinghub.entity.RecentSearch;
 import com.martinzaimov.bookinghub.entity.Resource;
+import com.martinzaimov.bookinghub.entity.ResourceDayOff;
 import com.martinzaimov.bookinghub.entity.ResourceSlot;
+import com.martinzaimov.bookinghub.entity.ResourceWeeklyOffDay;
 import com.martinzaimov.bookinghub.entity.Service;
 import com.martinzaimov.bookinghub.entity.ServiceImage;
 import com.martinzaimov.bookinghub.entity.User;
 import com.martinzaimov.bookinghub.repo.*;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -38,6 +52,10 @@ public class ClientProfileService {
     private final ResourceSlotRepository slots;
     private final ResourceRepository resources;
     private final ServiceResourceDao serviceResources;
+    private final ResourceWeeklyOffDayRepository resourceWeeklyOffDays;
+    private final ResourceDayOffRepository resourceDayOffs;
+    private final PasswordEncoder passwordEncoder;
+    private final Path uploadDir;
 
     public ClientProfileService(
             UserRepository users,
@@ -49,7 +67,11 @@ public class ClientProfileService {
             BookingRepository bookings,
             ResourceSlotRepository slots,
             ResourceRepository resources,
-            ServiceResourceDao serviceResources
+            ServiceResourceDao serviceResources,
+            ResourceWeeklyOffDayRepository resourceWeeklyOffDays,
+            ResourceDayOffRepository resourceDayOffs,
+            PasswordEncoder passwordEncoder,
+            @Value("${app.upload.dir:uploads}") String uploadDir
     ) {
         this.users = users;
         this.clientProfiles = clientProfiles;
@@ -61,6 +83,10 @@ public class ClientProfileService {
         this.slots = slots;
         this.resources = resources;
         this.serviceResources = serviceResources;
+        this.resourceWeeklyOffDays = resourceWeeklyOffDays;
+        this.resourceDayOffs = resourceDayOffs;
+        this.passwordEncoder = passwordEncoder;
+        this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
     public List<ServiceOTD> getFavorites(Long userId) {
@@ -93,8 +119,19 @@ public class ClientProfileService {
                 user.getRole().name(),
                 profile.getFirstName(),
                 profile.getLastName(),
-                profile.getPhone()
+                profile.getPhone(),
+                profile.getPhotoUrl()
         );
+    }
+
+    public void verifyProfilePassword(Long userId, String password) {
+        User user = requireClientUser(userId);
+        if (password == null || password.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Текущата парола е задължителна");
+        }
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new ResponseStatusException(BAD_REQUEST, "Невалидна парола");
+        }
     }
 
     @Transactional
@@ -140,8 +177,70 @@ public class ClientProfileService {
                 user.getRole().name(),
                 profile.getFirstName(),
                 profile.getLastName(),
-                profile.getPhone()
+                profile.getPhone(),
+                profile.getPhotoUrl()
         );
+    }
+
+    @Transactional
+    public ClientProfileDTO uploadProfilePhoto(Long userId, MultipartFile file) {
+        User user = requireClientUser(userId);
+        ClientProfile profile = clientProfiles.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Client profile not found"));
+
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Моля избери снимка");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new ResponseStatusException(BAD_REQUEST, "Разрешени са само снимки");
+        }
+
+        String filename = "client_" + userId + "_" + UUID.randomUUID() + extensionOf(file.getOriginalFilename());
+        try {
+            Files.createDirectories(uploadDir);
+            Path target = uploadDir.resolve(filename);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            profile.setPhotoUrl("/uploads/" + filename);
+            clientProfiles.save(profile);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Неуспешно качване на снимката");
+        }
+
+        return new ClientProfileDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole().name(),
+                profile.getFirstName(),
+                profile.getLastName(),
+                profile.getPhone(),
+                profile.getPhotoUrl()
+        );
+    }
+
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = requireClientUser(userId);
+        if (request.currentPassword == null || request.currentPassword.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Текущата парола е задължителна");
+        }
+        if (!passwordEncoder.matches(request.currentPassword, user.getPasswordHash())) {
+            throw new ResponseStatusException(BAD_REQUEST, "Текущата парола е грешна");
+        }
+        if (request.newPassword == null || request.newPassword.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Новата парола е задължителна");
+        }
+        if (!request.newPassword.equals(request.confirmPassword)) {
+            throw new ResponseStatusException(BAD_REQUEST, "Новата парола и потвърждението не съвпадат");
+        }
+        if (passwordEncoder.matches(request.newPassword, user.getPasswordHash())) {
+            throw new ResponseStatusException(BAD_REQUEST, "Новата парола трябва да е различна от текущата");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword));
+        users.save(user);
     }
 
     public List<Long> getFavoriteIds(Long userId) {
@@ -223,20 +322,26 @@ public class ClientProfileService {
         Service service = services.findByIdAndActiveTrue(serviceId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
 
-        List<ResourceSlot> availableSlots = slots.findByServiceIdAndStatusOrderByStartAtAsc(serviceId, ResourceSlot.Status.AVAILABLE);
-        if (availableSlots.isEmpty()) {
-            ensureSlotsForService(service);
-            availableSlots = slots.findByServiceIdAndStatusOrderByStartAtAsc(serviceId, ResourceSlot.Status.AVAILABLE);
+        List<Long> activeResourceIds = serviceResources.findResourceIdsByServiceId(serviceId);
+        if (activeResourceIds.isEmpty()) {
+            return List.of();
         }
 
-        return availableSlots
-                .stream()
-                .map(slot -> new AvailableSlotDTO(
-                        slot.getId(),
-                        slot.getResourceId(),
-                        slot.getStartAt(),
-                        slot.getEndAt()
-                ))
+        LocalDate today = LocalDate.now();
+        int horizonDays = normalizePositive(service.getBookingHorizonDays(), 90);
+        LocalDate toDate = today.plusDays(horizonDays);
+
+        List<AvailableSlotDTO> items = new ArrayList<>();
+        for (Long resourceId : activeResourceIds) {
+            Resource resource = resources.findById(resourceId).orElse(null);
+            if (resource == null || !resource.isActive()) {
+                continue;
+            }
+            items.addAll(buildAvailableSlotsForResource(service, resource, today, toDate));
+        }
+
+        return items.stream()
+                .sorted(Comparator.comparing(AvailableSlotDTO::startAt))
                 .toList();
     }
 
@@ -247,15 +352,54 @@ public class ClientProfileService {
         Service service = services.findByIdAndActiveTrue(request.serviceId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
 
-        ResourceSlot slot = slots.findByIdAndServiceId(request.slotId, request.serviceId)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Slot not found"));
+        if (request.resourceId == null || request.startAt == null || request.endAt == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "resourceId, startAt and endAt are required");
+        }
 
-        if (slot.getStatus() != ResourceSlot.Status.AVAILABLE || bookings.existsBySlotId(slot.getId())) {
-            throw new ResponseStatusException(BAD_REQUEST, "This slot is no longer available");
+        Resource resource = resources.findById(request.resourceId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Resource not found"));
+
+        List<Long> linkedResourceIds = serviceResources.findResourceIdsByServiceId(service.getId());
+        if (!linkedResourceIds.contains(resource.getId())) {
+            throw new ResponseStatusException(BAD_REQUEST, "This resource is not assigned to the selected service");
+        }
+
+        boolean allowedSlot = buildAvailableSlotsForResource(service, resource, request.startAt.toLocalDate(), request.startAt.toLocalDate())
+                .stream()
+                .anyMatch(slot ->
+                        slot.resourceId().equals(request.resourceId)
+                                && slot.startAt().equals(request.startAt)
+                                && slot.endAt().equals(request.endAt)
+                );
+
+        if (!allowedSlot) {
+            throw new ResponseStatusException(BAD_REQUEST, "This time is no longer available");
+        }
+
+        ResourceSlot slot = slots.findByServiceIdAndResourceIdAndStartAtAndEndAt(
+                        service.getId(),
+                        resource.getId(),
+                        request.startAt,
+                        request.endAt
+                )
+                .orElseGet(() -> {
+                    ResourceSlot created = new ResourceSlot();
+                    created.setServiceId(service.getId());
+                    created.setResourceId(resource.getId());
+                    created.setStartAt(request.startAt);
+                    created.setEndAt(request.endAt);
+                    created.setStatus(ResourceSlot.Status.BOOKED);
+                    created.setHoldExpiresAt(null);
+                    return created;
+                });
+
+        if (slot.getId() != null
+                && bookings.existsBySlotIdAndStatusIn(slot.getId(), List.of(Booking.Status.PENDING, Booking.Status.CONFIRMED))) {
+            throw new ResponseStatusException(BAD_REQUEST, "This time is no longer available");
         }
 
         slot.setStatus(ResourceSlot.Status.BOOKED);
-        slots.save(slot);
+        slot = slots.save(slot);
 
         Booking booking = new Booking();
         booking.setSlotId(slot.getId());
@@ -310,6 +454,10 @@ public class ClientProfileService {
                 service.getAddress(),
                 service.getPrice(),
                 service.getDurationMinutes(),
+                formatTime(service.getOpensAt()),
+                formatTime(service.getClosesAt()),
+                service.getSlotIntervalMinutes(),
+                service.getBookingHorizonDays(),
                 coverUrl
         );
     }
@@ -324,6 +472,7 @@ public class ClientProfileService {
                 service.getId(),
                 slot.getId(),
                 booking.getStatus().name(),
+                booking.getStatusReason(),
                 booking.getClientNote(),
                 booking.getCreatedAt(),
                 slot.getStartAt(),
@@ -343,58 +492,76 @@ public class ClientProfileService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private void ensureSlotsForService(Service service) {
-        List<Long> linkedResourceIds = serviceResources.findResourceIdsByServiceId(service.getId());
+    private String extensionOf(String filename) {
+        if (filename == null) return ".jpg";
+        int dot = filename.lastIndexOf(".");
+        if (dot < 0 || dot == filename.length() - 1) return ".jpg";
+        String ext = filename.substring(dot).toLowerCase();
+        return ext.length() > 10 ? ".jpg" : ext;
+    }
 
-        Long resourceId = linkedResourceIds.stream().findFirst().orElseGet(() -> {
-            Resource resource = resources.findAllByBusinessUserIdOrderByNameAsc(service.getBusinessUserId())
-                    .stream()
-                    .findFirst()
-                    .orElseGet(() -> createFallbackResource(service));
+    private List<AvailableSlotDTO> buildAvailableSlotsForResource(Service service, Resource resource, LocalDate fromDate, LocalDate toDate) {
+        List<AvailableSlotDTO> items = new ArrayList<>();
 
-            if (!linkedResourceIds.contains(resource.getId())) {
-                serviceResources.link(service.getId(), resource.getId());
+        int durationMinutes = normalizePositive(service.getDurationMinutes(), 30);
+        int stepMinutes = normalizePositive(service.getSlotIntervalMinutes(), durationMinutes);
+        LocalTime opensAt = service.getOpensAt() != null ? service.getOpensAt() : LocalTime.of(9, 0);
+        LocalTime closesAt = service.getClosesAt() != null ? service.getClosesAt() : LocalTime.of(18, 0);
+
+        Set<Integer> weeklyOffDays = resourceWeeklyOffDays.findByResourceId(resource.getId())
+                .stream()
+                .map(ResourceWeeklyOffDay::getDayOfWeek)
+                .collect(HashSet::new, HashSet::add, HashSet::addAll);
+
+        Set<LocalDate> dayOffDates = resourceDayOffs.findByResourceIdAndOffDateBetween(resource.getId(), fromDate, toDate)
+                .stream()
+                .map(ResourceDayOff::getOffDate)
+                .collect(HashSet::new, HashSet::add, HashSet::addAll);
+
+        for (LocalDate date = fromDate; !date.isAfter(toDate); date = date.plusDays(1)) {
+            if (weeklyOffDays.contains(date.getDayOfWeek().getValue()) || dayOffDates.contains(date)) {
+                continue;
             }
 
-            return resource.getId();
-        });
+            LocalDateTime current = date.atTime(opensAt);
+            LocalDateTime dayEnd = date.atTime(closesAt);
 
-        LocalDate date = LocalDate.now().plusDays(1);
-        int slotMinutes = service.getDurationMinutes() == null || service.getDurationMinutes() <= 0
-                ? 30
-                : service.getDurationMinutes();
-
-        LocalDateTime start = date.atTime(9, 0);
-        LocalDateTime end = date.atTime(18, 0);
-        generateSlots(resourceId, service.getId(), start, end, slotMinutes);
-    }
-
-    private Resource createFallbackResource(Service service) {
-        Resource resource = new Resource();
-        resource.setBusinessUserId(service.getBusinessUserId());
-        resource.setType(Resource.Type.STAFF);
-        resource.setName(service.getTitle() + " Resource");
-        resource.setActive(true);
-        return resources.save(resource);
-    }
-
-    private void generateSlots(Long resourceId, Long serviceId, LocalDateTime start, LocalDateTime end, int slotMinutes) {
-        List<ResourceSlot> existing = slots.findByServiceIdAndResourceIdAndStartAtBetween(serviceId, resourceId, start, end);
-        if (!existing.isEmpty()) {
-            return;
+            while (!current.plusMinutes(durationMinutes).isAfter(dayEnd)) {
+                LocalDateTime slotEnd = current.plusMinutes(durationMinutes);
+                if (current.isAfter(LocalDateTime.now()) && isSlotAvailable(service.getId(), resource.getId(), current, slotEnd)) {
+                    items.add(new AvailableSlotDTO(
+                            resource.getId() + "|" + current,
+                            resource.getId(),
+                            resource.getName(),
+                            resource.getType().name(),
+                            resource.getPhotoUrl(),
+                            current,
+                            slotEnd
+                    ));
+                }
+                current = current.plusMinutes(stepMinutes);
+            }
         }
 
-        LocalDateTime current = start;
-        while (!current.plusMinutes(slotMinutes).isAfter(end)) {
-            ResourceSlot slot = new ResourceSlot();
-            slot.setResourceId(resourceId);
-            slot.setServiceId(serviceId);
-            slot.setStartAt(current);
-            slot.setEndAt(current.plusMinutes(slotMinutes));
-            slot.setStatus(ResourceSlot.Status.AVAILABLE);
-            slot.setHoldExpiresAt(null);
-            slots.save(slot);
-            current = current.plusMinutes(slotMinutes);
-        }
+        return items;
+    }
+
+    private boolean isSlotAvailable(Long serviceId, Long resourceId, LocalDateTime startAt, LocalDateTime endAt) {
+        List<ResourceSlot> occupied = slots.findByServiceIdAndResourceIdAndStatusInAndStartAtLessThanAndEndAtGreaterThan(
+                serviceId,
+                resourceId,
+                List.of(ResourceSlot.Status.BOOKED, ResourceSlot.Status.HELD),
+                endAt,
+                startAt
+        );
+        return occupied.isEmpty();
+    }
+
+    private int normalizePositive(Integer value, int fallback) {
+        return value != null && value > 0 ? value : fallback;
+    }
+
+    private String formatTime(LocalTime value) {
+        return value == null ? null : value.toString();
     }
 }

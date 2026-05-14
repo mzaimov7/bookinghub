@@ -59,49 +59,49 @@ export default function LoginPage() {
         <section style={formPanel}>
           <div style={card}>
             <div style={formHeader}>
-              <span style={eyebrow}>Account Access</span>
-              <h2 style={title}>Login</h2>
+              <span style={eyebrow}>Достъп до профила</span>
+              <h2 style={title}>Вход</h2>
             </div>
 
             <form onSubmit={onSubmit} style={form}>
-              <label style={label}>Username or email</label>
+              <label style={label}>Потребителско име или имейл</label>
               <input
                 value={identifier}
                 onChange={(event) => setIdentifier(event.target.value)}
-                placeholder="martin or martin@email.com"
+                placeholder="martin или martin@email.com"
                 style={input}
                 disabled={loading}
               />
 
-              <label style={label}>Password</label>
+              <label style={label}>Парола</label>
               <input
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Въведи паролата си"
                 style={input}
                 disabled={loading}
               />
 
               <button type="submit" style={primaryButton} disabled={loading}>
-                {loading ? "Signing in..." : "Sign in"}
+                {loading ? "Влизане..." : "Вход"}
               </button>
             </form>
 
             <div style={dividerRow}>
               <div style={divider} />
-              <span style={dividerLabel}>Dev Access</span>
+              <span style={dividerLabel}>Dev достъп</span>
               <div style={divider} />
             </div>
 
             <div style={devGrid}>
-              <DevRoleCard title="Dev Client" onClick={() => onDevLogin("CLIENT")} disabled={loading} />
-              <DevRoleCard title="Dev Business" onClick={() => onDevLogin("BUSINESS")} disabled={loading} />
-              <DevRoleCard title="Dev Admin" onClick={() => onDevLogin("ADMIN")} disabled={loading} />
+              <DevRoleCard title="Dev Клиент" onClick={() => onDevLogin("CLIENT")} disabled={loading} />
+              <DevRoleCard title="Dev Бизнес" onClick={() => onDevLogin("BUSINESS")} disabled={loading} />
+              <DevRoleCard title="Dev Админ" onClick={() => onDevLogin("ADMIN")} disabled={loading} />
             </div>
 
             <p style={registerText}>
-              No account? <Link to="/register" style={registerLink}>Create one</Link>
+              Нямаш профил? <Link to="/register" style={registerLink}>Създай си</Link>
             </p>
           </div>
         </section>

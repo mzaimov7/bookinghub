@@ -53,7 +53,7 @@ export default function RegisterPage() {
 
     try {
       await register(payload);
-      alert("Account created successfully. You can sign in now.");
+      alert("Профилът беше създаден успешно. Вече можеш да влезеш.");
       navigate("/login");
     } catch (error) {
       alert(error.message);
@@ -73,21 +73,21 @@ export default function RegisterPage() {
         <section style={formPanel}>
           <div style={card}>
             <div style={formHeader}>
-              <span style={eyebrow}>Create Account</span>
-              <h2 style={title}>Register</h2>
+              <span style={eyebrow}>Създаване на профил</span>
+              <h2 style={title}>Регистрация</h2>
             </div>
 
             <div style={selectorGrid}>
               <RoleCard
                 active={role === "CLIENT"}
-                title="Client"
-                subtitle="Personal account"
+                title="Клиент"
+                subtitle="Личен профил"
                 onClick={() => setRole("CLIENT")}
               />
               <RoleCard
                 active={role === "BUSINESS"}
-                title="Business"
-                subtitle="Service provider account"
+                title="Бизнес"
+                subtitle="Профил за доставчик на услуги"
                 onClick={() => setRole("BUSINESS")}
               />
             </div>
@@ -95,16 +95,16 @@ export default function RegisterPage() {
             <form onSubmit={onSubmit} style={formStyle}>
               <div style={gridTwo}>
                 <Field
-                  label="Username"
+                  label="Потребителско име"
                   name="username"
                   value={form.username}
                   onChange={onChange}
-                  placeholder="Choose a username"
+                  placeholder="Избери потребителско име"
                   disabled={loading}
                   required
                 />
                 <Field
-                  label="Email"
+                  label="Имейл"
                   name="email"
                   type="email"
                   value={form.email}
@@ -116,113 +116,113 @@ export default function RegisterPage() {
               </div>
 
               <Field
-                label="Password"
+                label="Парола"
                 name="password"
                 type="password"
                 value={form.password}
                 onChange={onChange}
-                placeholder="Create a password"
+                placeholder="Създай парола"
                 disabled={loading}
                 required
               />
 
               {role === "CLIENT" ? (
                 <>
-                  <div style={sectionLabel}>Client profile</div>
+                  <div style={sectionLabel}>Клиентски профил</div>
                   <div style={gridTwo}>
                     <Field
-                      label="First name"
+                      label="Име"
                       name="firstName"
                       value={form.firstName}
                       onChange={onChange}
-                      placeholder="First name"
+                      placeholder="Име"
                       disabled={loading}
                       required
                     />
                     <Field
-                      label="Last name"
+                      label="Фамилия"
                       name="lastName"
                       value={form.lastName}
                       onChange={onChange}
-                      placeholder="Last name"
+                      placeholder="Фамилия"
                       disabled={loading}
                       required
                     />
                   </div>
                   <Field
-                    label="Phone"
+                    label="Телефон"
                     name="phone"
                     value={form.phone}
                     onChange={onChange}
-                    placeholder="Optional"
+                    placeholder="По желание"
                     disabled={loading}
                   />
                 </>
               ) : (
                 <>
-                  <div style={sectionLabel}>Business profile</div>
+                  <div style={sectionLabel}>Бизнес профил</div>
 
                   <div style={providerGrid}>
                     <ProviderCard
                       active={providerType === "COMPANY"}
-                      title="Company"
+                      title="Фирма"
                       onClick={() => setProviderType("COMPANY")}
                     />
                     <ProviderCard
                       active={providerType === "INDIVIDUAL"}
-                      title="Individual"
+                      title="Самостоятелен"
                       onClick={() => setProviderType("INDIVIDUAL")}
                     />
                   </div>
 
                   <Field
-                    label="Business name"
+                    label="Име на бизнеса"
                     name="businessName"
                     value={form.businessName}
                     onChange={onChange}
-                    placeholder="Business name"
+                    placeholder="Име на бизнеса"
                     disabled={loading}
                     required
                   />
 
                   <div style={gridTwo}>
                     <Field
-                      label="City"
+                      label="Град"
                       name="city"
                       value={form.city}
                       onChange={onChange}
-                      placeholder="City"
+                      placeholder="Град"
                       disabled={loading}
                       required
                     />
                     <Field
-                      label="Phone"
+                      label="Телефон"
                       name="businessPhone"
                       value={form.businessPhone}
                       onChange={onChange}
-                      placeholder="Optional"
+                      placeholder="По желание"
                       disabled={loading}
                     />
                   </div>
 
                   <Field
-                    label="Address"
+                    label="Адрес"
                     name="address"
                     value={form.address}
                     onChange={onChange}
-                    placeholder="Optional"
+                    placeholder="По желание"
                     disabled={loading}
                   />
                 </>
               )}
 
               <button type="submit" style={primaryButton} disabled={loading}>
-                {loading ? "Creating account..." : "Create account"}
+                {loading ? "Създаване..." : "Създай профил"}
               </button>
             </form>
 
             <p style={registerText}>
-              Already have an account? <Link to="/login" style={registerLink}>Sign in</Link>
+              Вече имаш профил? <Link to="/login" style={registerLink}>Влез</Link>
             </p>
           </div>
         </section>

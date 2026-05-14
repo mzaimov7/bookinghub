@@ -1,8 +1,11 @@
 package com.martinzaimov.bookinghub.dto;
 
-public class UpdateResourceRequest {
-    public String name;     // optional
-    public Boolean active;  // optional
-    public String photoUrl; // ✅ ново
+import java.util.List;
 
+public class UpdateResourceRequest {
+    public String name;
+    public Boolean active;
+    public String photoUrl;
+    public List<Integer> weeklyOffDays;
+    public List<String> dayOffDates;
 }

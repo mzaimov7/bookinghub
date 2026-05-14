@@ -208,10 +208,10 @@ export default function SearchResultsPage() {
   }, [services, favoritesOnly, favoriteIds, sortBy]);
 
   const heading = filters.query
-    ? `Results for "${filters.query}"`
+    ? `Резултати за "${filters.query}"`
     : activeCategory
-      ? `${activeCategory.name} services`
-      : "Search results";
+      ? `${activeCategory.name} услуги`
+      : "Резултати от търсенето";
 
   return (
     <div style={page}>
@@ -228,31 +228,30 @@ export default function SearchResultsPage() {
           <div style={sidebarCard}>
             <div style={sidebarTop}>
               <div>
-                <div style={eyebrow}>Filters</div>
-                <h2 style={sidebarTitle}>Refine search</h2>
-              </div>
-              <button onClick={clearFilters} style={clearButton}>Clear</button>
+                  <div style={eyebrow}>Филтри</div>
+                </div>
+              <button onClick={clearFilters} style={clearButton}>Изчисти</button>
             </div>
 
             <FilterSection
-              title="Categories"
+              title="Категории"
               open={showCategories}
               onToggle={() => setShowCategories((current) => !current)}
             >
               <label style={fieldWrap}>
-                <span style={fieldLabel}>Choose category</span>
+                  <span style={fieldLabel}>Избери категория</span>
                 <select
                   value={form.categoryId}
                   onChange={(event) => onFieldChange("categoryId", event.target.value)}
                   style={fieldInput}
                 >
-                  <option value="">All categories</option>
+                  <option value="">Всички категории</option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
                   ))}
-                  <option value="OTHER">Other</option>
+                  <option value="OTHER">Други</option>
                 </select>
               </label>
 
@@ -264,29 +263,29 @@ export default function SearchResultsPage() {
             </FilterSection>
 
             <FilterSection
-              title="Location"
+              title="Локация"
               open={showLocation}
               onToggle={() => setShowLocation((current) => !current)}
             >
               <label style={fieldWrap}>
-                <span style={fieldLabel}>City</span>
+                <span style={fieldLabel}>Град</span>
                 <input
                   value={form.city}
                   onChange={(event) => onFieldChange("city", event.target.value)}
-                  placeholder="Sofia"
+                  placeholder="София"
                   style={fieldInput}
                 />
               </label>
             </FilterSection>
 
             <FilterSection
-              title="Price range"
+              title="Ценови диапазон"
               open={showPrice}
               onToggle={() => setShowPrice((current) => !current)}
             >
               <div style={priceGrid}>
                 <label style={fieldWrap}>
-                  <span style={fieldLabel}>Min</span>
+                    <span style={fieldLabel}>Мин.</span>
                   <input
                     value={form.minPrice}
                     onChange={(event) => onFieldChange("minPrice", event.target.value)}
@@ -297,7 +296,7 @@ export default function SearchResultsPage() {
                 </label>
 
                 <label style={fieldWrap}>
-                  <span style={fieldLabel}>Max</span>
+                    <span style={fieldLabel}>Макс.</span>
                   <input
                     value={form.maxPrice}
                     onChange={(event) => onFieldChange("maxPrice", event.target.value)}
@@ -310,7 +309,7 @@ export default function SearchResultsPage() {
             </FilterSection>
 
             <FilterSection
-              title="Service mode"
+              title="Тип услуга"
               open={showMode}
               onToggle={() => setShowMode((current) => !current)}
             >
@@ -322,15 +321,15 @@ export default function SearchResultsPage() {
                     checked={form.serviceMode === ""}
                     onChange={() => onFieldChange("serviceMode", "")}
                   />
-                  <span>All services</span>
+                  <span>Всички услуги</span>
                 </label>
                 <label style={modeOptionDisabled}>
                   <input type="radio" name="serviceMode" disabled />
-                  <span>Online only</span>
+                  <span>Само онлайн</span>
                 </label>
                 <label style={modeOptionDisabled}>
                   <input type="radio" name="serviceMode" disabled />
-                  <span>On-site only</span>
+                  <span>Само на място</span>
                 </label>
               </div>
 
@@ -340,7 +339,7 @@ export default function SearchResultsPage() {
             </FilterSection>
 
             <FilterSection
-              title="Favorites"
+              title="Любими"
               open={showFavorites}
               onToggle={() => setShowFavorites((current) => !current)}
             >
@@ -351,52 +350,50 @@ export default function SearchResultsPage() {
                   onChange={(event) => setFavoritesOnly(event.target.checked)}
                   disabled={!isLoggedIn() || getRole() !== "CLIENT"}
                 />
-                <span>Favorites only</span>
+                  <span>Само любими</span>
               </label>
               {!isLoggedIn() || getRole() !== "CLIENT" ? (
-                <div style={hintBox}>Favorites filter is available when you are logged in as client.</div>
+                <div style={hintBox}>Филтърът за любими е наличен, когато си влязъл като клиент.</div>
               ) : null}
             </FilterSection>
 
-            <button onClick={applySidebarFilters} style={applyButton}>Apply filters</button>
+            <button onClick={applySidebarFilters} style={applyButton}>Приложи филтрите</button>
           </div>
         </aside>
 
         <main style={resultsArea}>
           <section style={resultsHero}>
             <div>
-              <div style={eyebrow}>Results</div>
               <h1 style={resultsTitle}>{heading}</h1>
               <p style={resultsSubtitle}>
                 {loading
-                  ? "Looking for matching services..."
-                  : `${visibleServices.length} result${visibleServices.length === 1 ? "" : "s"} found based on your active filters.`}
+                  ? "Търсим подходящи услуги..."
+                  : `Намерени са ${visibleServices.length} резултата според активните филтри.`}
               </p>
             </div>
 
             <div style={activeFilterWrap}>
-              {filters.query && <ActiveChip label={`Keyword: ${filters.query}`} />}
-              {filters.city && <ActiveChip label={`City: ${filters.city}`} />}
-              {activeCategory && <ActiveChip label={`Category: ${activeCategory.name}`} />}
-              {filters.minPrice && <ActiveChip label={`Min: ${filters.minPrice} lv`} />}
-              {filters.maxPrice && <ActiveChip label={`Max: ${filters.maxPrice} lv`} />}
+              {filters.city && <ActiveChip label={`Град: ${filters.city}`} />}
+              {activeCategory && <ActiveChip label={`Категория: ${activeCategory.name}`} />}
+              {filters.minPrice && <ActiveChip label={`Мин.: €${filters.minPrice}`} />}
+              {filters.maxPrice && <ActiveChip label={`Макс.: €${filters.maxPrice}`} />}
             </div>
           </section>
 
           <section style={toolbar}>
             <div style={toolbarLeft}>
-              <div style={toolbarCount}>{visibleServices.length} listings</div>
-              {favoritesOnly ? <ActiveChip label="Favorites only" /> : null}
+              <div style={toolbarCount}>{visibleServices.length} обяви</div>
+              {favoritesOnly ? <ActiveChip label="Само любими" /> : null}
             </div>
 
             <div style={toolbarRight}>
               <label style={toolbarField}>
-                <span style={toolbarLabel}>Sort by</span>
+                <span style={toolbarLabel}>Сортирай по</span>
                 <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} style={toolbarSelect}>
-                  <option value="relevant">Most relevant</option>
-                  <option value="price-asc">Price: low to high</option>
-                  <option value="price-desc">Price: high to low</option>
-                  <option value="top-rated">Highest rated</option>
+                  <option value="relevant">Най-подходящи</option>
+                  <option value="price-asc">Цена: възходящо</option>
+                  <option value="price-desc">Цена: низходящо</option>
+                  <option value="top-rated">Най-високо оценени</option>
                 </select>
               </label>
 
@@ -405,25 +402,25 @@ export default function SearchResultsPage() {
                   onClick={() => setViewMode("grid")}
                   style={{ ...viewButton, ...(viewMode === "grid" ? activeViewButton : null) }}
                 >
-                  Grid
+                  Мрежа
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
                   style={{ ...viewButton, ...(viewMode === "list" ? activeViewButton : null) }}
                 >
-                  List
+                  Списък
                 </button>
               </div>
             </div>
           </section>
 
           {loading ? (
-            <div style={loadingCard}>Loading results...</div>
+            <div style={loadingCard}>Зареждане на резултатите...</div>
           ) : visibleServices.length === 0 ? (
             <div style={emptyCard}>
-              <div style={emptyTitle}>No services found</div>
-              <p style={emptyText}>Try changing the city, widening the price range or selecting another category.</p>
-              <button onClick={() => navigate("/")} style={homeButton}>Back to home</button>
+              <div style={emptyTitle}>Няма намерени услуги</div>
+              <p style={emptyText}>Пробвай с друг град, по-широк ценови диапазон или различна категория.</p>
+              <button onClick={() => navigate("/")} style={homeButton}>Към началната страница</button>
             </div>
           ) : (
             <ServiceGrid

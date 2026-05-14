@@ -34,6 +34,43 @@ export async function updateMyProfile(payload) {
   return mapClientProfile(data);
 }
 
+export async function uploadMyProfilePhoto(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const data = await apiSend("/api/client/profile/photo", {
+    method: "POST",
+    headers: {
+      ...userHeaders(),
+    },
+    body: formData,
+  });
+
+  return mapClientProfile(data);
+}
+
+export async function verifyMyPassword(password) {
+  await apiSend("/api/client/profile/verify-password", {
+    method: "POST",
+    headers: {
+      ...userHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password }),
+  });
+}
+
+export async function changeMyPassword(payload) {
+  await apiSend("/api/client/profile/password", {
+    method: "PUT",
+    headers: {
+      ...userHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function getFavoriteIds() {
   return apiGet("/api/client/favorites/ids", { headers: userHeaders() });
 }

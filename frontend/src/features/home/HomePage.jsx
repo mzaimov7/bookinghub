@@ -90,7 +90,7 @@ export default function HomePage() {
           services={services.slice(0, 6)}
           favoriteIds={favoriteIds}
           onToggleFavorite={onToggleFavorite}
-          title="Most popular right now"
+          title="Най-популярни в момента"
         />
         <PlatformStorySection />
       </div>

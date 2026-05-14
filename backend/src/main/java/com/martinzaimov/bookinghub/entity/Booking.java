@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Table(name = "bookings")
 public class Booking {
 
-    public enum Status { PENDING, CONFIRMED, REJECTED, CANCELED }
+    public enum Status { PENDING, CONFIRMED, COMPLETED, REJECTED, CANCELED }
     public enum Source { ONLINE, WALK_IN }
 
     @Id

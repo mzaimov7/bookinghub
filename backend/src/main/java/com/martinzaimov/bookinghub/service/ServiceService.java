@@ -1,6 +1,7 @@
 package com.martinzaimov.bookinghub.service;
 
 import com.martinzaimov.bookinghub.dto.ServiceOTD;
+import com.martinzaimov.bookinghub.entity.ServiceImage;
 import com.martinzaimov.bookinghub.repo.ServiceImageRepository;
 import com.martinzaimov.bookinghub.repo.ServiceRepository;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class ServiceService {
     public ServiceOTD getById(Long id) {
         com.martinzaimov.bookinghub.entity.Service s = repo.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
-        return toDto(s);
+        return toDetailedDto(s);
     }
 
     private ServiceOTD toDto(com.martinzaimov.bookinghub.entity.Service s) {
@@ -53,7 +54,39 @@ public class ServiceService {
                 s.getAddress(),
                 s.getPrice(),
                 s.getDurationMinutes(),
+                s.getOpensAt() == null ? null : s.getOpensAt().toString(),
+                s.getClosesAt() == null ? null : s.getClosesAt().toString(),
+                s.getSlotIntervalMinutes(),
+                s.getBookingHorizonDays(),
                 coverUrl
+        );
+    }
+
+    private ServiceOTD toDetailedDto(com.martinzaimov.bookinghub.entity.Service s) {
+        String coverUrl = images.findFirstByServiceIdAndCoverTrueOrderBySortOrderAsc(s.getId())
+                .map(ServiceImage::getImageUrl)
+                .orElse(null);
+        java.util.List<String> imageUrls = images.findByServiceIdOrderBySortOrderAsc(s.getId())
+                .stream()
+                .map(ServiceImage::getImageUrl)
+                .toList();
+
+        return new ServiceOTD(
+                s.getId(),
+                s.getCategory() != null ? s.getCategory().getId() : null,
+                s.getBusinessUserId(),
+                s.getTitle(),
+                s.getDescription(),
+                s.getCity(),
+                s.getAddress(),
+                s.getPrice(),
+                s.getDurationMinutes(),
+                s.getOpensAt() == null ? null : s.getOpensAt().toString(),
+                s.getClosesAt() == null ? null : s.getClosesAt().toString(),
+                s.getSlotIntervalMinutes(),
+                s.getBookingHorizonDays(),
+                coverUrl,
+                imageUrls
         );
     }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getRole, isLoggedIn } from "../../lib/authStore";
 import { resolveBackendImage, serviceFallbackImage } from "../../lib/assets";
 
@@ -15,6 +15,8 @@ export default function ServiceGrid({
   viewMode = "grid",
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = `${location.pathname}${location.search}`;
 
   function onReserveClick(event) {
     event.preventDefault();
@@ -27,12 +29,12 @@ export default function ServiceGrid({
     }
 
     if (getRole() !== "CLIENT") {
-      alert("Client account required for reservations.");
+      alert("За резервация е нужен клиентски профил.");
       return;
     }
 
     const serviceId = event.currentTarget.getAttribute("data-service-id");
-    navigate(`/services/${serviceId}`);
+    navigate(`/services/${serviceId}`, { state: { from } });
   }
 
   function onFavoriteClick(event) {
@@ -40,12 +42,12 @@ export default function ServiceGrid({
     event.stopPropagation();
 
     if (!isLoggedIn()) {
-      alert("Login first to save favorites.");
+      alert("Първо влез в профила си, за да запазваш любими.");
       navigate("/login");
       return;
     }
     if (getRole() !== "CLIENT") {
-      alert("Favorites are available for client accounts.");
+      alert("Любимите са налични само за клиентски профили.");
       return;
     }
 
@@ -65,7 +67,7 @@ export default function ServiceGrid({
         }
       >
         {services.map((service) => (
-          <Link key={service.id} to={`/services/${service.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+          <Link key={service.id} to={`/services/${service.id}`} state={{ from }} style={{ textDecoration: "none", color: "inherit" }}>
             <div style={viewMode === "list" ? listCard : card}>
               <img
                 src={imageFor(service)}
@@ -84,11 +86,11 @@ export default function ServiceGrid({
                       onClick={onFavoriteClick}
                       data-service-id={service.id}
                       style={{ ...favoriteBtn, color: favoriteIds.includes(service.id) ? "#dc2626" : "#64748b" }}
-                      title="Favorite"
+                      title="Любими"
                     >
                       ♥
                     </button>
-                    <div style={{ fontWeight: 900, whiteSpace: "nowrap" }}>{service.price} лв</div>
+                    <div style={{ fontWeight: 900, whiteSpace: "nowrap" }}>€{service.price}</div>
                   </div>
                 </div>
 
@@ -99,7 +101,7 @@ export default function ServiceGrid({
                     📍 {service.city} • ⏱ {service.durationMinutes} мин
                   </div>
 
-                  <button onClick={onReserveClick} data-service-id={service.id} style={reserveBtn} title="Reserve">
+                  <button onClick={onReserveClick} data-service-id={service.id} style={reserveBtn} title="Резервирай">
                     📅 Резервирай
                   </button>
                 </div>

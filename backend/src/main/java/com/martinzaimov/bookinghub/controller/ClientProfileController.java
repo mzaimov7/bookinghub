@@ -1,12 +1,16 @@
 package com.martinzaimov.bookinghub.controller;
 
 import com.martinzaimov.bookinghub.dto.CreateBookingRequest;
+import com.martinzaimov.bookinghub.dto.ChangePasswordRequest;
 import com.martinzaimov.bookinghub.dto.RecentSearchRequest;
 import com.martinzaimov.bookinghub.dto.UpdateProfileRequest;
+import com.martinzaimov.bookinghub.dto.VerifyPasswordRequest;
 import com.martinzaimov.bookinghub.service.ClientProfileService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/client")
@@ -23,12 +27,38 @@ public class ClientProfileController {
         return ResponseEntity.ok(clientProfileService.getProfile(userId));
     }
 
+    @PostMapping(path = "/profile/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadProfilePhoto(
+            @RequestHeader("X-User-Id") Long userId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        return ResponseEntity.ok(clientProfileService.uploadProfilePhoto(userId, file));
+    }
+
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(
             @RequestHeader("X-User-Id") Long userId,
             @Valid @RequestBody UpdateProfileRequest request
     ) {
         return ResponseEntity.ok(clientProfileService.updateProfile(userId, request));
+    }
+
+    @PostMapping("/profile/verify-password")
+    public ResponseEntity<?> verifyPassword(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody VerifyPasswordRequest request
+    ) {
+        clientProfileService.verifyProfilePassword(userId, request.password);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/profile/password")
+    public ResponseEntity<?> changePassword(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        clientProfileService.changePassword(userId, request);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/favorites")

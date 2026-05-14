@@ -15,13 +15,38 @@
  * @property {string} firstName
  * @property {string} lastName
  * @property {string | null} phone
+ * @property {string | null} photoUrl
+ */
+/**
+ * @typedef {Object} BusinessProfileResponse
+ * @property {number} userId
+ * @property {string} username
+ * @property {string} email
+ * @property {string} role
+ * @property {string} providerType
+ * @property {string} businessName
+ * @property {string} city
+ * @property {string | null} address
+ * @property {string | null} phone
+ * @property {string | null} photoUrl
  */
 /**
  * @typedef {Object} AvailableSlotResponse
- * @property {number} id
+ * @property {string} bookingKey
  * @property {number} resourceId
+ * @property {string} resourceName
+ * @property {string} resourceType
+ * @property {string | null} resourcePhotoUrl
  * @property {string} startAt
  * @property {string} endAt
+ *
+ * @typedef {Object} CommentResponse
+ * @property {number} id
+ * @property {number} serviceId
+ * @property {number} authorUserId
+ * @property {string} authorName
+ * @property {string} text
+ * @property {string} createdAt
  *
  * @typedef {Object} BookingResponse
  * @property {number} id
@@ -35,8 +60,13 @@
  * @property {string} title
  * @property {string} city
  * @property {string | null} address
+ * @property {string | null} statusReason
  * @property {number} price
  * @property {number} durationMinutes
+ * @property {string | null} opensAt
+ * @property {string | null} closesAt
+ * @property {number | null} slotIntervalMinutes
+ * @property {number | null} bookingHorizonDays
  * @property {string | null} coverImageUrl
  *
  * @typedef {Object} RecentSearchResponse
@@ -60,9 +90,18 @@
  * @property {string | null} description
  * @property {string} city
  * @property {string} address
+ * @property {number | null} categoryId
  * @property {number} price
  * @property {number} durationMinutes
+ * @property {string | null} opensAt
+ * @property {string | null} closesAt
+ * @property {number | null} slotIntervalMinutes
+ * @property {number | null} bookingHorizonDays
  * @property {string | null} coverImageUrl
+ * @property {string[] | null} imageUrls
+ * @property {number[] | null} resourceIds
+ * @property {string | null} adminDeletionReason
+ * @property {string | null} adminDeletedAt
  *
  * @typedef {Object} ResourceResponse
  * @property {number} id
@@ -70,6 +109,28 @@
  * @property {string} name
  * @property {boolean} active
  * @property {string | null} photoUrl
+ * @property {number[] | null} weeklyOffDays
+ * @property {string[] | null} dayOffDates
+ *
+ * @typedef {Object} BusinessBookingResponse
+ * @property {number} id
+ * @property {number} serviceId
+ * @property {number} slotId
+ * @property {number} clientUserId
+ * @property {string} clientName
+ * @property {string} clientEmail
+ * @property {string} serviceTitle
+ * @property {string} resourceName
+ * @property {string} resourceType
+ * @property {string} status
+ * @property {string | null} statusReason
+ * @property {string | null} clientNote
+ * @property {string} createdAt
+ * @property {string} startAt
+ * @property {string} endAt
+ * @property {number} price
+ * @property {number} durationMinutes
+ * @property {string | null} coverImageUrl
  */
 
 export {};

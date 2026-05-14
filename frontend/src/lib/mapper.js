@@ -25,6 +25,26 @@ export function mapClientProfile(item) {
     firstName: item?.firstName ?? "",
     lastName: item?.lastName ?? "",
     phone: item?.phone ?? "",
+    photoUrl: item?.photoUrl ?? null,
+  };
+}
+
+/**
+ * @param {import("../types/api").BusinessProfileResponse} item
+ * @returns {import("../types/models").BusinessProfileModel}
+ */
+export function mapBusinessProfile(item) {
+  return {
+    userId: Number(item?.userId ?? 0),
+    username: item?.username ?? "",
+    email: item?.email ?? "",
+    role: item?.role ?? "BUSINESS",
+    providerType: item?.providerType ?? "COMPANY",
+    businessName: item?.businessName ?? "",
+    city: item?.city ?? "",
+    address: item?.address ?? "",
+    phone: item?.phone ?? "",
+    photoUrl: item?.photoUrl ?? null,
   };
 }
 
@@ -34,8 +54,11 @@ export function mapClientProfile(item) {
  */
 export function mapAvailableSlot(item) {
   return {
-    id: Number(item?.id ?? 0),
+    bookingKey: item?.bookingKey ?? "",
     resourceId: Number(item?.resourceId ?? 0),
+    resourceName: item?.resourceName ?? "Assigned resource",
+    resourceType: item?.resourceType ?? "STAFF",
+    resourcePhotoUrl: item?.resourcePhotoUrl ?? null,
     startAt: item?.startAt ?? "",
     endAt: item?.endAt ?? "",
   };
@@ -58,9 +81,25 @@ export function mapBooking(item) {
     title: item?.title ?? "",
     city: item?.city ?? "",
     address: item?.address ?? "",
+    statusReason: item?.statusReason ?? "",
     price: Number(item?.price ?? 0),
     durationMinutes: Number(item?.durationMinutes ?? 0),
     coverImageUrl: item?.coverImageUrl ?? null,
+  };
+}
+
+/**
+ * @param {import("../types/api").CommentResponse} item
+ * @returns {import("../types/models").CommentModel}
+ */
+export function mapComment(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    serviceId: Number(item?.serviceId ?? 0),
+    authorUserId: Number(item?.authorUserId ?? 0),
+    authorName: item?.authorName ?? "Потребител",
+    text: item?.text ?? "",
+    createdAt: item?.createdAt ?? "",
   };
 }
 
@@ -99,13 +138,22 @@ export function mapCategory(item) {
 export function mapService(item) {
   return {
     id: Number(item?.id ?? 0),
+    categoryId: item?.categoryId == null ? null : Number(item.categoryId),
     title: item?.title ?? "",
     description: item?.description ?? "",
     city: item?.city ?? "",
     address: item?.address ?? "",
     price: Number(item?.price ?? 0),
     durationMinutes: Number(item?.durationMinutes ?? 0),
+    opensAt: item?.opensAt ?? null,
+    closesAt: item?.closesAt ?? null,
+    slotIntervalMinutes: Number(item?.slotIntervalMinutes ?? 30),
+    bookingHorizonDays: Number(item?.bookingHorizonDays ?? 90),
     coverImageUrl: item?.coverImageUrl ?? null,
+    imageUrls: Array.isArray(item?.imageUrls) ? item.imageUrls.filter(Boolean) : [],
+    resourceIds: Array.isArray(item?.resourceIds) ? item.resourceIds.map(Number).filter((value) => !Number.isNaN(value)) : [],
+    adminDeletionReason: item?.adminDeletionReason ?? "",
+    adminDeletedAt: item?.adminDeletedAt ?? null,
   };
 }
 
@@ -120,6 +168,35 @@ export function mapResource(item) {
     name: item?.name ?? "",
     active: Boolean(item?.active),
     photoUrl: item?.photoUrl ?? null,
+    weeklyOffDays: Array.isArray(item?.weeklyOffDays) ? item.weeklyOffDays.map(Number).filter((value) => !Number.isNaN(value)) : [],
+    dayOffDates: Array.isArray(item?.dayOffDates) ? item.dayOffDates.filter(Boolean) : [],
+  };
+}
+
+/**
+ * @param {import("../types/api").BusinessBookingResponse} item
+ * @returns {import("../types/models").BusinessBookingModel}
+ */
+export function mapBusinessBooking(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    serviceId: Number(item?.serviceId ?? 0),
+    slotId: Number(item?.slotId ?? 0),
+    clientUserId: Number(item?.clientUserId ?? 0),
+    clientName: item?.clientName ?? "",
+    clientEmail: item?.clientEmail ?? "",
+    serviceTitle: item?.serviceTitle ?? "",
+    resourceName: item?.resourceName ?? "",
+    resourceType: item?.resourceType ?? "STAFF",
+    status: item?.status ?? "PENDING",
+    statusReason: item?.statusReason ?? "",
+    clientNote: item?.clientNote ?? "",
+    createdAt: item?.createdAt ?? "",
+    startAt: item?.startAt ?? "",
+    endAt: item?.endAt ?? "",
+    price: Number(item?.price ?? 0),
+    durationMinutes: Number(item?.durationMinutes ?? 0),
+    coverImageUrl: item?.coverImageUrl ?? null,
   };
 }
 

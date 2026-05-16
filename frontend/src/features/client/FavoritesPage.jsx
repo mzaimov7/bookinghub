@@ -313,7 +313,7 @@ export default function FavoritesPage() {
 
 function StatCard({ value, label, tone }) {
   const palette = {
-    blue: { background: "rgba(255,255,255,0.72)", border: "rgba(191,219,254,0.9)", value: "#1d4ed8" },
+    blue: { background: "rgba(15,23,42,0.46)", border: "rgba(96,165,250,0.24)", value: "#93c5fd" },
   };
 
   return (
@@ -343,7 +343,7 @@ function ActiveChip({ label }) {
 const page = {
   minHeight: "100vh",
   background:
-    "linear-gradient(180deg, #f8fbff 0%, #eef4fb 26%, #f8fafc 100%)",
+    "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 14%, #eaf2ff 42%, #f6f9ff 100%)",
 };
 const content = {
   maxWidth: 1260,
@@ -356,18 +356,18 @@ const bodyLayout = { display: "grid", gridTemplateColumns: "300px minmax(0, 1fr)
 const resultsArea = { minWidth: 0 };
 const sidebar = { position: "sticky", top: 128 };
 const sidebarCard = {
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(245,249,255,0.98) 100%)",
-  border: "1px solid rgba(203,213,225,0.9)",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.94) 0%, rgba(17,36,71,0.96) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
   borderRadius: 24,
   padding: 18,
-  boxShadow: "0 20px 48px rgba(148,163,184,0.12)",
+  boxShadow: "0 20px 48px rgba(2,6,23,0.24)",
 };
 const sidebarTop = { display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12, marginBottom: 12 };
 const sidebarTitle = { margin: "8px 0 0", fontSize: 24, lineHeight: 1.05, color: "#0f172a" };
 const clearButton = {
   border: "none",
   background: "transparent",
-  color: "#2563eb",
+  color: "#93c5fd",
   cursor: "pointer",
   fontWeight: 800,
 };
@@ -377,19 +377,19 @@ const hero = {
   gap: 16,
   padding: "18px 20px",
   borderRadius: 24,
-  background: "linear-gradient(135deg, rgba(228,239,255,0.95) 0%, rgba(255,255,255,0.98) 70%, rgba(241,245,249,0.95) 100%)",
-  border: "1px solid rgba(191,219,254,0.75)",
-  boxShadow: "0 18px 40px rgba(148,163,184,0.12)",
+  background: "linear-gradient(135deg, rgba(7,15,31,0.94) 0%, rgba(13,33,70,0.96) 70%, rgba(24,64,132,0.92) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  boxShadow: "0 18px 40px rgba(2,6,23,0.24)",
   alignItems: "center",
 };
 const heroCopy = { maxWidth: 620 };
-const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#2563eb" };
-const title = { margin: "8px 0 4px", fontSize: 34, lineHeight: 1.02, color: "#0f172a" };
-const heroMeta = { color: "#64748b", fontWeight: 600, lineHeight: 1.5 };
+const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.14em", color: "#93c5fd" };
+const title = { margin: "8px 0 4px", fontSize: 34, lineHeight: 1.02, color: "#eff6ff" };
+const heroMeta = { color: "rgba(226,232,240,0.78)", fontWeight: 600, lineHeight: 1.5 };
 const heroStats = { display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" };
 const statCard = { border: "1px solid", borderRadius: 18, padding: "14px 16px 12px", backdropFilter: "blur(10px)", minWidth: 132 };
 const statValue = { fontSize: 25, fontWeight: 900, lineHeight: 1 };
-const statLabel = { marginTop: 6, color: "#475569", fontWeight: 700, fontSize: 13 };
+const statLabel = { marginTop: 6, color: "#cbd5e1", fontWeight: 700, fontSize: 13 };
 const browseLink = {
   textDecoration: "none",
   padding: "13px 16px",
@@ -403,39 +403,40 @@ const browseLink = {
 const resultsShell = {
   padding: 16,
   borderRadius: 26,
-  background: "rgba(255,255,255,0.78)",
-  border: "1px solid rgba(226,232,240,0.95)",
-  boxShadow: "0 22px 54px rgba(148,163,184,0.1)",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.88) 0%, rgba(17,36,71,0.92) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  boxShadow: "0 22px 54px rgba(2,6,23,0.22)",
   backdropFilter: "blur(10px)",
 };
 const toolbar = {
   padding: "14px 16px",
   borderRadius: 20,
-  background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.92) 100%)",
-  border: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.9) 0%, rgba(17,36,71,0.92) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 16,
-  boxShadow: "0 10px 24px rgba(148,163,184,0.08)",
+  boxShadow: "0 10px 24px rgba(2,6,23,0.18)",
 };
 const toolbarLeft = { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" };
 const toolbarRight = { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" };
-const toolbarCount = { fontWeight: 900, color: "#0f172a" };
+const toolbarCount = { fontWeight: 900, color: "#eff6ff" };
 const toolbarField = { display: "flex", alignItems: "center", gap: 8 };
-const toolbarLabel = { fontSize: 13, fontWeight: 800, color: "#475569" };
+const toolbarLabel = { fontSize: 13, fontWeight: 800, color: "#cbd5e1" };
 const toolbarSelect = {
-  border: "1px solid #cbd5e1",
+  border: "1px solid rgba(96,165,250,0.24)",
   borderRadius: 12,
   padding: "10px 12px",
-  background: "#fff",
+  background: "rgba(15,23,42,0.44)",
+  color: "#eff6ff",
 };
 const viewToggle = {
   display: "inline-flex",
   padding: 4,
   borderRadius: 14,
-  background: "#eff6ff",
-  border: "1px solid #bfdbfe",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px solid rgba(96,165,250,0.24)",
 };
 const viewButton = {
   border: "none",
@@ -444,7 +445,7 @@ const viewButton = {
   borderRadius: 10,
   cursor: "pointer",
   fontWeight: 800,
-  color: "#1d4ed8",
+  color: "#bfdbfe",
 };
 const activeViewButton = {
   background: "#2563eb",
@@ -453,22 +454,22 @@ const activeViewButton = {
 const activeChip = {
   padding: "9px 12px",
   borderRadius: 999,
-  background: "#fff",
-  border: "1px solid #bfdbfe",
-  color: "#1d4ed8",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  color: "#bfdbfe",
   fontWeight: 800,
   fontSize: 13,
 };
 const emptyCard = {
   marginTop: 16,
-  background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.98) 100%)",
-  border: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
   borderRadius: 24,
   padding: "34px 28px",
-  boxShadow: "0 24px 60px rgba(148,163,184,0.12)",
+  boxShadow: "0 24px 60px rgba(2,6,23,0.24)",
 };
-const emptyTitle = { fontWeight: 900, fontSize: 24, color: "#0f172a" };
-const emptyText = { marginTop: 10, color: "#64748b", lineHeight: 1.7, maxWidth: 520 };
+const emptyTitle = { fontWeight: 900, fontSize: 24, color: "#eff6ff" };
+const emptyText = { marginTop: 10, color: "rgba(226,232,240,0.78)", lineHeight: 1.7, maxWidth: 520 };
 const emptyLink = {
   display: "inline-flex",
   marginTop: 16,
@@ -490,7 +491,7 @@ const emptyButton = {
   cursor: "pointer",
 };
 const collectionWrap = { marginTop: 14 };
-const filterSection = { paddingTop: 12, borderTop: "1px solid #e2e8f0" };
+const filterSection = { paddingTop: 12, borderTop: "1px solid rgba(96,165,250,0.18)" };
 const sectionToggle = {
   width: "100%",
   display: "flex",
@@ -501,27 +502,28 @@ const sectionToggle = {
   padding: "4px 0",
   cursor: "pointer",
   fontWeight: 900,
-  color: "#0f172a",
+  color: "#eff6ff",
   fontSize: 16,
 };
 const sectionBody = { marginTop: 12, display: "grid", gap: 12 };
 const fieldWrap = { display: "grid", gap: 6 };
-const fieldLabel = { fontWeight: 800, color: "#334155", fontSize: 13 };
+const fieldLabel = { fontWeight: 800, color: "#cbd5e1", fontSize: 13 };
 const fieldInput = {
   width: "100%",
   boxSizing: "border-box",
   padding: "12px 13px",
   borderRadius: 14,
-  border: "1px solid #cbd5e1",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.24)",
+  background: "rgba(15,23,42,0.44)",
+  color: "#eff6ff",
 };
 const priceGrid = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 };
 const hintBox = {
   padding: "12px 13px",
   borderRadius: 14,
-  background: "#f8fafc",
-  border: "1px dashed #cbd5e1",
-  color: "#64748b",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px dashed rgba(96,165,250,0.24)",
+  color: "rgba(226,232,240,0.78)",
   lineHeight: 1.6,
   fontSize: 13,
 };

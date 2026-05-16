@@ -455,7 +455,11 @@ function ActiveChip({ label }) {
   return <div style={activeChip}>{label}</div>;
 }
 
-const page = { minHeight: "100vh", background: "#f8fafc" };
+const page = {
+  minHeight: "100vh",
+  background:
+    "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 14%, #eaf2ff 42%, #f6f9ff 100%)",
+};
 const content = {
   maxWidth: 1260,
   margin: "0 auto",
@@ -467,23 +471,23 @@ const content = {
 };
 const sidebar = { position: "sticky", top: 128 };
 const sidebarCard = {
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)",
-  border: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.94) 0%, rgba(17,36,71,0.96) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
   borderRadius: 26,
   padding: 18,
-  boxShadow: "0 24px 60px rgba(148,163,184,0.12)",
+  boxShadow: "0 24px 60px rgba(2,6,23,0.24)",
 };
 const sidebarTop = { display: "flex", justifyContent: "space-between", alignItems: "start", gap: 12, marginBottom: 12 };
 const sidebarTitle = { margin: "8px 0 0", fontSize: 28, lineHeight: 1.05, color: "#0f172a" };
 const clearButton = {
   border: "none",
   background: "transparent",
-  color: "#2563eb",
+  color: "#93c5fd",
   cursor: "pointer",
   fontWeight: 800,
 };
-const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#2563eb" };
-const filterSection = { paddingTop: 12, borderTop: "1px solid #e2e8f0" };
+const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#93c5fd" };
+const filterSection = { paddingTop: 12, borderTop: "1px solid rgba(96,165,250,0.18)" };
 const sectionToggle = {
   width: "100%",
   display: "flex",
@@ -494,33 +498,34 @@ const sectionToggle = {
   padding: "4px 0",
   cursor: "pointer",
   fontWeight: 900,
-  color: "#0f172a",
+  color: "#eff6ff",
   fontSize: 16,
 };
 const sectionBody = { marginTop: 12, display: "grid", gap: 12 };
 const fieldWrap = { display: "grid", gap: 6 };
-const fieldLabel = { fontWeight: 800, color: "#334155", fontSize: 13 };
+const fieldLabel = { fontWeight: 800, color: "#cbd5e1", fontSize: 13 };
 const fieldInput = {
   width: "100%",
   boxSizing: "border-box",
   padding: "12px 13px",
   borderRadius: 14,
-  border: "1px solid #cbd5e1",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.24)",
+  background: "rgba(15,23,42,0.44)",
+  color: "#eff6ff",
 };
 const priceGrid = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 };
 const hintBox = {
   padding: "12px 13px",
   borderRadius: 14,
-  background: "#f8fafc",
-  border: "1px dashed #cbd5e1",
-  color: "#64748b",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px dashed rgba(96,165,250,0.24)",
+  color: "rgba(226,232,240,0.78)",
   lineHeight: 1.6,
   fontSize: 13,
 };
 const modeList = { display: "grid", gap: 10 };
-const modeOption = { display: "flex", gap: 10, alignItems: "center", color: "#0f172a", fontWeight: 700 };
-const modeOptionDisabled = { display: "flex", gap: 10, alignItems: "center", color: "#94a3b8", fontWeight: 700 };
+const modeOption = { display: "flex", gap: 10, alignItems: "center", color: "#eff6ff", fontWeight: 700 };
+const modeOptionDisabled = { display: "flex", gap: 10, alignItems: "center", color: "#64748b", fontWeight: 700 };
 const applyButton = {
   marginTop: 16,
   width: "100%",
@@ -537,19 +542,19 @@ const resultsArea = { minWidth: 0 };
 const resultsHero = {
   padding: 22,
   borderRadius: 28,
-  background: "linear-gradient(135deg, rgba(219,234,254,0.95) 0%, rgba(255,255,255,0.96) 62%, rgba(239,246,255,0.9) 100%)",
-  border: "1px solid rgba(191,219,254,0.9)",
-  boxShadow: "0 24px 60px rgba(148,163,184,0.12)",
+  background: "linear-gradient(135deg, rgba(7,15,31,0.94) 0%, rgba(13,33,70,0.96) 62%, rgba(24,64,132,0.92) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  boxShadow: "0 24px 60px rgba(2,6,23,0.24)",
 };
-const resultsTitle = { margin: "10px 0 8px", fontSize: 36, lineHeight: 1.04, color: "#0f172a" };
-const resultsSubtitle = { margin: 0, color: "#475569", lineHeight: 1.7 };
+const resultsTitle = { margin: "10px 0 8px", fontSize: 36, lineHeight: 1.04, color: "#eff6ff" };
+const resultsSubtitle = { margin: 0, color: "rgba(226,232,240,0.8)", lineHeight: 1.7 };
 const activeFilterWrap = { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 };
 const activeChip = {
   padding: "9px 12px",
   borderRadius: 999,
-  background: "#fff",
-  border: "1px solid #bfdbfe",
-  color: "#1d4ed8",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  color: "#bfdbfe",
   fontWeight: 800,
   fontSize: 13,
 };
@@ -557,31 +562,32 @@ const toolbar = {
   marginTop: 16,
   padding: "14px 16px",
   borderRadius: 20,
-  background: "#fff",
-  border: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 16,
-  boxShadow: "0 14px 34px rgba(148,163,184,0.08)",
+  boxShadow: "0 14px 34px rgba(2,6,23,0.22)",
 };
 const toolbarLeft = { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" };
 const toolbarRight = { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" };
-const toolbarCount = { fontWeight: 900, color: "#0f172a" };
+const toolbarCount = { fontWeight: 900, color: "#eff6ff" };
 const toolbarField = { display: "flex", alignItems: "center", gap: 8 };
-const toolbarLabel = { fontSize: 13, fontWeight: 800, color: "#475569" };
+const toolbarLabel = { fontSize: 13, fontWeight: 800, color: "#cbd5e1" };
 const toolbarSelect = {
-  border: "1px solid #cbd5e1",
+  border: "1px solid rgba(96,165,250,0.24)",
   borderRadius: 12,
   padding: "10px 12px",
-  background: "#fff",
+  background: "rgba(15,23,42,0.44)",
+  color: "#eff6ff",
 };
 const viewToggle = {
   display: "inline-flex",
   padding: 4,
   borderRadius: 14,
-  background: "#eff6ff",
-  border: "1px solid #bfdbfe",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px solid rgba(96,165,250,0.24)",
 };
 const viewButton = {
   border: "none",
@@ -590,7 +596,7 @@ const viewButton = {
   borderRadius: 10,
   cursor: "pointer",
   fontWeight: 800,
-  color: "#1d4ed8",
+  color: "#bfdbfe",
 };
 const activeViewButton = {
   background: "#2563eb",
@@ -600,20 +606,20 @@ const loadingCard = {
   marginTop: 18,
   padding: 22,
   borderRadius: 24,
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  color: "#64748b",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.9) 0%, rgba(17,36,71,0.92) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  color: "rgba(226,232,240,0.78)",
 };
 const emptyCard = {
   marginTop: 18,
   padding: 28,
   borderRadius: 24,
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  boxShadow: "0 20px 46px rgba(148,163,184,0.1)",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  boxShadow: "0 20px 46px rgba(2,6,23,0.22)",
 };
-const emptyTitle = { fontSize: 24, fontWeight: 900, color: "#0f172a" };
-const emptyText = { marginTop: 10, color: "#64748b", lineHeight: 1.7, maxWidth: 520 };
+const emptyTitle = { fontSize: 24, fontWeight: 900, color: "#eff6ff" };
+const emptyText = { marginTop: 10, color: "rgba(226,232,240,0.78)", lineHeight: 1.7, maxWidth: 520 };
 const homeButton = {
   marginTop: 16,
   padding: "12px 16px",

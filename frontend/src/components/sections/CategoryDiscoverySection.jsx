@@ -39,14 +39,14 @@ const wrap = {
   marginTop: 18,
   padding: 22,
   borderRadius: 28,
-  background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.94) 100%)",
-  border: "1px solid #dbeafe",
-  boxShadow: "0 24px 60px rgba(148,163,184,0.12)",
+  background: "linear-gradient(145deg, rgba(8,18,36,0.92) 0%, rgba(15,47,106,0.88) 38%, rgba(226,238,255,0.96) 100%)",
+  border: "1px solid rgba(147,197,253,0.38)",
+  boxShadow: "0 28px 70px rgba(15,23,42,0.18)",
 };
 const header = { marginBottom: 16 };
-const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#2563eb" };
-const title = { margin: "10px 0 8px", fontSize: 34, lineHeight: 1.04, color: "#0f172a" };
-const subtitle = { margin: 0, maxWidth: 640, color: "#475569", lineHeight: 1.7 };
+const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#93c5fd" };
+const title = { margin: "10px 0 8px", fontSize: 34, lineHeight: 1.04, color: "#f8fbff" };
+const subtitle = { margin: 0, maxWidth: 640, color: "rgba(226,232,240,0.9)", lineHeight: 1.7 };
 const grid = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -57,12 +57,12 @@ const card = {
   overflow: "hidden",
   minHeight: 220,
   borderRadius: 22,
-  border: "1px solid #e2e8f0",
+  border: "1px solid rgba(255,255,255,0.18)",
   background: "#0f172a",
   padding: 0,
   cursor: "pointer",
   textAlign: "left",
-  boxShadow: "0 18px 40px rgba(15,23,42,0.12)",
+  boxShadow: "0 18px 40px rgba(2,6,23,0.28)",
 };
 const image = {
   position: "absolute",

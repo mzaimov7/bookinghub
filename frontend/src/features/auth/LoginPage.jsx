@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { saveAuth } from "../../lib/authStore";
 import { login, loginAsDev } from "./api";
-import logoPng from "../../assets/BookingHub-logo.png";
+import logoPng from "../../assets/BookingHub-logo-auth.png";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -122,7 +122,7 @@ const shell = {
   minHeight: "100vh",
   position: "relative",
   overflow: "hidden",
-  background: "radial-gradient(circle at top left, #eff6ff 0%, #dbeafe 18%, #f8fafc 42%, #fffaf0 100%)",
+  background: "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 22%), radial-gradient(circle at top right, rgba(30,64,175,0.18) 0%, rgba(30,64,175,0) 26%), linear-gradient(180deg, #081224 0%, #0d2b63 12%, #edf4ff 34%, #f7faff 100%)",
 };
 
 const backdropGlowOne = {
@@ -143,7 +143,7 @@ const backdropGlowTwo = {
   width: 360,
   height: 360,
   borderRadius: "50%",
-  background: "rgba(245, 158, 11, 0.18)",
+  background: "rgba(59, 130, 246, 0.14)",
   filter: "blur(44px)",
 };
 

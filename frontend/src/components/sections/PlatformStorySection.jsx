@@ -45,9 +45,9 @@ const wrap = {
   marginTop: 26,
   padding: "22px 22px 24px",
   borderRadius: 24,
-  background: "#fff",
-  border: "1px solid #e2e8f0",
-  boxShadow: "0 20px 46px rgba(148,163,184,0.1)",
+  background: "linear-gradient(145deg, rgba(7,15,31,0.94) 0%, rgba(13,33,70,0.96) 52%, rgba(21,56,118,0.96) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  boxShadow: "0 28px 62px rgba(2,6,23,0.24)",
 };
 
 const intro = {
@@ -59,19 +59,19 @@ const eyebrow = {
   fontWeight: 900,
   textTransform: "uppercase",
   letterSpacing: "0.12em",
-  color: "#2563eb",
+  color: "#60a5fa",
 };
 
 const title = {
   margin: "10px 0 10px",
   fontSize: 28,
   lineHeight: 1.14,
-  color: "#0f172a",
+  color: "#eff6ff",
 };
 
 const lead = {
   margin: 0,
-  color: "#334155",
+  color: "rgba(226,232,240,0.84)",
   lineHeight: 1.75,
   fontSize: 15,
 };
@@ -86,20 +86,20 @@ const grid = {
 const card = {
   padding: "16px 16px 14px",
   borderRadius: 18,
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-  border: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, rgba(15,23,42,0.7) 0%, rgba(18,42,82,0.88) 100%)",
+  border: "1px solid rgba(96,165,250,0.2)",
 };
 
 const cardTitle = {
   margin: 0,
   fontSize: 18,
   lineHeight: 1.2,
-  color: "#0f172a",
+  color: "#eff6ff",
 };
 
 const cardText = {
   margin: "8px 0 0",
-  color: "#475569",
+  color: "rgba(226,232,240,0.78)",
   lineHeight: 1.7,
   fontSize: 14,
 };

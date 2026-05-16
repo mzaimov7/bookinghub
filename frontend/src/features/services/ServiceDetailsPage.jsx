@@ -221,7 +221,16 @@ export default function ServiceDetailsPage() {
   if (notFound) return <div style={{ padding: 24 }}>Услугата не е намерена. <Link to="/">Назад</Link></div>;
 
   return (
-    <div style={{ maxWidth: 1120, margin: "0 auto", padding: "24px 24px 40px" }}>
+    <div
+      style={{
+        maxWidth: 1120,
+        margin: "0 auto",
+        padding: "24px 24px 40px",
+        minHeight: "100vh",
+        background:
+          "radial-gradient(circle at top left, rgba(96,165,250,0.16) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 14%, #eaf2ff 42%, #f6f9ff 100%)",
+      }}
+    >
       <Link to={backTarget} style={backLink}>← Назад към обявите</Link>
 
       {imageUrl && (
@@ -535,7 +544,7 @@ const backLink = {
   alignItems: "center",
   gap: 8,
   textDecoration: "none",
-  color: "#475569",
+  color: "#cbd5e1",
   fontWeight: 700,
   marginBottom: 16,
 };
@@ -550,9 +559,9 @@ const heroLayout = {
 const heroImageFrame = {
   borderRadius: 28,
   overflow: "hidden",
-  border: "1px solid rgba(148,163,184,0.18)",
-  boxShadow: "0 24px 60px rgba(15,23,42,0.12)",
-  background: "#dbeafe",
+  border: "1px solid rgba(96,165,250,0.22)",
+  boxShadow: "0 24px 60px rgba(2,6,23,0.22)",
+  background: "rgba(15,23,42,0.42)",
   minHeight: 420,
 };
 
@@ -567,9 +576,9 @@ const heroImage = {
 const heroContent = {
   padding: "24px 24px 22px",
   borderRadius: 28,
-  border: "1px solid #dbe4f0",
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
-  boxShadow: "0 24px 60px rgba(15,23,42,0.08)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  boxShadow: "0 24px 60px rgba(2,6,23,0.22)",
   display: "grid",
   alignContent: "start",
   gap: 22,
@@ -587,14 +596,14 @@ const serviceTitle = {
   fontSize: "clamp(2rem, 3vw, 3rem)",
   lineHeight: 1.02,
   letterSpacing: "-0.04em",
-  color: "#0f172a",
+  color: "#eff6ff",
 };
 
 const serviceDescription = {
   margin: 0,
   fontSize: 16,
   lineHeight: 1.75,
-  color: "#475569",
+  color: "rgba(226,232,240,0.78)",
   maxWidth: 520,
 };
 
@@ -607,8 +616,8 @@ const metaGrid = {
 const metaCard = {
   padding: "14px 16px",
   borderRadius: 20,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
   display: "grid",
   gap: 6,
   alignContent: "start",
@@ -619,20 +628,20 @@ const metaLabel = {
   fontWeight: 900,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "#94a3b8",
 };
 
 const metaValue = {
   fontSize: 22,
   lineHeight: 1.15,
   fontWeight: 900,
-  color: "#0f172a",
+  color: "#eff6ff",
 };
 
 const metaSubtle = {
   fontSize: 13,
   lineHeight: 1.55,
-  color: "#64748b",
+  color: "#cbd5e1",
 };
 
 const heroFooter = {
@@ -667,8 +676,8 @@ const calendarCard = {
   marginTop: 14,
   padding: 16,
   borderRadius: 18,
-  border: "1px solid #dbe4f0",
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "linear-gradient(180deg, rgba(15,23,42,0.38) 0%, rgba(17,36,71,0.48) 100%)",
 };
 
 const bookingEyebrow = {
@@ -676,15 +685,15 @@ const bookingEyebrow = {
   fontWeight: 900,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "#0f172a",
+  color: "#eff6ff",
 };
 
 const bookingDateBox = {
   padding: "12px 14px",
   borderRadius: 16,
-  border: "1px solid #dbe4f0",
-  background: "#f8fafc",
-  color: "#0f172a",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
+  color: "#eff6ff",
   fontWeight: 900,
   minWidth: 220,
 };
@@ -702,14 +711,15 @@ const calendarEyebrow = {
   fontWeight: 900,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "#94a3b8",
 };
 
 const dateInput = {
   padding: "10px 12px",
   borderRadius: 14,
-  border: "1px solid #cbd5e1",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
+  color: "#eff6ff",
 };
 
 const dateScroller = {
@@ -726,8 +736,8 @@ const dateCard = {
   minWidth: 88,
   padding: "12px 10px",
   borderRadius: 16,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
   cursor: "pointer",
   display: "grid",
   gap: 4,
@@ -735,9 +745,9 @@ const dateCard = {
   minHeight: 128,
 };
 
-const dateWeekday = { fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b" };
-const dateDay = { fontSize: 26, fontWeight: 900, color: "#0f172a", lineHeight: 1 };
-const dateMonth = { fontSize: 12, fontWeight: 800, color: "#475569" };
+const dateWeekday = { fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: "#94a3b8" };
+const dateDay = { fontSize: 26, fontWeight: 900, color: "#eff6ff", lineHeight: 1 };
+const dateMonth = { fontSize: 12, fontWeight: 800, color: "#cbd5e1" };
 
 const sectionLabel = {
   marginBottom: 10,
@@ -745,7 +755,7 @@ const sectionLabel = {
   fontWeight: 900,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "#93c5fd",
 };
 
 const performerGrid = {
@@ -757,8 +767,8 @@ const performerGrid = {
 const performerCard = {
   padding: "14px 16px",
   borderRadius: 18,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
   cursor: "pointer",
   display: "grid",
   gridTemplateColumns: "64px minmax(0, 1fr)",
@@ -802,8 +812,8 @@ const timeGrid = {
 const timeChip = {
   padding: "12px 14px",
   borderRadius: 16,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
   cursor: "pointer",
   display: "grid",
   gap: 4,
@@ -816,7 +826,9 @@ const noteInput = {
   marginTop: 12,
   padding: "12px 14px",
   borderRadius: 14,
-  border: "1px solid #cbd5e1",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
+  color: "#eff6ff",
   resize: "vertical",
   boxSizing: "border-box",
 };
@@ -836,15 +848,15 @@ const blockedBox = {
   marginTop: 12,
   padding: "14px 16px",
   borderRadius: 14,
-  border: "1px solid #dbe4f0",
-  background: "#f8fafc",
-  color: "#334155",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.32)",
+  color: "rgba(226,232,240,0.78)",
   lineHeight: 1.6,
 };
 
 const favoriteBtn = {
-  border: "1px solid #e2e8f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
   borderRadius: 999,
   width: 46,
   height: 46,
@@ -866,8 +878,8 @@ const thumbBtn = {
   height: 72,
   borderRadius: 12,
   overflow: "hidden",
-  border: "1px solid #dbe4f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
   cursor: "pointer",
 };
 
@@ -882,9 +894,9 @@ const commentsSection = {
   marginTop: 28,
   padding: "22px 20px",
   borderRadius: 24,
-  border: "1px solid #dbe4f0",
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
-  boxShadow: "0 18px 46px rgba(15,23,42,0.06)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  boxShadow: "0 18px 46px rgba(2,6,23,0.22)",
   display: "grid",
   gap: 18,
 };
@@ -899,7 +911,7 @@ const commentsHeader = {
 
 const commentsTitle = {
   margin: "6px 0 0",
-  color: "#0f172a",
+  color: "#eff6ff",
   fontSize: 26,
   lineHeight: 1.1,
 };
@@ -909,8 +921,8 @@ const commentsCountBadge = {
   height: 44,
   padding: "0 14px",
   borderRadius: 999,
-  background: "#eaf2ff",
-  color: "#1d4ed8",
+  background: "rgba(15,23,42,0.42)",
+  color: "#bfdbfe",
   display: "grid",
   placeItems: "center",
   fontWeight: 900,
@@ -920,8 +932,8 @@ const commentsCountBadge = {
 const commentComposer = {
   padding: 16,
   borderRadius: 20,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
   display: "grid",
   gap: 12,
 };
@@ -931,7 +943,9 @@ const commentTextarea = {
   minHeight: 120,
   padding: "14px 16px",
   borderRadius: 16,
-  border: "1px solid #cbd5e1",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.32)",
+  color: "#eff6ff",
   resize: "vertical",
   boxSizing: "border-box",
   font: "inherit",
@@ -947,7 +961,7 @@ const commentComposerFooter = {
 
 const commentHint = {
   fontSize: 13,
-  color: "#64748b",
+  color: "#cbd5e1",
 };
 
 const commentSubmitButton = {
@@ -963,18 +977,18 @@ const commentSubmitButton = {
 const commentInfoBox = {
   padding: "14px 16px",
   borderRadius: 18,
-  border: "1px solid #dbe4f0",
-  background: "#f8fafc",
-  color: "#334155",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.32)",
+  color: "rgba(226,232,240,0.78)",
   lineHeight: 1.6,
 };
 
 const commentEmptyState = {
   padding: "18px 16px",
   borderRadius: 18,
-  border: "1px dashed #cbd5e1",
-  background: "#fff",
-  color: "#64748b",
+  border: "1px dashed rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.32)",
+  color: "rgba(226,232,240,0.74)",
   lineHeight: 1.6,
 };
 

@@ -1,38 +1,33 @@
 import React, { useEffect, useMemo, useState } from "react";
 import bannerBarber from "../../assets/banners/Barber_Banner.png";
-import bannerBusiness from "../../assets/banners/Business_Banner.png";
 import bannerCar from "../../assets/banners/CarRepair_Banner.png";
+import bannerBusiness from "../../assets/banners/Business_Banner.png";
+
 
 export default function HeroCarousel({ onBrowse, onLearnMore }) {
   const slides = useMemo(
     () => [
       {
         id: "barber",
-        kicker: "Бързо записване",
-        title: "Запази час по-лесно.",
-        subtitle: "Търси, избери и резервирай без излишно лутане.",
+        ctaLabel: "Запиши своя час",
         img: bannerBarber,
-        accent: "#e11d48",
-        accentSoft: "rgba(225,29,72,0.16)",
+        accent: "#2563eb",
+        accentSoft: "rgba(37,99,235,0.18)",
         imagePosition: "center center",
         backgroundPosition: "58% 24%",
       },
       {
         id: "business",
-        kicker: "За бизнеса",
-        title: "Подреди услугите си.",
-        subtitle: "Управлявай екипи, слотове и заявки на едно място.",
+        ctaLabel: "Качи своята обява",
         img: bannerBusiness,
-        accent: "#f59e0b",
-        accentSoft: "rgba(245,158,11,0.16)",
+        accent: "#2563eb",
+        accentSoft: "rgba(37,99,235,0.16)",
         imagePosition: "center center",
         backgroundPosition: "52% 26%",
       },
       {
         id: "car",
-        kicker: "Различни категории",
-        title: "Работи и за сервизни услуги.",
-        subtitle: "Един booking модел за повече типове обяви.",
+        ctaLabel: "Разгледай обявите",
         img: bannerCar,
         accent: "#2563eb",
         accentSoft: "rgba(37,99,235,0.16)",
@@ -71,24 +66,6 @@ export default function HeroCarousel({ onBrowse, onLearnMore }) {
         />
 
         <div style={content}>
-          <div style={copyWrap}>
-            <div style={{ ...kicker, color: slide.accent }}>{slide.kicker}</div>
-            <h2 style={title}>{slide.title}</h2>
-            <p style={subtitle}>{slide.subtitle}</p>
-
-            <div style={ctaRow}>
-              <button
-                style={{ ...primaryButton, background: slide.accent }}
-                onClick={() => onBrowse?.()}
-              >
-                Разгледай
-              </button>
-              <button style={secondaryButton} onClick={() => onLearnMore?.()}>
-                Повече
-              </button>
-            </div>
-          </div>
-
           <div style={visualColumn}>
             <div style={visualFrame}>
               <img
@@ -118,6 +95,20 @@ export default function HeroCarousel({ onBrowse, onLearnMore }) {
                   />
                 ))}
               </div>
+            </div>
+          </div>
+
+          <div style={copyWrap}>
+            <h2 style={title}>{slide.title}</h2>
+            <p style={subtitle}>{slide.subtitle}</p>
+
+            <div style={ctaRow}>
+              <button
+                style={{ ...primaryButton, background: slide.accent }}
+                onClick={() => (slide.id === "car" ? onLearnMore?.() : onBrowse?.())}
+              >
+                {slide.ctaLabel || "Разгледай"}
+              </button>
             </div>
           </div>
         </div>
@@ -172,36 +163,29 @@ const content = {
   position: "relative",
   zIndex: 1,
   display: "grid",
-  gridTemplateColumns: "minmax(0, 0.84fr) minmax(430px, 1.16fr)",
-  gap: 14,
+  gridTemplateColumns: "minmax(700px, 1.54fr) minmax(0, 0.48fr)",
+  gap: 12,
   alignItems: "center",
   minHeight: 470,
   padding: "30px 34px 28px",
 };
 
 const copyWrap = {
-  maxWidth: 500,
-  padding: "22px 22px 20px",
+  maxWidth: 310,
+  padding: "18px 10px 18px 0",
   borderRadius: 28,
-  background: "linear-gradient(180deg, rgba(15,23,42,0.6) 0%, rgba(15,23,42,0.4) 100%)",
-  border: "1px solid rgba(255,255,255,0.14)",
-  backdropFilter: "blur(14px)",
-  boxShadow: "0 24px 60px rgba(2,6,23,0.16)",
-};
-
-const kicker = {
-  fontSize: 12,
-  fontWeight: 900,
-  textTransform: "uppercase",
-  letterSpacing: "0.16em",
+  background: "transparent",
+  border: "none",
+  backdropFilter: "none",
+  boxShadow: "none",
 };
 
 const title = {
-  margin: "14px 0 12px",
-  fontSize: 36,
-  lineHeight: 1.06,
+  margin: "0 0 14px",
+  fontSize: 44,
+  lineHeight: 1.02,
   color: "#ffffff",
-  maxWidth: 430,
+  maxWidth: 420,
   textWrap: "balance",
 };
 
@@ -214,31 +198,21 @@ const subtitle = {
 };
 
 const ctaRow = {
-  marginTop: 20,
+  marginTop: 400,
   display: "flex",
-  gap: 12,
+  justifyContent: "center",
+  gap: 10,
   flexWrap: "wrap",
 };
 
 const primaryButton = {
   border: "none",
   color: "#fff",
-  padding: "12px 16px",
+  padding: "13px 18px",
   borderRadius: 14,
   cursor: "pointer",
   fontWeight: 900,
   boxShadow: "0 18px 40px rgba(15,23,42,0.2)",
-};
-
-const secondaryButton = {
-  border: "1px solid rgba(255,255,255,0.22)",
-  background: "rgba(255,255,255,0.08)",
-  color: "#fff",
-  padding: "12px 16px",
-  borderRadius: 14,
-  cursor: "pointer",
-  fontWeight: 900,
-  backdropFilter: "blur(8px)",
 };
 
 const visualColumn = {
@@ -249,12 +223,14 @@ const visualColumn = {
 
 const visualFrame = {
   position: "relative",
-  minHeight: 430,
+  minHeight: 452,
+  width: "100%",
+  marginLeft: 35,
   borderRadius: 28,
   overflow: "hidden",
   border: "1px solid rgba(255,255,255,0.16)",
   background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)",
-  boxShadow: "0 30px 70px rgba(2,6,23,0.2)",
+  boxShadow: "0 34px 80px rgba(2,6,23,0.24)",
 };
 
 const visualImage = {
@@ -262,9 +238,11 @@ const visualImage = {
   height: "100%",
   objectFit: "contain",
   display: "block",
-  padding: 0,
+  padding: "0px 40px 0px",
+  marginLeft: 0,
   boxSizing: "border-box",
   filter: "saturate(0.92) contrast(0.98)",
+  transform: "scale(1.12)",
 };
 
 const visualMask = {
@@ -276,7 +254,7 @@ const visualMask = {
 
 const metaRow = {
   display: "flex",
-  justifyContent: "flex-end",
+  justifyContent: "center",
   alignItems: "center",
 };
 

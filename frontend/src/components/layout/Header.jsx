@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getAuth, getRole, isLoggedIn, logoutLocal } from "../../lib/authStore";
-import logoPng from "../../assets/BookingHub-logo.png";
+import logoPng from "../../assets/BookingHub-logo-header.png";
 import { resolveBackendImage } from "../../lib/assets";
 import { getMyBusinessProfile } from "../../features/business/profile/api";
 import { getMyProfile, getRecentSearches } from "../../features/client/api";
@@ -116,16 +116,37 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
   const profilePhotoUrl = resolveBackendImage(auth?.profilePhotoUrl || loadedProfilePhotoUrl);
 
   return (
-    <div style={{ borderBottom: "1px solid #e5e7eb", background: "#fff", position: "sticky", top: 0, zIndex: 20 }}>
+    <div
+      style={{
+        borderBottom: "1px solid rgba(96,165,250,0.22)",
+        background: "linear-gradient(180deg, rgba(5,13,28,0.97) 0%, rgba(8,18,36,0.95) 56%, rgba(9,22,45,0.93) 100%)",
+        backdropFilter: "blur(14px)",
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+      }}
+    >
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "12px 16px", display: "flex", alignItems: "center", gap: 14 }}>
         <Link to="/" style={{ display: "flex", alignItems: "center", textDecoration: "none" }}>
-          <img src={logoPng} alt="BookingHub" style={{ height: 40, display: "block" }} />
+          <img src={logoPng} alt="BookingHub" style={{ height: 48, display: "block" }} />
         </Link>
 
         <div ref={searchRef} style={{ flex: 1, position: "relative" }}>
           <form onSubmit={handleSubmit}>
-            <div style={{ flex: 1, display: "flex", alignItems: "center", border: "2px solid #2563eb", borderRadius: 999, padding: "8px 12px" }}>
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                border: "1px solid rgba(96,165,250,0.42)",
+                borderRadius: 999,
+                padding: "8px 12px",
+                background: "rgba(255,255,255,0.96)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.4)",
+              }}
+            >
               <input
+                className="header-search-input"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onFocus={() => {
@@ -134,7 +155,7 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
                   }
                 }}
                 placeholder="Какво търсиш?"
-                style={{ border: "none", outline: "none", width: "100%", fontSize: 14 }}
+                style={{ border: "none", outline: "none", width: "100%", fontSize: 14, background: "transparent", color: "#0f172a" }}
               />
               <button type="submit" title="Търсене" style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 18 }}>
                 🔎

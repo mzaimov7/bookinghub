@@ -209,7 +209,7 @@ export default function BusinessCreateServicePage() {
   }
 
   return (
-    <div style={{ background: "#f8fafc", minHeight: "100vh" }}>
+    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top left, rgba(96,165,250,0.2) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, rgba(13,43,99,0.08) 0%, rgba(237,244,255,0.9) 20%, #f7faff 100%)" }}>
       <Header categories={[]} recentSearches={[]} />
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "28px 16px 44px" }}>

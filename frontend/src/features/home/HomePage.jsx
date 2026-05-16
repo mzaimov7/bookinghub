@@ -74,7 +74,16 @@ export default function HomePage() {
   }
 
   return (
-    <div style={{ background: "#f8fafc", minHeight: "100vh" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: `
+          radial-gradient(circle at top left, rgba(96,165,250,0.28) 0%, rgba(96,165,250,0) 26%),
+          radial-gradient(circle at top right, rgba(30,64,175,0.22) 0%, rgba(30,64,175,0) 30%),
+          linear-gradient(180deg, #081224 0%, #0f2f6a 14%, #eaf2ff 42%, #f6f9ff 100%)
+        `,
+      }}
+    >
       <Header
         categories={categories}
         recentSearches={recentSearches}
@@ -82,8 +91,7 @@ export default function HomePage() {
         onSearchSubmit={onSearchSubmit}
         onRecentSearchPick={onRecentSearchPick}
       />
-
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 16px 18px" }}>
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 16px 26px" }}>
         <HeroCarousel />
         <CategoryDiscoverySection categories={categories} onPickCategory={onCategoryPick} />
         <ServiceGrid

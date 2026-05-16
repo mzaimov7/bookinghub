@@ -56,8 +56,13 @@ export default function ServiceGrid({
   }
 
   return (
-    <div style={{ marginTop: 18 }}>
-      {title ? <h3 style={{ margin: "10px 0" }}>{title}</h3> : null}
+    <section style={wrap}>
+      {title ? (
+        <div style={header}>
+          <div style={eyebrow}>Открий</div>
+          <h3 style={sectionTitle}>{title}</h3>
+        </div>
+      ) : null}
 
       <div
         style={
@@ -97,7 +102,7 @@ export default function ServiceGrid({
                 <div style={description}>{service.description}</div>
 
                 <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ fontSize: 13, opacity: 0.8 }}>
+                  <div style={{ fontSize: 13, color: "rgba(226,232,240,0.78)" }}>
                     📍 {service.city} • ⏱ {service.durationMinutes} мин
                   </div>
 
@@ -110,29 +115,48 @@ export default function ServiceGrid({
           </Link>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
-const card = { border: "1px solid #e5e7eb", borderRadius: 16, overflow: "hidden", background: "#fff" };
+const wrap = {
+  marginTop: 18,
+  padding: 22,
+  borderRadius: 28,
+  background: "linear-gradient(145deg, rgba(8,18,36,0.94) 0%, rgba(15,47,106,0.9) 42%, rgba(24,64,132,0.9) 100%)",
+  border: "1px solid rgba(96,165,250,0.28)",
+  boxShadow: "0 28px 70px rgba(2,6,23,0.24)",
+};
+const header = { marginBottom: 16 };
+const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#93c5fd" };
+const sectionTitle = { margin: "10px 0 0", color: "#eff6ff", fontSize: 34, lineHeight: 1.04 };
+const card = {
+  border: "1px solid rgba(96,165,250,0.28)",
+  borderRadius: 20,
+  overflow: "hidden",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  boxShadow: "0 20px 46px rgba(2,6,23,0.22)",
+};
 const image = { width: "100%", height: 160, objectFit: "cover", display: "block" };
-const body = { padding: 12 };
-const description = { marginTop: 6, opacity: 0.85, fontSize: 14 };
+const body = { padding: 12, color: "#e2e8f0" };
+const description = { marginTop: 6, color: "rgba(226,232,240,0.82)", fontSize: 14 };
 const listWrap = { display: "grid", gap: 14 };
 const listCard = {
   display: "grid",
   gridTemplateColumns: "280px minmax(0, 1fr)",
-  border: "1px solid #e5e7eb",
+  border: "1px solid rgba(96,165,250,0.28)",
   borderRadius: 20,
   overflow: "hidden",
-  background: "#fff",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  boxShadow: "0 20px 46px rgba(2,6,23,0.22)",
 };
 const listImage = { width: "100%", height: "100%", minHeight: 210, objectFit: "cover", display: "block" };
-const listBody = { padding: 16 };
+const listBody = { padding: 16, color: "#e2e8f0" };
 
 const reserveBtn = {
-  border: "1px solid #cbd5e1",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.34)",
+  background: "linear-gradient(180deg, rgba(37,99,235,0.94) 0%, rgba(29,78,216,0.98) 100%)",
+  color: "#fff",
   borderRadius: 12,
   padding: "8px 10px",
   cursor: "pointer",
@@ -140,8 +164,8 @@ const reserveBtn = {
 };
 
 const favoriteBtn = {
-  border: "1px solid #e2e8f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.28)",
+  background: "rgba(15,23,42,0.44)",
   borderRadius: 999,
   width: 34,
   height: 34,

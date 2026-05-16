@@ -381,7 +381,8 @@ function MaskedField({ label }) {
 
 const page = {
   minHeight: "100vh",
-  background: "radial-gradient(circle at top left, rgba(219,234,254,0.55) 0%, rgba(248,250,252,0.96) 26%, #f8fafc 66%)",
+  background:
+    "radial-gradient(circle at top left, rgba(96,165,250,0.2) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, rgba(13,43,99,0.08) 0%, rgba(237,244,255,0.9) 20%, #f7faff 100%)",
 };
 const content = { maxWidth: 1180, margin: "0 auto", padding: "18px 16px 28px" };
 const hero = {

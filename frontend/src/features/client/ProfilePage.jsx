@@ -450,8 +450,8 @@ export default function ProfilePage() {
 
 function StatCard({ label, value, tone }) {
   const palette = {
-    blue: { background: "rgba(255,255,255,0.74)", border: "rgba(191,219,254,0.95)", color: "#1d4ed8" },
-    green: { background: "rgba(236,253,245,0.92)", border: "rgba(187,247,208,0.95)", color: "#047857" },
+    blue: { background: "rgba(15,23,42,0.46)", border: "rgba(96,165,250,0.24)", color: "#93c5fd" },
+    green: { background: "rgba(8,37,34,0.5)", border: "rgba(52,211,153,0.24)", color: "#6ee7b7" },
   };
 
   return (
@@ -482,7 +482,8 @@ function MaskedField({ label }) {
 
 const page = {
   minHeight: "100vh",
-  background: "radial-gradient(circle at top left, rgba(219,234,254,0.55) 0%, rgba(248,250,252,0.96) 26%, #f8fafc 66%)",
+  background:
+    "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 14%, #eaf2ff 42%, #f6f9ff 100%)",
 };
 const content = { maxWidth: 1180, margin: "0 auto", padding: "18px 16px 28px" };
 const hero = {
@@ -491,14 +492,14 @@ const hero = {
   gap: 18,
   padding: 24,
   borderRadius: 28,
-  background: "linear-gradient(135deg, #dbeafe 0%, #eff6ff 55%, #fff 100%)",
-  border: "1px solid #dbeafe",
-  boxShadow: "0 28px 80px rgba(148,163,184,0.14)",
+  background: "linear-gradient(135deg, rgba(7,15,31,0.94) 0%, rgba(13,33,70,0.96) 55%, rgba(24,64,132,0.92) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  boxShadow: "0 28px 80px rgba(2,6,23,0.24)",
 };
 const heroIntro = { display: "grid", gridTemplateColumns: "92px minmax(0, 1fr)", gap: 18, alignItems: "center" };
-const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: "#2563eb" };
-const title = { margin: "10px 0 8px", fontSize: 38, lineHeight: 1.04, color: "#0f172a" };
-const subtitle = { margin: 0, maxWidth: 640, color: "#475569", lineHeight: 1.7 };
+const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: "#93c5fd" };
+const title = { margin: "10px 0 8px", fontSize: 38, lineHeight: 1.04, color: "#eff6ff" };
+const subtitle = { margin: 0, maxWidth: 640, color: "rgba(226,232,240,0.78)", lineHeight: 1.7 };
 const profileHeroAvatarWrap = {
   width: 92,
   height: 92,
@@ -513,7 +514,7 @@ const profileHeroFallback = { width: "100%", height: "100%", display: "grid", pl
 const heroStats = { display: "grid", gap: 12, alignContent: "start" };
 const statCard = { padding: 18, borderRadius: 20, border: "1px solid" };
 const statValue = { fontSize: 32, fontWeight: 900, lineHeight: 1 };
-const statLabel = { marginTop: 8, color: "#475569", fontWeight: 700 };
+const statLabel = { marginTop: 8, color: "#cbd5e1", fontWeight: 700 };
 const layout = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1.25fr) minmax(320px, 0.95fr)",
@@ -524,30 +525,30 @@ const layout = {
 const leftColumn = { minWidth: 0 };
 const rightColumn = { display: "grid", gap: 18 };
 const card = {
-  background: "#fff",
-  border: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
   borderRadius: 26,
   padding: 24,
-  boxShadow: "0 24px 60px rgba(148,163,184,0.12)",
+  boxShadow: "0 24px 60px rgba(2,6,23,0.22)",
 };
 const sideCard = {
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)",
-  border: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
   borderRadius: 24,
   padding: 18,
-  boxShadow: "0 20px 46px rgba(148,163,184,0.1)",
+  boxShadow: "0 20px 46px rgba(2,6,23,0.22)",
 };
 const sectionHeader = { display: "flex", justifyContent: "space-between", alignItems: "end", gap: 14, marginBottom: 16 };
 const sideHeader = { display: "flex", justifyContent: "space-between", alignItems: "start", gap: 14, marginBottom: 14 };
-const sectionEyebrow = { fontSize: 12, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", color: "#2563eb" };
-const sectionTitle = { marginTop: 8, fontSize: 26, fontWeight: 900, color: "#0f172a" };
-const sideTitle = { marginTop: 6, fontSize: 22, fontWeight: 900, color: "#0f172a" };
+const sectionEyebrow = { fontSize: 12, fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", color: "#93c5fd" };
+const sectionTitle = { marginTop: 8, fontSize: 26, fontWeight: 900, color: "#eff6ff" };
+const sideTitle = { marginTop: 6, fontSize: 22, fontWeight: 900, color: "#eff6ff" };
 const miniPill = {
   padding: "8px 12px",
   borderRadius: 999,
-  background: "#eff6ff",
-  border: "1px solid #bfdbfe",
-  color: "#1d4ed8",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  color: "#bfdbfe",
   fontWeight: 800,
   fontSize: 12,
 };
@@ -557,8 +558,8 @@ const quickLink = {
   padding: "12px 14px",
   borderRadius: 16,
   border: "1px solid #bfdbfe",
-  background: "#fff",
-  color: "#1d4ed8",
+  background: "rgba(15,23,42,0.42)",
+  color: "#bfdbfe",
   fontWeight: 800,
 };
 const inlineLink = { textDecoration: "none", color: "#2563eb", fontWeight: 800, fontSize: 14 };
@@ -572,16 +573,16 @@ const noticeBox = {
 const formGrid = { display: "grid", gap: 14 };
 const gridTwo = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 };
 const fieldWrap = { display: "grid", gap: 6 };
-const fieldLabel = { fontWeight: 800, color: "#0f172a", fontSize: 13 };
-const fieldInput = { width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 14, border: "1px solid #cbd5e1" };
+const fieldLabel = { fontWeight: 800, color: "#cbd5e1", fontSize: 13 };
+const fieldInput = { width: "100%", boxSizing: "border-box", padding: "13px 14px", borderRadius: 14, border: "1px solid rgba(96,165,250,0.24)", background: "rgba(15,23,42,0.44)", color: "#eff6ff" };
 const maskedField = {
   width: "100%",
   boxSizing: "border-box",
   padding: "13px 14px",
   borderRadius: 14,
-  border: "1px solid #cbd5e1",
-  background: "#f8fafc",
-  color: "#475569",
+  border: "1px solid rgba(96,165,250,0.24)",
+  background: "rgba(15,23,42,0.42)",
+  color: "#cbd5e1",
   fontWeight: 900,
   letterSpacing: "0.12em",
 };
@@ -590,8 +591,8 @@ const unlockCard = {
   marginTop: 4,
   padding: 16,
   borderRadius: 18,
-  border: "1px solid #dbe4f0",
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "rgba(15,23,42,0.32)",
   display: "grid",
   gap: 14,
 };
@@ -599,8 +600,8 @@ const passwordCard = {
   marginTop: 8,
   padding: 16,
   borderRadius: 18,
-  border: "1px solid #dbe4f0",
-  background: "#f8fafc",
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "rgba(15,23,42,0.32)",
   display: "grid",
   gap: 14,
 };
@@ -608,8 +609,8 @@ const photoCard = {
   marginTop: 4,
   padding: 16,
   borderRadius: 18,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "rgba(15,23,42,0.32)",
   display: "grid",
   gap: 14,
 };
@@ -641,9 +642,9 @@ const photoUploadButton = {
   fontWeight: 900,
   cursor: "pointer",
 };
-const unlockTitle = { fontSize: 20, fontWeight: 900, color: "#0f172a" };
-const passwordTitle = { fontSize: 20, fontWeight: 900, color: "#0f172a" };
-const unlockText = { marginTop: 6, color: "#64748b", lineHeight: 1.65 };
+const unlockTitle = { fontSize: 20, fontWeight: 900, color: "#eff6ff" };
+const passwordTitle = { fontSize: 20, fontWeight: 900, color: "#eff6ff" };
+const unlockText = { marginTop: 6, color: "rgba(226,232,240,0.74)", lineHeight: 1.65 };
 const unlockRow = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) auto",
@@ -671,13 +672,13 @@ const favoritePreviewCard = {
   alignItems: "center",
   padding: 10,
   borderRadius: 18,
-  background: "#fff",
-  border: "1px solid #e2e8f0",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px solid rgba(96,165,250,0.22)",
 };
 const favoritePreviewImage = { width: "100%", height: 78, borderRadius: 14, objectFit: "cover", display: "block" };
 const favoritePreviewBody = { minWidth: 0 };
-const favoritePreviewTitle = { fontWeight: 900, color: "#0f172a", lineHeight: 1.2 };
-const favoritePreviewMeta = { marginTop: 6, color: "#64748b", fontSize: 14 };
+const favoritePreviewTitle = { fontWeight: 900, color: "#eff6ff", lineHeight: 1.2 };
+const favoritePreviewMeta = { marginTop: 6, color: "rgba(226,232,240,0.74)", fontSize: 14 };
 const bookingPreviewList = { display: "grid", gap: 10 };
 const bookingPreviewCard = {
   display: "flex",
@@ -688,11 +689,11 @@ const bookingPreviewCard = {
   color: "inherit",
   padding: "12px 14px",
   borderRadius: 18,
-  background: "#fff",
-  border: "1px solid #e2e8f0",
+  background: "rgba(15,23,42,0.42)",
+  border: "1px solid rgba(96,165,250,0.22)",
 };
-const bookingPreviewTitle = { fontWeight: 900, color: "#0f172a", lineHeight: 1.2 };
-const bookingPreviewMeta = { marginTop: 6, color: "#64748b", fontSize: 14 };
+const bookingPreviewTitle = { fontWeight: 900, color: "#eff6ff", lineHeight: 1.2 };
+const bookingPreviewMeta = { marginTop: 6, color: "rgba(226,232,240,0.74)", fontSize: 14 };
 const statusChip = {
   padding: "8px 10px",
   borderRadius: 999,
@@ -704,8 +705,8 @@ const statusChip = {
 const emptyState = {
   padding: "14px 16px",
   borderRadius: 16,
-  background: "#fff",
-  border: "1px dashed #cbd5e1",
-  color: "#64748b",
+  background: "rgba(15,23,42,0.36)",
+  border: "1px dashed rgba(96,165,250,0.22)",
+  color: "rgba(226,232,240,0.74)",
   lineHeight: 1.7,
 };

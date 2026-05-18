@@ -2,18 +2,26 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <div style={{ marginTop: 28, padding: "22px 16px", borderTop: "1px solid #e5e7eb", background: "#fff" }}>
+    <div
+      style={{
+        marginTop: 28,
+        padding: "24px 16px",
+        borderTop: "1px solid rgba(96,165,250,0.24)",
+        background: "linear-gradient(180deg, rgba(8,18,36,0.88) 0%, rgba(13,33,70,0.94) 100%)",
+        backdropFilter: "blur(12px)",
+      }}
+    >
       <div style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr", gap: 18 }}>
         <div>
-          <div style={{ fontWeight: 900, fontSize: 18 }}>За BookingHub</div>
-          <p style={{ marginTop: 8, opacity: 0.85 }}>
+          <div style={{ fontWeight: 900, fontSize: 18, color: "#eff6ff" }}>За BookingHub</div>
+          <p style={{ marginTop: 8, color: "rgba(226,232,240,0.78)" }}>
             BookingHub е платформа за управление на резервации. Бизнесите публикуват свободни слотове, а клиентите изпращат заявки.
           </p>
         </div>
 
         <div>
-          <div style={{ fontWeight: 900, fontSize: 18 }}>Контакти</div>
-          <p style={{ marginTop: 8, opacity: 0.85 }}>
+          <div style={{ fontWeight: 900, fontSize: 18, color: "#eff6ff" }}>Контакти</div>
+          <p style={{ marginTop: 8, color: "rgba(226,232,240,0.78)" }}>
             Email: support@bookinghub.dev
             <br />
             Тел: +359 88 000 0000
@@ -21,8 +29,8 @@ export default function Footer() {
         </div>
 
         <div>
-          <div style={{ fontWeight: 900, fontSize: 18 }}>Полезно</div>
-          <p style={{ marginTop: 8, opacity: 0.85 }}>
+          <div style={{ fontWeight: 900, fontSize: 18, color: "#eff6ff" }}>Полезно</div>
+          <p style={{ marginTop: 8, color: "rgba(226,232,240,0.78)" }}>
             Общи условия
             <br />
             Политика за поверителност

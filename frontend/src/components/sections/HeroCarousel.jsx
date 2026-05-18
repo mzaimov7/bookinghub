@@ -1,40 +1,38 @@
 import React, { useEffect, useMemo, useState } from "react";
 import bannerBarber from "../../assets/banners/Barber_Banner.png";
-import bannerBusiness from "../../assets/banners/Business_Banner.png";
 import bannerCar from "../../assets/banners/CarRepair_Banner.png";
+import bannerBusiness from "../../assets/banners/Business_Banner.png";
 
-export default function HeroCarousel({ onBrowse, onLearnMore }) {
+
+export default function HeroCarousel({ onSlideAction }) {
   const slides = useMemo(
     () => [
       {
         id: "barber",
-        title: "Запази час за услуга за секунди",
-        subtitle: "Откривай свободни слотове и удобни бизнеси в твоя град.",
+        ctaLabel: "Запиши своя час",
         img: bannerBarber,
-        primaryBg: "#E11D48",
-        primaryText: "#ffffff",
-        secondaryBorder: "rgba(255,255,255,0.85)",
-        overlay: "linear-gradient(90deg, rgba(2,6,23,0.70), rgba(2,6,23,0.15))",
+        accent: "#2563eb",
+        accentSoft: "rgba(37,99,235,0.18)",
+        imagePosition: "center center",
+        backgroundPosition: "58% 24%",
       },
       {
         id: "business",
-        title: "Подреди бизнеса си на едно място",
-        subtitle: "Услуги, екипи, слотове и заявки в един общ поток.",
+        ctaLabel: "Качи своята обява",
         img: bannerBusiness,
-        primaryBg: "#F59E0B",
-        primaryText: "#111827",
-        secondaryBorder: "rgba(255,255,255,0.85)",
-        overlay: "linear-gradient(90deg, rgba(2,6,23,0.68), rgba(2,6,23,0.18))",
+        accent: "#2563eb",
+        accentSoft: "rgba(37,99,235,0.16)",
+        imagePosition: "center center",
+        backgroundPosition: "52% 26%",
       },
       {
         id: "car",
-        title: "BookingHub работи и за сервизни услуги",
-        subtitle: "Платформата е подготвена за различни категории и модели на работа.",
+        ctaLabel: "Разгледай обявите",
         img: bannerCar,
-        primaryBg: "#2563EB",
-        primaryText: "#ffffff",
-        secondaryBorder: "rgba(255,255,255,0.85)",
-        overlay: "linear-gradient(90deg, rgba(2,6,23,0.65), rgba(2,6,23,0.10))",
+        accent: "#2563eb",
+        accentSoft: "rgba(37,99,235,0.16)",
+        imagePosition: "center center",
+        backgroundPosition: "62% 18%",
       },
     ],
     []
@@ -54,65 +52,237 @@ export default function HeroCarousel({ onBrowse, onLearnMore }) {
 
   return (
     <div style={{ marginTop: 16 }}>
-      <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", border: "1px solid #e5e7eb", background: "#0b1220" }}>
-        <div style={{ width: "100%", height: 460, position: "relative", background: "#0b1220" }}>
-          <img src={slide.img} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
-        </div>
+      <section style={shell}>
+        <div
+          style={{
+            ...backgroundLayer,
+            backgroundImage: `
+              radial-gradient(circle at top right, ${slide.accentSoft} 0%, rgba(15,23,42,0) 34%),
+              linear-gradient(110deg, rgba(2,6,23,0.92) 0%, rgba(15,23,42,0.88) 34%, rgba(15,23,42,0.54) 62%, rgba(15,23,42,0.82) 100%),
+              url(${slide.img})
+            `,
+            backgroundPosition: `center center, center center, ${slide.backgroundPosition}`,
+          }}
+        />
 
-        <div style={{ position: "absolute", inset: 0, background: slide.overlay }} />
+        <div style={content}>
+          <div style={visualColumn}>
+            <div style={visualFrame}>
+              <img
+                src={slide.img}
+                alt=""
+                style={{
+                  ...visualImage,
+                  objectPosition: slide.imagePosition,
+                }}
+              />
+              <div style={visualMask} />
+              <div style={visualGlow(slide.accentSoft)} />
+            </div>
 
-        <div style={{ position: "absolute", left: 24, top: 294, color: "#fff", maxWidth: 620 }}>
-          <h2 style={{ margin: 0, fontSize: 30, lineHeight: 1.1 }}>{slide.title}</h2>
-          <p style={{ marginTop: 10, fontSize: 16, opacity: 0.95 }}>{slide.subtitle}</p>
+            <div style={metaRow}>
+              <div style={dots}>
+                {slides.map((item, itemIndex) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setIndex(itemIndex)}
+                    style={{
+                      ...dot,
+                      background: itemIndex === index ? slide.accent : "rgba(255,255,255,0.28)",
+                      width: itemIndex === index ? 26 : 10,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
 
-          <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              style={{ border: "none", background: slide.primaryBg, color: slide.primaryText, padding: "10px 14px", borderRadius: 12, cursor: "pointer", fontWeight: 900 }}
-              onClick={() => onBrowse?.()}
-            >
-              Разгледай услуги
-            </button>
-            <button
-              style={{ border: `1px solid ${slide.secondaryBorder}`, background: "rgba(255,255,255,0.06)", color: "#fff", padding: "10px 14px", borderRadius: 12, cursor: "pointer", fontWeight: 900, backdropFilter: "blur(4px)" }}
-              onClick={() => onLearnMore?.()}
-            >
-              Научи повече
-            </button>
+          <div style={copyWrap}>
+            <h2 style={title}>{slide.title}</h2>
+            <p style={subtitle}>{slide.subtitle}</p>
+
+            <div style={ctaRow}>
+              <button
+                style={{ ...primaryButton, background: slide.accent }}
+                onClick={() => onSlideAction?.(slide.id)}
+              >
+                {slide.ctaLabel || "Разгледай"}
+              </button>
+            </div>
           </div>
         </div>
 
-        <button onClick={() => setIndex((current) => (current - 1 + slides.length) % slides.length)} style={{ ...arrowBtn, left: 12 }}>
+        <button
+          onClick={() => setIndex((current) => (current - 1 + slides.length) % slides.length)}
+          style={{ ...arrowBtn, left: 16 }}
+        >
           ‹
         </button>
-        <button onClick={() => setIndex((current) => (current + 1) % slides.length)} style={{ ...arrowBtn, right: 12 }}>
+        <button onClick={() => setIndex((current) => (current + 1) % slides.length)} style={{ ...arrowBtn, right: 16 }}>
           ›
         </button>
-
-        <div style={{ position: "absolute", right: 16, bottom: 12, display: "flex", gap: 8 }}>
-          {slides.map((item, itemIndex) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setIndex(itemIndex)}
-              style={{ width: 10, height: 10, borderRadius: 999, border: "none", background: itemIndex === index ? "#fff" : "rgba(255,255,255,0.55)", cursor: "pointer" }}
-            />
-          ))}
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
+
+function visualGlow(color) {
+  return {
+    position: "absolute",
+    right: -40,
+    bottom: -40,
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    background: color,
+    filter: "blur(18px)",
+    pointerEvents: "none",
+  };
+}
+
+const shell = {
+  position: "relative",
+  overflow: "hidden",
+  borderRadius: 30,
+  minHeight: 470,
+  border: "1px solid rgba(148,163,184,0.2)",
+  background: "#0b1220",
+  boxShadow: "0 28px 70px rgba(15,23,42,0.18)",
+};
+
+const backgroundLayer = {
+  position: "absolute",
+  inset: 0,
+  backgroundSize: "cover",
+  filter: "saturate(0.9) blur(2px)",
+  transform: "scale(1.04)",
+};
+
+const content = {
+  position: "relative",
+  zIndex: 1,
+  display: "grid",
+  gridTemplateColumns: "minmax(700px, 1.54fr) minmax(0, 0.48fr)",
+  gap: 12,
+  alignItems: "center",
+  minHeight: 470,
+  padding: "30px 34px 28px",
+};
+
+const copyWrap = {
+  maxWidth: 310,
+  padding: "18px 10px 18px 0",
+  borderRadius: 28,
+  background: "transparent",
+  border: "none",
+  backdropFilter: "none",
+  boxShadow: "none",
+};
+
+const title = {
+  margin: "0 0 14px",
+  fontSize: 44,
+  lineHeight: 1.02,
+  color: "#ffffff",
+  maxWidth: 420,
+  textWrap: "balance",
+};
+
+const subtitle = {
+  margin: 0,
+  color: "rgba(255,255,255,0.86)",
+  fontSize: 14,
+  lineHeight: 1.58,
+  maxWidth: 360,
+};
+
+const ctaRow = {
+  marginTop: 400,
+  display: "flex",
+  justifyContent: "center",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const primaryButton = {
+  border: "none",
+  color: "#fff",
+  padding: "13px 18px",
+  borderRadius: 14,
+  cursor: "pointer",
+  fontWeight: 900,
+  boxShadow: "0 18px 40px rgba(15,23,42,0.2)",
+};
+
+const visualColumn = {
+  display: "grid",
+  gap: 10,
+  justifyItems: "center",
+};
+
+const visualFrame = {
+  position: "relative",
+  minHeight: 452,
+  width: "min(100%, 980px)",
+  borderRadius: 28,
+  overflow: "hidden",
+  border: "1px solid rgba(255,255,255,0.16)",
+  background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)",
+  boxShadow: "0 34px 80px rgba(2,6,23,0.24)",
+};
+
+const visualImage = {
+  width: "100%",
+  height: "100%",
+  objectFit: "contain",
+  display: "block",
+  padding: "0 22px",
+  boxSizing: "border-box",
+  filter: "saturate(0.92) contrast(0.98)",
+  transform: "scale(1.1)",
+};
+
+const visualMask = {
+  position: "absolute",
+  inset: 0,
+  background:
+    "linear-gradient(180deg, rgba(15,23,42,0.14) 0%, rgba(15,23,42,0.03) 28%, rgba(15,23,42,0.28) 100%)",
+};
+
+const metaRow = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+};
+
+const dots = {
+  display: "flex",
+  gap: 8,
+  alignItems: "center",
+};
+
+const dot = {
+  height: 10,
+  borderRadius: 999,
+  border: "none",
+  cursor: "pointer",
+  transition: "all 160ms ease",
+};
 
 const arrowBtn = {
   position: "absolute",
   top: "50%",
   transform: "translateY(-50%)",
-  width: 44,
-  height: 44,
+  width: 46,
+  height: 46,
   borderRadius: 999,
-  border: "none",
+  border: "1px solid rgba(255,255,255,0.14)",
   cursor: "pointer",
-  background: "rgba(255,255,255,0.85)",
-  fontSize: 26,
-  lineHeight: "44px",
+  background: "rgba(255,255,255,0.10)",
+  color: "#fff",
+  backdropFilter: "blur(10px)",
+  fontSize: 28,
+  lineHeight: "42px",
+  zIndex: 2,
 };

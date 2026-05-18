@@ -1,39 +1,295 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { loginLocal } from "../../lib/authStore";
+import { saveAuth } from "../../lib/authStore";
+import { login, loginAsDev } from "./api";
+import logoPng from "../../assets/BookingHub-logo-auth.png";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function onSubmit(event) {
+  async function onSubmit(event) {
     event.preventDefault();
 
-    if (!username.trim() || !password.trim()) {
-      alert("Enter username and password");
+    if (!identifier.trim() || !password.trim()) {
+      alert("Въведи потребителско име или имейл и парола.");
       return;
     }
 
-    loginLocal("BUSINESS", "biz_demo");
-    navigate("/", { replace: true });
+    setLoading(true);
+
+    try {
+      const auth = await login({
+        identifier: identifier.trim(),
+        password,
+      });
+      saveAuth(auth);
+      navigate("/", { replace: true });
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onDevLogin(role) {
+    setLoading(true);
+
+    try {
+      const auth = await loginAsDev(role);
+      saveAuth(auth);
+      navigate("/", { replace: true });
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: "60px auto", padding: 24, border: "1px solid #ddd", borderRadius: 12 }}>
-      <h2 style={{ marginTop: 0 }}>Login</h2>
+    <div style={shell}>
+      <div style={backdropGlowOne} />
+      <div style={backdropGlowTwo} />
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 10 }}>
-        <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Username" style={{ padding: 10 }} />
-        <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Password" style={{ padding: 10 }} />
-        <button type="submit" style={{ padding: "10px 14px" }}>
-          Sign in
-        </button>
-      </form>
+      <div style={layout}>
+        <img src={logoPng} alt="BookingHub" style={logoStyle} />
 
-      <p style={{ marginTop: 12 }}>
-        No account? <Link to="/register">Create one</Link>
-      </p>
+        <section style={formPanel}>
+          <div style={card}>
+            <div style={formHeader}>
+              <span style={eyebrow}>Достъп до профила</span>
+              <h2 style={title}>Вход</h2>
+            </div>
+
+            <form onSubmit={onSubmit} style={form}>
+              <label style={label}>Потребителско име или имейл</label>
+              <input
+                value={identifier}
+                onChange={(event) => setIdentifier(event.target.value)}
+                placeholder="martin или martin@email.com"
+                style={input}
+                disabled={loading}
+              />
+
+              <label style={label}>Парола</label>
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                placeholder="Въведи паролата си"
+                style={input}
+                disabled={loading}
+              />
+
+              <button type="submit" style={primaryButton} disabled={loading}>
+                {loading ? "Влизане..." : "Вход"}
+              </button>
+            </form>
+
+            <div style={dividerRow}>
+              <div style={divider} />
+              <span style={dividerLabel}>Dev достъп</span>
+              <div style={divider} />
+            </div>
+
+            <div style={devGrid}>
+              <DevRoleCard title="Dev Клиент" onClick={() => onDevLogin("CLIENT")} disabled={loading} />
+              <DevRoleCard title="Dev Бизнес" onClick={() => onDevLogin("BUSINESS")} disabled={loading} />
+              <DevRoleCard title="Dev Админ" onClick={() => onDevLogin("ADMIN")} disabled={loading} />
+            </div>
+
+            <p style={registerText}>
+              Нямаш профил? <Link to="/register" style={registerLink}>Създай си</Link>
+            </p>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
+
+function DevRoleCard({ title, onClick, disabled }) {
+  return (
+    <button type="button" onClick={onClick} style={devCard} disabled={disabled}>
+      <span style={devCardTitle}>{title}</span>
+    </button>
+  );
+}
+
+const shell = {
+  minHeight: "100vh",
+  position: "relative",
+  overflow: "hidden",
+  background: "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 22%), radial-gradient(circle at top right, rgba(30,64,175,0.18) 0%, rgba(30,64,175,0) 26%), linear-gradient(180deg, #081224 0%, #0d2b63 12%, #edf4ff 34%, #f7faff 100%)",
+};
+
+const backdropGlowOne = {
+  position: "absolute",
+  top: -180,
+  left: -120,
+  width: 420,
+  height: 420,
+  borderRadius: "50%",
+  background: "rgba(59, 130, 246, 0.18)",
+  filter: "blur(40px)",
+};
+
+const backdropGlowTwo = {
+  position: "absolute",
+  right: -140,
+  bottom: -120,
+  width: 360,
+  height: 360,
+  borderRadius: "50%",
+  background: "rgba(59, 130, 246, 0.14)",
+  filter: "blur(44px)",
+};
+
+const layout = {
+  position: "relative",
+  zIndex: 1,
+  maxWidth: 560,
+  margin: "0 auto",
+  minHeight: "100vh",
+  padding: "32px 20px",
+  display: "grid",
+  gap: 18,
+  alignContent: "center",
+  justifyItems: "center",
+};
+
+const logoStyle = {
+  display: "block",
+  height: 60,
+  marginBottom: 6,
+};
+
+const formPanel = {
+  display: "flex",
+  justifyContent: "center",
+  width: "100%",
+};
+
+const card = {
+  width: "min(460px, 100%)",
+  padding: 28,
+  borderRadius: 30,
+  background: "rgba(255,255,255,0.84)",
+  border: "1px solid rgba(255,255,255,0.7)",
+  boxShadow: "0 24px 80px rgba(15, 23, 42, 0.14)",
+  backdropFilter: "blur(18px)",
+};
+
+const formHeader = {
+  marginBottom: 18,
+};
+
+const eyebrow = {
+  display: "inline-block",
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#2563eb",
+};
+
+const title = {
+  margin: "10px 0 8px",
+  color: "#0f172a",
+  fontSize: 34,
+  lineHeight: 1.05,
+  textAlign: "center",
+};
+
+const form = {
+  display: "grid",
+  gap: 12,
+};
+
+const label = {
+  marginTop: 4,
+  color: "#0f172a",
+  fontSize: 13,
+  fontWeight: 800,
+};
+
+const input = {
+  padding: "14px 15px",
+  borderRadius: 16,
+  border: "1px solid #cbd5e1",
+  background: "rgba(255,255,255,0.9)",
+  color: "#0f172a",
+  outline: "none",
+  fontSize: 15,
+};
+
+const primaryButton = {
+  marginTop: 6,
+  padding: "15px 16px",
+  borderRadius: 16,
+  border: "none",
+  background: "linear-gradient(135deg, #0f172a 0%, #2563eb 100%)",
+  color: "#fff",
+  fontWeight: 900,
+  cursor: "pointer",
+  boxShadow: "0 16px 30px rgba(37, 99, 235, 0.28)",
+};
+
+const dividerRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  marginTop: 24,
+  marginBottom: 18,
+};
+
+const divider = {
+  height: 1,
+  background: "rgba(148, 163, 184, 0.35)",
+  flex: 1,
+};
+
+const dividerLabel = {
+  fontSize: 12,
+  color: "#64748b",
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const devGrid = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+};
+
+const devCard = {
+  width: "100%",
+  padding: "14px 12px",
+  borderRadius: 18,
+  border: "1px solid #dbeafe",
+  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+  textAlign: "center",
+  cursor: "pointer",
+};
+
+const devCardTitle = {
+  color: "#0f172a",
+  fontWeight: 900,
+  fontSize: 14,
+};
+
+const registerText = {
+  marginTop: 18,
+  marginBottom: 0,
+  color: "#475569",
+  fontSize: 14,
+};
+
+const registerLink = {
+  color: "#2563eb",
+  fontWeight: 800,
+  textDecoration: "none",
+};

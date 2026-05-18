@@ -30,11 +30,14 @@ public class BusinessProfile {
     @Column(name = "city", length = 120, nullable = false)
     private String city;
 
-    @Column(name = "address", length = 255, nullable = false)
+    @Column(name = "address", length = 255)
     private String address;
 
     @Column(name = "phone", length = 30)
     private String phone;
+
+    @Column(name = "photo_url", length = 500)
+    private String photoUrl;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -63,6 +66,7 @@ public class BusinessProfile {
     public String getCity() { return city; }
     public String getAddress() { return address; }
     public String getPhone() { return phone; }
+    public String getPhotoUrl() { return photoUrl; }
 
     public void setUser(User user) { this.user = user; }
     public void setProviderType(ProviderType providerType) { this.providerType = providerType; }
@@ -70,4 +74,5 @@ public class BusinessProfile {
     public void setCity(String city) { this.city = city; }
     public void setAddress(String address) { this.address = address; }
     public void setPhone(String phone) { this.phone = phone; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
 }

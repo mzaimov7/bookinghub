@@ -5,6 +5,8 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Repository
 public class ServiceResourceDao {
 
@@ -24,5 +26,15 @@ public class ServiceResourceDao {
         em.createNativeQuery("delete from service_resources where service_id = ?")
                 .setParameter(1, serviceId)
                 .executeUpdate();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Long> findResourceIdsByServiceId(Long serviceId) {
+        return em.createNativeQuery("select resource_id from service_resources where service_id = ? order by resource_id")
+                .setParameter(1, serviceId)
+                .getResultList()
+                .stream()
+                .map(value -> ((Number) value).longValue())
+                .toList();
     }
 }

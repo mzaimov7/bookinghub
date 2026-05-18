@@ -9,6 +9,7 @@ import java.util.Optional;
 public interface ServiceImageRepository extends JpaRepository<ServiceImage, Long> {
 
     List<ServiceImage> findByServiceIdOrderBySortOrderAsc(Long serviceId);
+    void deleteByServiceId(Long serviceId);
 
     // ✅ взима cover снимката (ако има)
     Optional<ServiceImage> findFirstByServiceIdAndCoverTrueOrderBySortOrderAsc(Long serviceId);

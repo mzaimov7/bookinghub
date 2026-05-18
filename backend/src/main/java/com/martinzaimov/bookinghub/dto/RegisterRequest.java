@@ -22,6 +22,8 @@ public class RegisterRequest {
     public String firstName;
     public String lastName;
     public String phone;
+    public String photoUrl;
+    public String bio;
 
     // BUSINESS
     public String providerType;   // COMPANY или INDIVIDUAL
@@ -29,4 +31,5 @@ public class RegisterRequest {
     public String city;
     public String address;
     public String businessPhone;
+    public String businessPhotoUrl;
 }

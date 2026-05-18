@@ -19,8 +19,28 @@ export function getRole() {
   return getAuth()?.role || null;
 }
 
-export function loginLocal(role = "CLIENT", username = "demo") {
-  localStorage.setItem(KEY, JSON.stringify({ role, username }));
+export function getUserId() {
+  return getAuth()?.userId ?? null;
+}
+
+export function saveAuth(auth) {
+  localStorage.setItem(KEY, JSON.stringify(auth));
+}
+
+export function updateStoredAuth(updates = {}) {
+  const current = getAuth();
+  if (!current) return;
+  saveAuth({ ...current, ...updates });
+}
+
+export function loginLocal(role = "CLIENT", username = "demo", options = {}) {
+  saveAuth({
+    userId: null,
+    username,
+    email: options.email || "",
+    role,
+    devMode: Boolean(options.devMode),
+  });
 }
 
 export function logoutLocal() {

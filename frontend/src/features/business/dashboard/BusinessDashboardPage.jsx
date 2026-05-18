@@ -58,11 +58,11 @@ export default function BusinessDashboardPage() {
   }, []);
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Зареждане на бизнес пространството…</div>;
+    return <div style={{ padding: 24, color: "#e2e8f0" }}>Зареждане на бизнес пространството…</div>;
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top left, rgba(96,165,250,0.2) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, rgba(13,43,99,0.08) 0%, rgba(237,244,255,0.9) 20%, #f7faff 100%)" }}>
+    <div style={{ minHeight: "100vh", background: pageBackground }}>
       <Header categories={[]} recentSearches={[]} />
 
       <div style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 16px 52px" }}>
@@ -145,11 +145,11 @@ export default function BusinessDashboardPage() {
                         )}
                       </div>
                       <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
-                        <div style={{ fontWeight: 900, color: "#0f172a" }}>{booking.serviceTitle}</div>
-                        <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                        <div style={{ fontWeight: 900, color: "#eff6ff" }}>{booking.serviceTitle}</div>
+                        <div style={{ color: "rgba(226,232,240,0.82)", lineHeight: 1.5 }}>
                           {booking.clientName} · {booking.resourceName}
                         </div>
-                        <div style={{ color: "#64748b", fontSize: 14 }}>
+                        <div style={{ color: "rgba(191,219,254,0.72)", fontSize: 14 }}>
                           {formatDate(booking.startAt)} · {formatTime(booking.startAt)} - {formatTime(booking.endAt)}
                         </div>
                       </div>
@@ -180,8 +180,8 @@ export default function BusinessDashboardPage() {
                         )}
                       </div>
                       <div style={{ display: "grid", gap: 6 }}>
-                        <div style={{ fontWeight: 900, fontSize: 18, color: "#0f172a" }}>{service.title}</div>
-                        <div style={{ color: "#475569", lineHeight: 1.5 }}>{service.description || "Все още няма описание."}</div>
+                        <div style={{ fontWeight: 900, fontSize: 18, color: "#eff6ff" }}>{service.title}</div>
+                        <div style={{ color: "rgba(226,232,240,0.8)", lineHeight: 1.5 }}>{service.description || "Все още няма описание."}</div>
                         <div style={miniMeta}>
                           <span>{service.city}</span>
                           <span>{service.durationMinutes} min</span>
@@ -217,8 +217,8 @@ export default function BusinessDashboardPage() {
                           )}
                         </div>
                         <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis" }}>{resource.name}</div>
-                          <div style={{ color: "#64748b", fontSize: 14 }}>{resource.type === "TEAM" ? "Екип" : "Служител"}</div>
+                          <div style={{ fontWeight: 800, color: "#eff6ff", overflow: "hidden", textOverflow: "ellipsis" }}>{resource.name}</div>
+                          <div style={{ color: "rgba(191,219,254,0.72)", fontSize: 14 }}>{resource.type === "TEAM" ? "Екип" : "Служител"}</div>
                         </div>
                       </div>
                       <div style={resource.active ? activePill : inactivePill}>{resource.active ? "Активен" : "Неактивен"}</div>
@@ -237,7 +237,7 @@ export default function BusinessDashboardPage() {
                 ].map((item, index) => (
                   <div key={item} style={flowRow}>
                     <div style={flowIndex}>{index + 1}</div>
-                    <div style={{ color: "#334155", lineHeight: 1.6 }}>{item}</div>
+                    <div style={{ color: "rgba(226,232,240,0.82)", lineHeight: 1.6 }}>{item}</div>
                   </div>
                 ))}
               </div>
@@ -251,17 +251,17 @@ export default function BusinessDashboardPage() {
 
 function StatCard({ label, value, helper, tone = "blue" }) {
   const toneStyles = {
-    blue: { background: "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(219,234,254,0.78))", border: "rgba(96,165,250,0.24)" },
-    cyan: { background: "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(207,250,254,0.8))", border: "rgba(34,211,238,0.24)" },
-    amber: { background: "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(254,243,199,0.86))", border: "rgba(245,158,11,0.24)" },
-    green: { background: "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(220,252,231,0.84))", border: "rgba(34,197,94,0.24)" },
+    blue: { background: "linear-gradient(180deg, rgba(17,40,84,0.68), rgba(15,23,42,0.84))", border: "rgba(96,165,250,0.24)", value: "#93c5fd" },
+    cyan: { background: "linear-gradient(180deg, rgba(8,51,68,0.72), rgba(15,23,42,0.84))", border: "rgba(34,211,238,0.24)", value: "#67e8f9" },
+    amber: { background: "linear-gradient(180deg, rgba(66,32,6,0.72), rgba(15,23,42,0.84))", border: "rgba(245,158,11,0.24)", value: "#fbbf24" },
+    green: { background: "linear-gradient(180deg, rgba(8,37,34,0.74), rgba(15,23,42,0.84))", border: "rgba(34,197,94,0.24)", value: "#6ee7b7" },
   };
 
   return (
     <div style={{ ...statCard, background: toneStyles[tone].background, borderColor: toneStyles[tone].border }}>
-      <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1.4, color: "#64748b", fontWeight: 900 }}>{label}</div>
-      <div style={{ fontSize: 34, fontWeight: 900, color: "#0f172a", lineHeight: 1 }}>{value}</div>
-      <div style={{ color: "#475569", lineHeight: 1.5, fontSize: 14 }}>{helper}</div>
+      <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1.4, color: "rgba(191,219,254,0.72)", fontWeight: 900 }}>{label}</div>
+      <div style={{ fontSize: 34, fontWeight: 900, color: toneStyles[tone].value, lineHeight: 1 }}>{value}</div>
+      <div style={{ color: "rgba(226,232,240,0.78)", lineHeight: 1.5, fontSize: 14 }}>{helper}</div>
     </div>
   );
 }
@@ -278,8 +278,8 @@ function ActionPanel({ title, text, to, cta, tone = "blue" }) {
       <div style={actionPanel}>
         <div style={{ width: 48, height: 6, borderRadius: 999, background: accent }} />
         <div style={{ display: "grid", gap: 8 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "#0f172a" }}>{title}</div>
-          <div style={{ color: "#475569", lineHeight: 1.6 }}>{text}</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#eff6ff" }}>{title}</div>
+          <div style={{ color: "rgba(226,232,240,0.78)", lineHeight: 1.6 }}>{text}</div>
         </div>
         <div style={{ color: accent, fontWeight: 900 }}>{cta} →</div>
       </div>
@@ -309,7 +309,7 @@ function SectionCard({ eyebrow, title, actionLabel, actionTo, children }) {
 function EmptyInline({ text, compact = false }) {
   return (
     <div style={{ ...emptyInline, minHeight: compact ? 120 : 160 }}>
-      <div style={{ color: "#64748b", lineHeight: 1.7, maxWidth: 520 }}>{text}</div>
+      <div style={{ color: "rgba(191,219,254,0.74)", lineHeight: 1.7, maxWidth: 520 }}>{text}</div>
     </div>
   );
 }
@@ -322,6 +322,8 @@ function formatTime(value) {
   return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+const pageBackground =
+  "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 16%, #eaf2ff 44%, #f6f9ff 100%)";
 const hero = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1.3fr) minmax(320px, 0.9fr)",
@@ -330,12 +332,12 @@ const hero = {
   padding: "28px 30px",
   borderRadius: 32,
   background:
-    "radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), rgba(255, 255, 255, 0.95) 52%), linear-gradient(135deg, rgba(224, 231, 255, 0.92), rgba(255, 255, 255, 0.98))",
-  border: "1px solid rgba(148, 163, 184, 0.22)",
+    "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
 };
 const heroEyebrow = { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.8, color: "#1d4ed8", fontWeight: 900 };
-const heroTitle = { margin: 0, fontSize: 42, lineHeight: 0.98, color: "#0f172a", maxWidth: 700 };
-const heroText = { margin: 0, color: "#475569", maxWidth: 700, lineHeight: 1.7, fontSize: 16 };
+const heroTitle = { margin: 0, fontSize: 42, lineHeight: 0.98, color: "#eff6ff", maxWidth: 700 };
+const heroText = { margin: 0, color: "rgba(226,232,240,0.8)", maxWidth: 700, lineHeight: 1.7, fontSize: 16 };
 const heroActions = { display: "flex", gap: 12, flexWrap: "wrap" };
 const primaryAction = {
   textDecoration: "none",
@@ -351,9 +353,9 @@ const secondaryAction = {
   borderRadius: 16,
   padding: "14px 18px",
   fontWeight: 900,
-  color: "#0f172a",
-  border: "1px solid #cbd5e1",
-  background: "rgba(255,255,255,0.84)",
+  color: "#eff6ff",
+  border: "1px solid rgba(96,165,250,0.24)",
+  background: "rgba(15,23,42,0.46)",
 };
 const heroStats = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12, alignContent: "start" };
 const statCard = { padding: "16px 16px 14px", borderRadius: 22, border: "1px solid", display: "grid", gap: 10 };
@@ -363,9 +365,9 @@ const actionPanel = {
   height: "100%",
   padding: 20,
   borderRadius: 26,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
-  boxShadow: "0 18px 38px rgba(15, 23, 42, 0.06)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)",
+  boxShadow: "0 18px 38px rgba(15, 23, 42, 0.18)",
   display: "grid",
   gap: 16,
 };
@@ -380,22 +382,22 @@ const sideColumn = { display: "grid", gap: 18 };
 const sectionCard = {
   padding: 20,
   borderRadius: 28,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
-  boxShadow: "0 20px 40px rgba(15, 23, 42, 0.06)",
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)",
+  boxShadow: "0 20px 40px rgba(15, 23, 42, 0.18)",
   display: "grid",
   gap: 16,
 };
-const sectionEyebrow = { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.4, color: "#64748b", fontWeight: 900 };
-const sectionTitle = { fontSize: 24, lineHeight: 1.08, color: "#0f172a", fontWeight: 900 };
-const sectionLink = { textDecoration: "none", color: "#1d4ed8", fontWeight: 900 };
+const sectionEyebrow = { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.4, color: "rgba(191,219,254,0.74)", fontWeight: 900 };
+const sectionTitle = { fontSize: 24, lineHeight: 1.08, color: "#eff6ff", fontWeight: 900 };
+const sectionLink = { textDecoration: "none", color: "#93c5fd", fontWeight: 900 };
 const emptyInline = {
   display: "grid",
   placeItems: "center",
   padding: 20,
   borderRadius: 22,
-  border: "1px dashed #cbd5e1",
-  background: "#f8fafc",
+  border: "1px dashed rgba(96,165,250,0.24)",
+  background: "rgba(15,23,42,0.34)",
 };
 const requestRow = {
   textDecoration: "none",
@@ -406,13 +408,13 @@ const requestRow = {
   alignItems: "center",
   padding: 12,
   borderRadius: 20,
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.34)",
 };
 const requestVisual = { width: 92, height: 92, borderRadius: 18, overflow: "hidden", background: "linear-gradient(135deg, #dbeafe, #eff6ff)" };
 const requestImage = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
 const requestFallback = { width: "100%", height: "100%", display: "grid", placeItems: "center", color: "#1d4ed8", fontWeight: 900 };
-const pendingPill = { padding: "10px 12px", borderRadius: 999, background: "#fef3c7", color: "#92400e", fontWeight: 900, textTransform: "uppercase", letterSpacing: 1, fontSize: 12 };
+const pendingPill = { padding: "10px 12px", borderRadius: 999, background: "rgba(66,32,6,0.72)", color: "#fbbf24", fontWeight: 900, textTransform: "uppercase", letterSpacing: 1, fontSize: 12 };
 const listingPreviewGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 };
 const listingPreviewCard = {
   textDecoration: "none",
@@ -421,13 +423,13 @@ const listingPreviewCard = {
   gap: 12,
   padding: 14,
   borderRadius: 22,
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.34)",
 };
 const listingPreviewMedia = { borderRadius: 18, overflow: "hidden", minHeight: 150, background: "linear-gradient(135deg, #dbeafe, #eff6ff)" };
 const listingPreviewImage = { width: "100%", height: 150, objectFit: "cover", display: "block" };
 const listingPreviewFallback = { minHeight: 150, display: "grid", placeItems: "center", color: "#1d4ed8", fontWeight: 900 };
-const miniMeta = { display: "flex", gap: 10, flexWrap: "wrap", color: "#334155", fontSize: 14, fontWeight: 700 };
+const miniMeta = { display: "flex", gap: 10, flexWrap: "wrap", color: "rgba(191,219,254,0.76)", fontSize: 14, fontWeight: 700 };
 const resourceRow = {
   display: "flex",
   justifyContent: "space-between",
@@ -435,13 +437,13 @@ const resourceRow = {
   alignItems: "center",
   padding: "12px 14px",
   borderRadius: 18,
-  border: "1px solid #e2e8f0",
-  background: "#f8fafc",
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.34)",
 };
 const resourceAvatarWrap = { width: 48, height: 48, borderRadius: 999, overflow: "hidden", background: "linear-gradient(135deg, #dbeafe, #eff6ff)", flexShrink: 0 };
 const resourceAvatar = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
 const resourceFallback = { width: "100%", height: "100%", display: "grid", placeItems: "center", color: "#1d4ed8", fontWeight: 900 };
-const activePill = { padding: "8px 10px", borderRadius: 999, background: "#dcfce7", color: "#166534", fontWeight: 800, fontSize: 12 };
-const inactivePill = { padding: "8px 10px", borderRadius: 999, background: "#e2e8f0", color: "#334155", fontWeight: 800, fontSize: 12 };
+const activePill = { padding: "8px 10px", borderRadius: 999, background: "rgba(8,37,34,0.7)", color: "#6ee7b7", fontWeight: 800, fontSize: 12 };
+const inactivePill = { padding: "8px 10px", borderRadius: 999, background: "rgba(15,23,42,0.62)", color: "#cbd5e1", fontWeight: 800, fontSize: 12 };
 const flowRow = { display: "grid", gridTemplateColumns: "34px minmax(0, 1fr)", gap: 12, alignItems: "start" };
-const flowIndex = { width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center", background: "#dbeafe", color: "#1d4ed8", fontWeight: 900 };
+const flowIndex = { width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center", background: "rgba(17,40,84,0.74)", color: "#93c5fd", fontWeight: 900 };

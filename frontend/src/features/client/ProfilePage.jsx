@@ -55,6 +55,7 @@ export default function ProfilePage() {
     lastName: "",
     phone: "",
     photoUrl: null,
+    bio: "",
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -86,6 +87,7 @@ export default function ProfilePage() {
           lastName: profile.lastName,
           phone: profile.phone || "",
           photoUrl: profile.photoUrl || null,
+          bio: profile.bio || "",
         });
         updateStoredAuth({
           profilePhotoUrl: profile.photoUrl || null,
@@ -147,6 +149,7 @@ export default function ProfilePage() {
         firstName: form.firstName,
         lastName: form.lastName,
         phone: form.phone || null,
+        bio: form.bio || null,
       });
 
       updateStoredAuth({
@@ -266,12 +269,13 @@ export default function ProfilePage() {
                         <MaskedField label="Име" />
                         <MaskedField label="Фамилия" />
                         <MaskedField label="Телефон" />
+                        <MaskedField label="Биография" />
                       </div>
 
                       <form onSubmit={onUnlock} style={unlockCard}>
                         <div>
                           <div style={unlockTitle}>Отключи детайлите</div>
-                          <div style={unlockText}>Въведи текущата си парола, за да видиш и редактираш профилните данни.</div>
+                          <div style={unlockText}>Въведи текущата си парола, за да видиш и редактираш профила си.</div>
                         </div>
                         <div style={unlockRow}>
                           <Field
@@ -323,6 +327,7 @@ export default function ProfilePage() {
                         </div>
 
                         <Field label="Телефон" name="phone" value={form.phone} onChange={onChange} />
+                        <TextAreaField label="Биография" name="bio" value={form.bio} onChange={onChange} placeholder="Разкажи накратко за себе си" />
 
                         <button type="submit" style={saveButton} disabled={saving}>
                           {saving ? "Запазване..." : "Запази промените"}
@@ -467,6 +472,15 @@ function Field({ label, ...props }) {
     <label style={fieldWrap}>
       <span style={fieldLabel}>{label}</span>
       <input {...props} style={fieldInput} />
+    </label>
+  );
+}
+
+function TextAreaField({ label, ...props }) {
+  return (
+    <label style={fieldWrap}>
+      <span style={fieldLabel}>{label}</span>
+      <textarea {...props} style={{ ...fieldInput, minHeight: 110, resize: "vertical" }} />
     </label>
   );
 }

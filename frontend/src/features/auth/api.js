@@ -28,3 +28,15 @@ export async function register(payload) {
 
   return true;
 }
+
+export async function uploadRegistrationPhoto(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const data = await apiSend("/api/auth/register/photo", {
+    method: "POST",
+    body: formData,
+  });
+
+  return data?.photoUrl ?? null;
+}

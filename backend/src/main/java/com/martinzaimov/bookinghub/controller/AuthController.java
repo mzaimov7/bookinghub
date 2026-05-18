@@ -4,8 +4,12 @@ import com.martinzaimov.bookinghub.dto.LoginRequest;
 import com.martinzaimov.bookinghub.dto.RegisterRequest;
 import com.martinzaimov.bookinghub.service.AuthService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -31,5 +35,10 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         auth.register(req);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(path = "/register/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadRegisterPhoto(@RequestPart("file") MultipartFile file) {
+        return ResponseEntity.ok(Map.of("photoUrl", auth.uploadRegistrationPhoto(file)));
     }
 }

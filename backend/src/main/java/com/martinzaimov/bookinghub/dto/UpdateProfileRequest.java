@@ -22,4 +22,7 @@ public class UpdateProfileRequest {
     public String lastName;
 
     public String phone;
+
+    @Size(max = 1200)
+    public String bio;
 }

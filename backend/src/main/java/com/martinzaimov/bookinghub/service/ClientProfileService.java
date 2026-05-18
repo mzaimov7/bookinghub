@@ -120,7 +120,8 @@ public class ClientProfileService {
                 profile.getFirstName(),
                 profile.getLastName(),
                 profile.getPhone(),
-                profile.getPhotoUrl()
+                profile.getPhotoUrl(),
+                profile.getBio()
         );
     }
 
@@ -168,6 +169,7 @@ public class ClientProfileService {
         profile.setFirstName(firstName);
         profile.setLastName(lastName);
         profile.setPhone(normalize(request.phone));
+        profile.setBio(normalize(request.bio));
         clientProfiles.save(profile);
 
         return new ClientProfileDTO(
@@ -178,7 +180,8 @@ public class ClientProfileService {
                 profile.getFirstName(),
                 profile.getLastName(),
                 profile.getPhone(),
-                profile.getPhotoUrl()
+                profile.getPhotoUrl(),
+                profile.getBio()
         );
     }
 
@@ -216,7 +219,8 @@ public class ClientProfileService {
                 profile.getFirstName(),
                 profile.getLastName(),
                 profile.getPhone(),
-                profile.getPhotoUrl()
+                profile.getPhotoUrl(),
+                profile.getBio()
         );
     }
 

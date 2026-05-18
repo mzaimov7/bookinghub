@@ -23,7 +23,7 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
   const auth = getAuth();
   const effectiveCategories = Array.isArray(categories) && categories.length > 0 ? categories : loadedCategories;
   const effectiveRecentSearches = Array.isArray(recentSearches) && recentSearches.length > 0 ? recentSearches : loadedRecentSearches;
-  const catItems = useMemo(() => effectiveCategories.slice(0, 10), [effectiveCategories]);
+  const catItems = useMemo(() => effectiveCategories, [effectiveCategories]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -290,36 +290,47 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
               onClick={() => setOpenCats((current) => !current)}
               style={{ background: "rgba(255,255,255,0.10)", color: "#fff", border: "1px solid rgba(255,255,255,0.18)", padding: "10px 14px", borderRadius: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontWeight: 800 }}
             >
-              ☰ Категории
+              <span>☰ Категории</span>
             </button>
 
-            {openCats && (
-              <div style={{ position: "absolute", top: 44, left: 0, width: 340, background: "#fff", color: "#111827", border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", boxShadow: "0 12px 30px rgba(0,0,0,0.12)", zIndex: 50 }}>
-                {catItems.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => {
-                      if (onCategoryPick) {
-                        onCategoryPick(category);
-                      } else {
-                        navigate(`/search?categoryId=${category.id}`);
-                      }
-                      setOpenCats(false);
-                    }}
-                    style={{ width: "100%", textAlign: "left", padding: "12px 14px", border: "none", background: "#fff", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14 }}
-                    onMouseEnter={(event) => {
-                      event.currentTarget.style.background = "#f8fafc";
-                    }}
-                    onMouseLeave={(event) => {
-                      event.currentTarget.style.background = "#fff";
-                    }}
-                  >
-                    <span>{category.name}</span>
-                    <span style={{ opacity: 0.6 }}>›</span>
-                  </button>
-                ))}
+            <div
+              style={{
+                ...categoryDropdownWrap,
+                gridTemplateRows: openCats ? "1fr" : "0fr",
+                opacity: openCats ? 1 : 0,
+                pointerEvents: openCats ? "auto" : "none",
+              }}
+            >
+              <div style={categoryDropdownInner}>
+                <div
+                  style={{
+                    ...categoryDropdown,
+                    transform: openCats ? "translateY(0)" : "translateY(-10px)",
+                  }}
+                >
+                  <div style={categoryDropdownHeader}>Избери категория</div>
+                  <div style={categoryDropdownList}>
+                    {catItems.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => {
+                          if (onCategoryPick) {
+                            onCategoryPick(category);
+                          } else {
+                            navigate(`/search?categoryId=${category.id}`);
+                          }
+                          setOpenCats(false);
+                        }}
+                        style={categoryItem}
+                      >
+                        <span>{category.name}</span>
+                        <span style={categoryItemArrow}>›</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -377,6 +388,70 @@ const heartGlyph = {
   color: "#2563eb",
   fontWeight: 900,
   lineHeight: 1,
+};
+
+const categoryDropdownWrap = {
+  position: "absolute",
+  top: 48,
+  left: 0,
+  width: 360,
+  display: "grid",
+  gridTemplateRows: "0fr",
+  transition: "grid-template-rows 220ms ease, opacity 220ms ease",
+  zIndex: 50,
+};
+
+const categoryDropdownInner = {
+  overflow: "hidden",
+};
+
+const categoryDropdown = {
+  marginTop: 8,
+  borderRadius: 18,
+  overflow: "hidden",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.98) 0%, rgba(17,36,71,0.98) 100%)",
+  color: "#eff6ff",
+  border: "1px solid rgba(96,165,250,0.24)",
+  boxShadow: "0 24px 60px rgba(2,6,23,0.3)",
+  transition: "transform 220ms ease",
+};
+
+const categoryDropdownHeader = {
+  padding: "12px 16px 10px",
+  fontSize: 11,
+  fontWeight: 900,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "#93c5fd",
+  borderBottom: "1px solid rgba(96,165,250,0.18)",
+  background: "linear-gradient(180deg, rgba(15,23,42,0.36) 0%, rgba(15,23,42,0.14) 100%)",
+};
+
+const categoryDropdownList = {
+  maxHeight: 420,
+  overflowY: "auto",
+  display: "grid",
+};
+
+const categoryItem = {
+  width: "100%",
+  textAlign: "left",
+  padding: "13px 16px",
+  border: "none",
+  borderBottom: "1px solid rgba(96,165,250,0.12)",
+  background: "transparent",
+  color: "#eff6ff",
+  cursor: "pointer",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  fontSize: 14,
+  fontWeight: 700,
+};
+
+const categoryItemArrow = {
+  color: "#93c5fd",
+  opacity: 0.84,
 };
 
 const recentSearchDropdown = {

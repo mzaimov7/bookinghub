@@ -20,6 +20,8 @@ export default function FavoritesPage() {
   const [showCategories, setShowCategories] = useState(true);
   const [showLocation, setShowLocation] = useState(true);
   const [showPrice, setShowPrice] = useState(true);
+  const [openCategoryPicker, setOpenCategoryPicker] = useState(false);
+  const [openSortPicker, setOpenSortPicker] = useState(false);
   const [sortBy, setSortBy] = useState("saved");
   const [viewMode, setViewMode] = useState("list");
   const [form, setForm] = useState({
@@ -65,6 +67,16 @@ export default function FavoritesPage() {
     () => categories.find((item) => String(item.id) === appliedFilters.categoryId) || null,
     [categories, appliedFilters.categoryId]
   );
+  const selectedCategory = useMemo(
+    () => categories.find((item) => String(item.id) === form.categoryId) || null,
+    [categories, form.categoryId]
+  );
+  const sortLabel = useMemo(() => {
+    if (sortBy === "price-asc") return "Цена: възходящо";
+    if (sortBy === "price-desc") return "Цена: низходящо";
+    if (sortBy === "duration-asc") return "Продължителност: най-кратки първо";
+    return "Последно запазени";
+  }, [sortBy]);
 
   const visibleServices = useMemo(() => {
     let items = services.filter((service) => {
@@ -170,18 +182,57 @@ export default function FavoritesPage() {
               >
                 <label style={fieldWrap}>
                   <span style={fieldLabel}>Избери категория</span>
-                  <select
-                    value={form.categoryId}
-                    onChange={(event) => onFieldChange("categoryId", event.target.value)}
-                    style={fieldInput}
-                  >
-                    <option value="">Всички категории</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div style={pickerWrap}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenCategoryPicker((current) => !current)}
+                      style={pickerTrigger}
+                    >
+                      <span>{selectedCategory?.name || "Всички категории"}</span>
+                    </button>
+
+                    <div
+                      style={{
+                        ...pickerDropdownWrap,
+                        gridTemplateRows: openCategoryPicker ? "1fr" : "0fr",
+                        opacity: openCategoryPicker ? 1 : 0,
+                        pointerEvents: openCategoryPicker ? "auto" : "none",
+                      }}
+                    >
+                      <div style={pickerDropdownInner}>
+                        <div
+                          style={{
+                            ...pickerDropdown,
+                            transform: openCategoryPicker ? "translateY(0)" : "translateY(-8px)",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onFieldChange("categoryId", "");
+                              setOpenCategoryPicker(false);
+                            }}
+                            style={pickerItem}
+                          >
+                            <span>Всички категории</span>
+                          </button>
+                          {categories.map((category) => (
+                            <button
+                              key={category.id}
+                              type="button"
+                              onClick={() => {
+                                onFieldChange("categoryId", String(category.id));
+                                setOpenCategoryPicker(false);
+                              }}
+                              style={pickerItem}
+                            >
+                              <span>{category.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </label>
               </FilterSection>
 
@@ -259,12 +310,33 @@ export default function FavoritesPage() {
                 <div style={toolbarRight}>
                   <label style={toolbarField}>
                     <span style={toolbarLabel}>Сортирай по</span>
-                    <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} style={toolbarSelect}>
-                      <option value="saved">Последно запазени</option>
-                      <option value="price-asc">Цена: възходящо</option>
-                      <option value="price-desc">Цена: низходящо</option>
-                      <option value="duration-asc">Продължителност: най-кратки първо</option>
-                    </select>
+                    <div style={toolbarPickerWrap}>
+                      <button type="button" onClick={() => setOpenSortPicker((current) => !current)} style={toolbarPickerTrigger}>
+                        <span>{sortLabel}</span>
+                      </button>
+                      <div
+                        style={{
+                          ...toolbarPickerDropdownWrap,
+                          gridTemplateRows: openSortPicker ? "1fr" : "0fr",
+                          opacity: openSortPicker ? 1 : 0,
+                          pointerEvents: openSortPicker ? "auto" : "none",
+                        }}
+                      >
+                        <div style={toolbarPickerDropdownInner}>
+                          <div
+                            style={{
+                              ...toolbarPickerDropdown,
+                              transform: openSortPicker ? "translateY(0)" : "translateY(-8px)",
+                            }}
+                          >
+                            <button type="button" onClick={() => { setSortBy("saved"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Последно запазени</button>
+                            <button type="button" onClick={() => { setSortBy("price-asc"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Цена: възходящо</button>
+                            <button type="button" onClick={() => { setSortBy("price-desc"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Цена: низходящо</button>
+                            <button type="button" onClick={() => { setSortBy("duration-asc"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Продължителност: най-кратки първо</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </label>
 
                   <div style={viewToggle}>
@@ -424,12 +496,52 @@ const toolbarRight = { display: "flex", alignItems: "center", gap: 12, flexWrap:
 const toolbarCount = { fontWeight: 900, color: "#eff6ff" };
 const toolbarField = { display: "flex", alignItems: "center", gap: 8 };
 const toolbarLabel = { fontSize: 13, fontWeight: 800, color: "#cbd5e1" };
-const toolbarSelect = {
+const toolbarPickerWrap = {
+  position: "relative",
+  minWidth: 230,
+};
+const toolbarPickerTrigger = {
   border: "1px solid rgba(96,165,250,0.24)",
   borderRadius: 12,
   padding: "10px 12px",
   background: "rgba(15,23,42,0.44)",
   color: "#eff6ff",
+  textAlign: "left",
+  width: "100%",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+const toolbarPickerDropdownWrap = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  left: 0,
+  right: 0,
+  display: "grid",
+  gridTemplateRows: "0fr",
+  transition: "grid-template-rows 220ms ease, opacity 220ms ease",
+  zIndex: 8,
+};
+const toolbarPickerDropdownInner = {
+  overflow: "hidden",
+};
+const toolbarPickerDropdown = {
+  borderRadius: 16,
+  overflow: "hidden",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.98) 0%, rgba(17,36,71,0.98) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  boxShadow: "0 20px 46px rgba(2,6,23,0.28)",
+  transition: "transform 220ms ease",
+};
+const toolbarPickerItem = {
+  width: "100%",
+  padding: "12px 13px",
+  border: "none",
+  borderBottom: "1px solid rgba(96,165,250,0.12)",
+  background: "transparent",
+  color: "#eff6ff",
+  textAlign: "left",
+  cursor: "pointer",
+  fontWeight: 700,
 };
 const viewToggle = {
   display: "inline-flex",
@@ -506,7 +618,7 @@ const sectionToggle = {
   fontSize: 16,
 };
 const sectionBody = { marginTop: 12, display: "grid", gap: 12 };
-const fieldWrap = { display: "grid", gap: 6 };
+const fieldWrap = { display: "grid", gap: 10 };
 const fieldLabel = { fontWeight: 800, color: "#cbd5e1", fontSize: 13 };
 const fieldInput = {
   width: "100%",
@@ -516,6 +628,55 @@ const fieldInput = {
   border: "1px solid rgba(96,165,250,0.24)",
   background: "rgba(15,23,42,0.44)",
   color: "#eff6ff",
+};
+const pickerWrap = {
+  position: "relative",
+};
+const pickerTrigger = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "12px 13px",
+  borderRadius: 14,
+  border: "1px solid rgba(96,165,250,0.24)",
+  background: "rgba(15,23,42,0.44)",
+  color: "#eff6ff",
+  textAlign: "left",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+const pickerDropdownWrap = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  left: 0,
+  right: 0,
+  display: "grid",
+  gridTemplateRows: "0fr",
+  transition: "grid-template-rows 220ms ease, opacity 220ms ease",
+  zIndex: 6,
+};
+const pickerDropdownInner = {
+  overflow: "hidden",
+};
+const pickerDropdown = {
+  borderRadius: 16,
+  overflow: "hidden",
+  maxHeight: 320,
+  overflowY: "auto",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.98) 0%, rgba(17,36,71,0.98) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  boxShadow: "0 20px 46px rgba(2,6,23,0.28)",
+  transition: "transform 220ms ease",
+};
+const pickerItem = {
+  width: "100%",
+  padding: "12px 13px",
+  border: "none",
+  borderBottom: "1px solid rgba(96,165,250,0.12)",
+  background: "transparent",
+  color: "#eff6ff",
+  textAlign: "left",
+  cursor: "pointer",
+  fontWeight: 700,
 };
 const priceGrid = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 };
 const hintBox = {

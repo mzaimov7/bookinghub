@@ -209,15 +209,15 @@ export default function BusinessCreateServicePage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top left, rgba(96,165,250,0.2) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, rgba(13,43,99,0.08) 0%, rgba(237,244,255,0.9) 20%, #f7faff 100%)" }}>
+    <div style={{ minHeight: "100vh", background: pageBackground }}>
       <Header categories={[]} recentSearches={[]} />
 
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "28px 16px 44px" }}>
         <div style={heroCard}>
-          <h2 style={{ margin: "8px 0 10px", fontSize: 34, lineHeight: 1.05, color: "#0f172a" }}>
+          <h2 style={{ margin: "8px 0 10px", fontSize: 34, lineHeight: 1.05, color: "#eff6ff" }}>
             {isEditMode ? "Редактирай обявата си и добавяй още служители по-късно." : "Добави обява"}
           </h2>
-          <p style={{ margin: 0, maxWidth: 620, color: "#475569", fontSize: 16, lineHeight: 1.6 }}>
+          <p style={{ margin: 0, maxWidth: 620, color: "rgba(226,232,240,0.8)", fontSize: 16, lineHeight: 1.6 }}>
             {isEditMode
               ? "Обнови детайлите на услугата, свържи нови хора или екипи и контролирай графика, по който клиентите резервират."
               : "Добави обявата, свържи правилния служител или екип и задай работния график за резервации."}
@@ -243,8 +243,8 @@ export default function BusinessCreateServicePage() {
                     ...categoryCard,
                     borderColor: active ? "#2563eb" : "#dbe4f0",
                     background: active
-                      ? "linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%)"
-                      : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+                      ? "linear-gradient(180deg, rgba(17,40,84,0.88) 0%, rgba(37,99,235,0.54) 100%)"
+                      : "linear-gradient(180deg, rgba(15,23,42,0.42) 0%, rgba(15,23,42,0.28) 100%)",
                     boxShadow: active ? "0 0 0 3px rgba(37,99,235,0.12)" : "0 12px 24px rgba(15,23,42,0.04)",
                   }}
                 >
@@ -324,8 +324,8 @@ export default function BusinessCreateServicePage() {
         </div>
 
         <label style={uploadWrap}>
-          <span style={{ fontWeight: 700, color: "#64748b" }}>Добави снимки към обявата</span>
-          <input type="file" accept="image/*" multiple onChange={onImagesChange} style={{ marginTop: 8 }} />
+          <span style={{ fontWeight: 700, color: "rgba(191,219,254,0.72)" }}>Добави снимки към обявата</span>
+          <input type="file" accept="image/*" multiple onChange={onImagesChange} style={{ marginTop: 8, color: "transparent", maxWidth: 132 }} />
         </label>
 
         {!imagePreviews.length && existingImages.length > 0 && (
@@ -371,27 +371,27 @@ export default function BusinessCreateServicePage() {
         </div>
 
         {loadingResources ? (
-          <div style={{ opacity: 0.8 }}>Зареждане на активни служители и екипи...</div>
+          <div style={{ opacity: 0.8, color: "rgba(191,219,254,0.74)" }}>Зареждане на активни служители и екипи...</div>
         ) : resources.length === 0 ? (
-          <div style={{ opacity: 0.8 }}>Все още нямаш активни хора или екипи. Добави ги от „Персонал и екипи“.</div>
+          <div style={{ opacity: 0.8, color: "rgba(191,219,254,0.74)" }}>Все още нямаш активни хора или екипи. Добави ги от „Персонал и екипи“.</div>
         ) : (
           <div>
             <button
               type="button"
               onClick={() => setOpenPicker((current) => !current)}
-              style={{ width: "100%", textAlign: "left", padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: 16, background: "#fff", cursor: "pointer", fontWeight: 900 }}
+              style={{ width: "100%", textAlign: "left", padding: "12px 14px", border: "1px solid rgba(96,165,250,0.22)", borderRadius: 16, background: "rgba(15,23,42,0.3)", color: "#eff6ff", cursor: "pointer", fontWeight: 900 }}
             >
               {form.resourceIds.length ? `Избрани: ${form.resourceIds.length}` : "Избери служител или екип"} ▾
             </button>
 
             {openPicker && (
-              <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 16, padding: 12, background: "#fff", display: "grid", gap: 10 }}>
+              <div style={{ marginTop: 10, border: "1px solid rgba(96,165,250,0.22)", borderRadius: 16, padding: 12, background: "rgba(8,18,36,0.94)", display: "grid", gap: 10 }}>
                 {resources.map((resource) => (
                   <label key={resource.id} style={pickerRow}>
                     <input type="checkbox" checked={form.resourceIds.includes(resource.id)} onChange={() => toggleResource(resource.id)} />
-                    <img src={resolveBackendImage(resource.photoUrl) || "https://via.placeholder.com/36?text=%F0%9F%91%A4"} alt="" style={{ width: 36, height: 36, borderRadius: 999, objectFit: "cover", border: "1px solid #e5e7eb" }} />
+                    <img src={resolveBackendImage(resource.photoUrl) || "https://via.placeholder.com/36?text=%F0%9F%91%A4"} alt="" style={{ width: 36, height: 36, borderRadius: 999, objectFit: "cover", border: "1px solid rgba(96,165,250,0.22)" }} />
                     <span style={{ fontWeight: 900 }}>{resource.name}</span>
-                    <span style={{ opacity: 0.7 }}>{resource.type === "TEAM" ? "Екип" : "Служител"}</span>
+                    <span style={{ opacity: 0.7, color: "rgba(191,219,254,0.74)" }}>{resource.type === "TEAM" ? "Екип" : "Служител"}</span>
                   </label>
                 ))}
 
@@ -425,21 +425,22 @@ export default function BusinessCreateServicePage() {
   );
 }
 
-const label = { fontWeight: 800 };
-const input = { width: "100%", padding: "12px 14px", border: "1px solid #cbd5e1", borderRadius: 14, boxSizing: "border-box" };
+const pageBackground = "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 16%, #eaf2ff 44%, #f6f9ff 100%)";
+const label = { fontWeight: 800, color: "#eff6ff" };
+const input = { width: "100%", padding: "12px 14px", border: "1px solid rgba(96,165,250,0.22)", borderRadius: 14, boxSizing: "border-box", background: "rgba(15,23,42,0.3)", color: "#eff6ff" };
 const btn = { marginTop: 6, padding: "14px 18px", borderRadius: 16, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", fontWeight: 900, cursor: "pointer" };
-const smallBtn = { width: "fit-content", border: "1px solid #cbd5e1", background: "#fff", borderRadius: 12, padding: "8px 10px", cursor: "pointer", fontWeight: 800 };
+const smallBtn = { width: "fit-content", border: "1px solid rgba(96,165,250,0.22)", background: "rgba(15,23,42,0.34)", color: "#eff6ff", borderRadius: 12, padding: "8px 10px", cursor: "pointer", fontWeight: 800 };
 const grid2 = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 };
-const divider = { borderTop: "1px solid #e2e8f0", margin: "4px 0" };
+const divider = { borderTop: "1px solid rgba(96,165,250,0.18)", margin: "4px 0" };
 const sectionTitleWrap = { display: "grid", gap: 2 };
-const sectionEyebrow = { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.6, fontWeight: 900, color: "#64748b" };
-const sectionTitle = { margin: 0, fontSize: 20, color: "#0f172a" };
-const sectionLead = { fontSize: 18, fontWeight: 900, color: "#0f172a" };
-const sectionSubtleTitle = { margin: 0, fontSize: 14, color: "#64748b", fontWeight: 700, lineHeight: 1.5 };
-const formCard = { background: "#fff", border: "1px solid #dbe4f0", boxShadow: "0 22px 45px rgba(15, 23, 42, 0.08)", borderRadius: 24, padding: 22, display: "grid", gap: 12 };
-const heroCard = { marginBottom: 18, padding: "22px 24px", borderRadius: 28, background: "radial-gradient(circle at top left, rgba(96, 165, 250, 0.22), rgba(255, 255, 255, 0.96) 58%), #fff", border: "1px solid rgba(148, 163, 184, 0.22)" };
+const sectionEyebrow = { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.6, fontWeight: 900, color: "rgba(191,219,254,0.72)" };
+const sectionTitle = { margin: 0, fontSize: 20, color: "#eff6ff" };
+const sectionLead = { fontSize: 18, fontWeight: 900, color: "rgba(226,232,240,0.8)" };
+const sectionSubtleTitle = { margin: 0, fontSize: 14, color: "rgba(191,219,254,0.72)", fontWeight: 700, lineHeight: 1.5 };
+const formCard = { background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)", border: "1px solid rgba(96,165,250,0.22)", boxShadow: "0 22px 45px rgba(15, 23, 42, 0.18)", borderRadius: 24, padding: 22, display: "grid", gap: 12 };
+const heroCard = { marginBottom: 18, padding: "22px 24px", borderRadius: 28, background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)", border: "1px solid rgba(96,165,250,0.24)" };
 const errorBox = { marginBottom: 16, padding: 14, borderRadius: 16, border: "1px solid #fecaca", background: "#fff1f2", color: "#9f1239", fontWeight: 700 };
-const pickerRow = { display: "grid", gridTemplateColumns: "auto auto 1fr auto", gap: 10, alignItems: "center", padding: "8px 4px" };
+const pickerRow = { display: "grid", gridTemplateColumns: "auto auto 1fr auto", gap: 10, alignItems: "center", padding: "8px 4px", color: "#eff6ff" };
 const metricBlock = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -451,7 +452,7 @@ const metricField = {
 };
 const metricHint = {
   fontSize: 13,
-  color: "#64748b",
+  color: "rgba(191,219,254,0.72)",
   fontWeight: 700,
 };
 const timeBlock = { display: "grid", gap: 10 };
@@ -465,13 +466,13 @@ const timeField = { display: "grid", gap: 8 };
 const timeFieldLabel = {
   fontSize: 13,
   fontWeight: 800,
-  color: "#475569",
+  color: "rgba(191,219,254,0.72)",
   textTransform: "uppercase",
   letterSpacing: 0.6,
 };
 const timeDivider = {
   paddingBottom: 12,
-  color: "#64748b",
+  color: "rgba(191,219,254,0.72)",
   fontWeight: 900,
   textTransform: "uppercase",
   letterSpacing: 0.6,
@@ -479,19 +480,19 @@ const timeDivider = {
 const scheduleHintList = {
   display: "grid",
   gap: 6,
-  color: "#64748b",
+  color: "rgba(226,232,240,0.8)",
   fontSize: 14,
   lineHeight: 1.6,
 };
 const scheduleHintItem = {
-  color: "#64748b",
+  color: "rgba(226,232,240,0.8)",
 };
 const categoryLoadingCard = {
   padding: "14px 16px",
   borderRadius: 18,
   border: "1px solid #dbe4f0",
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-  color: "#64748b",
+  background: "rgba(15,23,42,0.34)",
+  color: "rgba(191,219,254,0.72)",
   fontWeight: 700,
 };
 const categoryGrid = {
@@ -517,10 +518,10 @@ const categoryCardTop = {
 const categoryCardTitle = {
   fontSize: 16,
   fontWeight: 900,
-  color: "#0f172a",
+  color: "#eff6ff",
 };
 const categoryCardText = {
-  color: "#475569",
+  color: "rgba(226,232,240,0.78)",
   lineHeight: 1.6,
   fontSize: 14,
 };
@@ -530,9 +531,9 @@ const categoryCheck = {
   fontSize: 18,
   lineHeight: 1,
 };
-const uploadWrap = { display: "grid", padding: 12, border: "1px dashed #cbd5e1", borderRadius: 14, background: "#f8fafc" };
+const uploadWrap = { display: "grid", padding: 12, border: "1px dashed rgba(96,165,250,0.24)", borderRadius: 14, background: "rgba(15,23,42,0.28)" };
 const previewGrid = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 };
-const previewCard = { padding: 0, overflow: "hidden", borderRadius: 18, border: "1px solid #dbe4f0", background: "#fff", cursor: "pointer", textAlign: "left" };
-const previewCardStatic = { padding: 0, overflow: "hidden", borderRadius: 18, border: "1px solid #dbe4f0", background: "#fff", textAlign: "left" };
+const previewCard = { padding: 0, overflow: "hidden", borderRadius: 18, border: "1px solid rgba(96,165,250,0.22)", background: "rgba(15,23,42,0.34)", cursor: "pointer", textAlign: "left" };
+const previewCardStatic = { padding: 0, overflow: "hidden", borderRadius: 18, border: "1px solid rgba(96,165,250,0.22)", background: "rgba(15,23,42,0.34)", textAlign: "left" };
 const previewImage = { width: "100%", height: 180, objectFit: "cover", display: "block" };
-const previewFooter = { display: "flex", justifyContent: "space-between", gap: 8, padding: "10px 12px", fontSize: 13, color: "#334155" };
+const previewFooter = { display: "flex", justifyContent: "space-between", gap: 8, padding: "10px 12px", fontSize: 13, color: "#e2e8f0" };

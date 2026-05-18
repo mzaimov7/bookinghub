@@ -304,7 +304,16 @@ export default function ServiceDetailsPage() {
         </div>
       )}
 
-      <div style={{ marginTop: 22, padding: 18, borderRadius: 18, border: "1px solid #e2e8f0", background: "#fff" }}>
+      <div
+        style={{
+          marginTop: 22,
+          padding: 18,
+          borderRadius: 18,
+          border: "1px solid rgba(96,165,250,0.22)",
+          background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.94) 100%)",
+          boxShadow: "0 18px 46px rgba(2,6,23,0.18)",
+        }}
+      >
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
           <div style={bookingEyebrow}>Резервация за</div>
           <div style={bookingDateBox}>
@@ -320,7 +329,7 @@ export default function ServiceDetailsPage() {
         </div>
 
         {futureSlots.length === 0 ? (
-          <div style={{ color: "#64748b" }}>В момента няма свободни часове.</div>
+          <div style={{ color: "rgba(191,219,254,0.74)" }}>В момента няма свободни часове.</div>
         ) : (
           <>
             <div style={calendarCard}>
@@ -367,15 +376,17 @@ export default function ServiceDetailsPage() {
                         ...dateCard,
                         opacity: item.disabled ? 0.45 : 1,
                         cursor: item.disabled ? "not-allowed" : "pointer",
-                        borderColor: isActive ? "#2563eb" : "#dbe4f0",
-                        background: isActive ? "linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%)" : "#fff",
-                        boxShadow: isActive ? "0 0 0 3px rgba(37,99,235,0.12)" : "none",
+                        borderColor: isActive ? "#60a5fa" : "rgba(96,165,250,0.18)",
+                        background: isActive
+                          ? "linear-gradient(180deg, rgba(17,40,84,0.88) 0%, rgba(37,99,235,0.56) 100%)"
+                          : "rgba(15,23,42,0.42)",
+                        boxShadow: isActive ? "0 0 0 3px rgba(37,99,235,0.18)" : "none",
                       }}
                     >
                       <span style={dateWeekday}>{item.date.toLocaleDateString([], { weekday: "short" })}</span>
                       <span style={dateDay}>{item.date.getDate()}</span>
                       <span style={dateMonth}>{item.date.toLocaleDateString([], { month: "short" })}</span>
-                      <span style={{ fontSize: 11, color: item.hasSlots ? "#2563eb" : "#94a3b8", fontWeight: 800 }}>
+                      <span style={{ fontSize: 11, color: item.hasSlots ? "#93c5fd" : "#94a3b8", fontWeight: 800 }}>
                         {item.disabled ? "Минал ден" : item.hasSlots ? "Свободно" : "Няма часове"}
                       </span>
                     </button>
@@ -402,9 +413,11 @@ export default function ServiceDetailsPage() {
                       }}
                       style={{
                         ...performerCard,
-                        borderColor: isActive ? "#2563eb" : "#dbe4f0",
-                        background: isActive ? "linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%)" : "#fff",
-                        boxShadow: isActive ? "0 0 0 3px rgba(37,99,235,0.12)" : "none",
+                        borderColor: isActive ? "#60a5fa" : "rgba(96,165,250,0.18)",
+                        background: isActive
+                          ? "linear-gradient(180deg, rgba(17,40,84,0.88) 0%, rgba(37,99,235,0.56) 100%)"
+                          : "rgba(15,23,42,0.42)",
+                        boxShadow: isActive ? "0 0 0 3px rgba(37,99,235,0.18)" : "none",
                       }}
                     >
                       <div style={performerAvatarWrap}>
@@ -415,8 +428,8 @@ export default function ServiceDetailsPage() {
                         )}
                       </div>
                       <div style={{ display: "grid", gap: 2, textAlign: "left" }}>
-                        <span style={{ fontWeight: 900, color: "#0f172a" }}>{resource.name}</span>
-                        <span style={{ fontSize: 12, color: "#64748b" }}>{resource.type}</span>
+                        <span style={{ fontWeight: 900, color: "#eff6ff" }}>{resource.name}</span>
+                        <span style={{ fontSize: 12, color: "rgba(191,219,254,0.74)" }}>{resource.type}</span>
                       </div>
                     </button>
                   );
@@ -428,7 +441,7 @@ export default function ServiceDetailsPage() {
               <div style={sectionLabel}>Свободни часове</div>
 
               {!dateFilteredSlots.length ? (
-                <div style={{ color: "#64748b" }}>Няма свободни часове за този ден при избрания изпълнител. Пробвай с друг ден или друг човек.</div>
+                <div style={{ color: "rgba(191,219,254,0.74)" }}>Няма свободни часове за този ден при избрания изпълнител. Пробвай с друг ден или друг човек.</div>
               ) : (
                 <div style={timeGrid}>
                   {dateFilteredSlots.map((slot) => {
@@ -440,9 +453,9 @@ export default function ServiceDetailsPage() {
                         onClick={() => setSelectedSlotKey(slot.bookingKey)}
                         style={{
                           ...timeChip,
-                          borderColor: isActive ? "#0f172a" : "#dbe4f0",
-                          background: isActive ? "#0f172a" : "#fff",
-                          color: isActive ? "#fff" : "#0f172a",
+                          borderColor: isActive ? "#93c5fd" : "rgba(96,165,250,0.18)",
+                          background: isActive ? "linear-gradient(135deg, #1d4ed8, #0f172a)" : "rgba(15,23,42,0.42)",
+                          color: isActive ? "#fff" : "#eff6ff",
                           boxShadow: isActive ? "0 12px 26px rgba(15,23,42,0.2)" : "none",
                         }}
                       >
@@ -502,7 +515,6 @@ export default function ServiceDetailsPage() {
               style={commentTextarea}
             />
             <div style={commentComposerFooter}>
-              <span style={commentHint}>Коментарът ще се появи веднага под обявата.</span>
               <button type="button" onClick={onSubmitComment} disabled={commentSubmitting} style={commentSubmitButton}>
                 {commentSubmitting ? "Публикуване..." : "Публикувай коментар"}
               </button>
@@ -720,6 +732,7 @@ const dateInput = {
   border: "1px solid rgba(96,165,250,0.18)",
   background: "rgba(15,23,42,0.42)",
   color: "#eff6ff",
+  fontWeight: 800,
 };
 
 const dateScroller = {
@@ -826,9 +839,11 @@ const noteInput = {
   marginTop: 12,
   padding: "12px 14px",
   borderRadius: 14,
-  border: "1px solid rgba(96,165,250,0.18)",
-  background: "rgba(15,23,42,0.42)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  background: "rgba(15,23,42,0.52)",
   color: "#eff6ff",
+  fontSize: 15,
+  lineHeight: 1.6,
   resize: "vertical",
   boxSizing: "border-box",
 };

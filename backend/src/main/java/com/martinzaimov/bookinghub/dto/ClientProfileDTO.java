@@ -8,6 +8,7 @@ public record ClientProfileDTO(
         String firstName,
         String lastName,
         String phone,
-        String photoUrl
+        String photoUrl,
+        String bio
 ) {
 }

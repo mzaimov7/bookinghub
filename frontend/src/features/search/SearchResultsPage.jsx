@@ -19,7 +19,6 @@ function readFilters(params) {
     categoryId: normalize(params.get("categoryId")),
     minPrice: normalize(params.get("minPrice")),
     maxPrice: normalize(params.get("maxPrice")),
-    serviceMode: normalize(params.get("serviceMode")),
   };
 }
 
@@ -29,8 +28,7 @@ function hasFilters(filters) {
     filters.city ||
     filters.categoryId ||
     filters.minPrice ||
-    filters.maxPrice ||
-    filters.serviceMode
+    filters.maxPrice
   );
 }
 
@@ -45,8 +43,9 @@ export default function SearchResultsPage() {
   const [showCategories, setShowCategories] = useState(true);
   const [showLocation, setShowLocation] = useState(true);
   const [showPrice, setShowPrice] = useState(true);
-  const [showMode, setShowMode] = useState(true);
   const [showFavorites, setShowFavorites] = useState(true);
+  const [openCategoryPicker, setOpenCategoryPicker] = useState(false);
+  const [openSortPicker, setOpenSortPicker] = useState(false);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [sortBy, setSortBy] = useState("relevant");
   const [viewMode, setViewMode] = useState("grid");
@@ -57,6 +56,16 @@ export default function SearchResultsPage() {
     () => categories.find((item) => String(item.id) === filters.categoryId) || null,
     [categories, filters.categoryId]
   );
+  const selectedCategory = useMemo(
+    () => categories.find((item) => String(item.id) === form.categoryId) || null,
+    [categories, form.categoryId]
+  );
+  const sortLabel = useMemo(() => {
+    if (sortBy === "price-asc") return "Цена: възходящо";
+    if (sortBy === "price-desc") return "Цена: низходящо";
+    if (sortBy === "top-rated") return "Най-високо оценени";
+    return "Най-подходящи";
+  }, [sortBy]);
 
   useEffect(() => {
     setForm(filters);
@@ -117,8 +126,6 @@ export default function SearchResultsPage() {
     if (next.categoryId) params.set("categoryId", next.categoryId);
     if (next.minPrice) params.set("minPrice", next.minPrice);
     if (next.maxPrice) params.set("maxPrice", next.maxPrice);
-    if (next.serviceMode) params.set("serviceMode", next.serviceMode);
-
     setSearchParams(params);
   }
 
@@ -129,7 +136,6 @@ export default function SearchResultsPage() {
       categoryId: normalize(next.categoryId),
       minPrice: normalize(next.minPrice),
       maxPrice: normalize(next.maxPrice),
-      serviceMode: normalize(next.serviceMode),
     });
   }
 
@@ -147,7 +153,6 @@ export default function SearchResultsPage() {
       categoryId: item.categoryId != null ? String(item.categoryId) : "",
       minPrice: item.minPrice != null ? String(item.minPrice) : "",
       maxPrice: item.maxPrice != null ? String(item.maxPrice) : "",
-      serviceMode: "",
     });
   }
 
@@ -166,7 +171,6 @@ export default function SearchResultsPage() {
       categoryId: "",
       minPrice: "",
       maxPrice: "",
-      serviceMode: "",
     };
     setForm(next);
     writeFilters(next);
@@ -239,20 +243,68 @@ export default function SearchResultsPage() {
               onToggle={() => setShowCategories((current) => !current)}
             >
               <label style={fieldWrap}>
-                  <span style={fieldLabel}>Избери категория</span>
-                <select
-                  value={form.categoryId}
-                  onChange={(event) => onFieldChange("categoryId", event.target.value)}
-                  style={fieldInput}
-                >
-                  <option value="">Всички категории</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                  <option value="OTHER">Други</option>
-                </select>
+                <span style={fieldLabel}>Избери категория</span>
+                <div style={pickerWrap}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenCategoryPicker((current) => !current)}
+                    style={pickerTrigger}
+                  >
+                    <span>{selectedCategory?.name || "Всички категории"}</span>
+                  </button>
+
+                  <div
+                    style={{
+                      ...pickerDropdownWrap,
+                      gridTemplateRows: openCategoryPicker ? "1fr" : "0fr",
+                      opacity: openCategoryPicker ? 1 : 0,
+                      pointerEvents: openCategoryPicker ? "auto" : "none",
+                    }}
+                  >
+                    <div style={pickerDropdownInner}>
+                      <div
+                        style={{
+                          ...pickerDropdown,
+                          transform: openCategoryPicker ? "translateY(0)" : "translateY(-8px)",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onFieldChange("categoryId", "");
+                            setOpenCategoryPicker(false);
+                          }}
+                          style={pickerItem}
+                        >
+                          <span>Всички категории</span>
+                        </button>
+                        {categories.map((category) => (
+                          <button
+                            key={category.id}
+                            type="button"
+                            onClick={() => {
+                              onFieldChange("categoryId", String(category.id));
+                              setOpenCategoryPicker(false);
+                            }}
+                            style={pickerItem}
+                          >
+                            <span>{category.name}</span>
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onFieldChange("categoryId", "OTHER");
+                            setOpenCategoryPicker(false);
+                          }}
+                          style={pickerItem}
+                        >
+                          <span>Други</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </label>
 
               {form.categoryId === "OTHER" && (
@@ -309,36 +361,6 @@ export default function SearchResultsPage() {
             </FilterSection>
 
             <FilterSection
-              title="Тип услуга"
-              open={showMode}
-              onToggle={() => setShowMode((current) => !current)}
-            >
-              <div style={modeList}>
-                <label style={modeOption}>
-                  <input
-                    type="radio"
-                    name="serviceMode"
-                    checked={form.serviceMode === ""}
-                    onChange={() => onFieldChange("serviceMode", "")}
-                  />
-                  <span>Всички услуги</span>
-                </label>
-                <label style={modeOptionDisabled}>
-                  <input type="radio" name="serviceMode" disabled />
-                  <span>Само онлайн</span>
-                </label>
-                <label style={modeOptionDisabled}>
-                  <input type="radio" name="serviceMode" disabled />
-                  <span>Само на място</span>
-                </label>
-              </div>
-
-              <div style={hintBox}>
-                `Online / On-site` е следващата добра миграция за услугите. Засега booking моделът го няма като поле на обявата.
-              </div>
-            </FilterSection>
-
-            <FilterSection
               title="Любими"
               open={showFavorites}
               onToggle={() => setShowFavorites((current) => !current)}
@@ -389,12 +411,33 @@ export default function SearchResultsPage() {
             <div style={toolbarRight}>
               <label style={toolbarField}>
                 <span style={toolbarLabel}>Сортирай по</span>
-                <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} style={toolbarSelect}>
-                  <option value="relevant">Най-подходящи</option>
-                  <option value="price-asc">Цена: възходящо</option>
-                  <option value="price-desc">Цена: низходящо</option>
-                  <option value="top-rated">Най-високо оценени</option>
-                </select>
+                <div style={toolbarPickerWrap}>
+                  <button type="button" onClick={() => setOpenSortPicker((current) => !current)} style={toolbarPickerTrigger}>
+                    <span>{sortLabel}</span>
+                  </button>
+                  <div
+                    style={{
+                      ...toolbarPickerDropdownWrap,
+                      gridTemplateRows: openSortPicker ? "1fr" : "0fr",
+                      opacity: openSortPicker ? 1 : 0,
+                      pointerEvents: openSortPicker ? "auto" : "none",
+                    }}
+                  >
+                    <div style={toolbarPickerDropdownInner}>
+                      <div
+                        style={{
+                          ...toolbarPickerDropdown,
+                          transform: openSortPicker ? "translateY(0)" : "translateY(-8px)",
+                        }}
+                      >
+                        <button type="button" onClick={() => { setSortBy("relevant"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Най-подходящи</button>
+                        <button type="button" onClick={() => { setSortBy("price-asc"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Цена: възходящо</button>
+                        <button type="button" onClick={() => { setSortBy("price-desc"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Цена: низходящо</button>
+                        <button type="button" onClick={() => { setSortBy("top-rated"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Най-високо оценени</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </label>
 
               <div style={viewToggle}>
@@ -444,9 +487,33 @@ function FilterSection({ title, open, onToggle, children }) {
     <div style={filterSection}>
       <button onClick={onToggle} style={sectionToggle}>
         <span>{title}</span>
-        <span>{open ? "−" : "+"}</span>
+        <span
+          style={{
+            ...sectionIndicator,
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        >
+          ⌄
+        </span>
       </button>
-      {open && <div style={sectionBody}>{children}</div>}
+      <div
+        style={{
+          ...sectionBodyWrap,
+          gridTemplateRows: open ? "1fr" : "0fr",
+          opacity: open ? 1 : 0.55,
+        }}
+      >
+        <div style={sectionBodyInner}>
+          <div
+            style={{
+              ...sectionBody,
+              transform: open ? "translateY(0)" : "translateY(-8px)",
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -501,8 +568,35 @@ const sectionToggle = {
   color: "#eff6ff",
   fontSize: 16,
 };
-const sectionBody = { marginTop: 12, display: "grid", gap: 12 };
-const fieldWrap = { display: "grid", gap: 6 };
+const sectionIndicator = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 24,
+  height: 24,
+  borderRadius: 999,
+  background: "rgba(15,23,42,0.34)",
+  border: "1px solid rgba(96,165,250,0.2)",
+  color: "#93c5fd",
+  fontSize: 15,
+  lineHeight: 1,
+  transition: "transform 180ms ease, background 180ms ease",
+};
+const sectionBodyWrap = {
+  display: "grid",
+  gridTemplateRows: "0fr",
+  transition: "grid-template-rows 220ms ease, opacity 220ms ease",
+};
+const sectionBodyInner = {
+  overflow: "hidden",
+};
+const sectionBody = {
+  marginTop: 12,
+  display: "grid",
+  gap: 12,
+  transition: "transform 220ms ease",
+};
+const fieldWrap = { display: "grid", gap: 10 };
 const fieldLabel = { fontWeight: 800, color: "#cbd5e1", fontSize: 13 };
 const fieldInput = {
   width: "100%",
@@ -512,6 +606,55 @@ const fieldInput = {
   border: "1px solid rgba(96,165,250,0.24)",
   background: "rgba(15,23,42,0.44)",
   color: "#eff6ff",
+};
+const pickerWrap = {
+  position: "relative",
+};
+const pickerTrigger = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "12px 13px",
+  borderRadius: 14,
+  border: "1px solid rgba(96,165,250,0.24)",
+  background: "rgba(15,23,42,0.44)",
+  color: "#eff6ff",
+  textAlign: "left",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+const pickerDropdownWrap = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  left: 0,
+  right: 0,
+  display: "grid",
+  gridTemplateRows: "0fr",
+  transition: "grid-template-rows 220ms ease, opacity 220ms ease",
+  zIndex: 6,
+};
+const pickerDropdownInner = {
+  overflow: "hidden",
+};
+const pickerDropdown = {
+  borderRadius: 16,
+  overflow: "hidden",
+  maxHeight: 320,
+  overflowY: "auto",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.98) 0%, rgba(17,36,71,0.98) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  boxShadow: "0 20px 46px rgba(2,6,23,0.28)",
+  transition: "transform 220ms ease",
+};
+const pickerItem = {
+  width: "100%",
+  padding: "12px 13px",
+  border: "none",
+  borderBottom: "1px solid rgba(96,165,250,0.12)",
+  background: "transparent",
+  color: "#eff6ff",
+  textAlign: "left",
+  cursor: "pointer",
+  fontWeight: 700,
 };
 const priceGrid = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 };
 const hintBox = {
@@ -575,12 +718,52 @@ const toolbarRight = { display: "flex", alignItems: "center", gap: 12, flexWrap:
 const toolbarCount = { fontWeight: 900, color: "#eff6ff" };
 const toolbarField = { display: "flex", alignItems: "center", gap: 8 };
 const toolbarLabel = { fontSize: 13, fontWeight: 800, color: "#cbd5e1" };
-const toolbarSelect = {
+const toolbarPickerWrap = {
+  position: "relative",
+  minWidth: 210,
+};
+const toolbarPickerTrigger = {
   border: "1px solid rgba(96,165,250,0.24)",
   borderRadius: 12,
   padding: "10px 12px",
   background: "rgba(15,23,42,0.44)",
   color: "#eff6ff",
+  textAlign: "left",
+  width: "100%",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+const toolbarPickerDropdownWrap = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  left: 0,
+  right: 0,
+  display: "grid",
+  gridTemplateRows: "0fr",
+  transition: "grid-template-rows 220ms ease, opacity 220ms ease",
+  zIndex: 8,
+};
+const toolbarPickerDropdownInner = {
+  overflow: "hidden",
+};
+const toolbarPickerDropdown = {
+  borderRadius: 16,
+  overflow: "hidden",
+  background: "linear-gradient(180deg, rgba(8,18,36,0.98) 0%, rgba(17,36,71,0.98) 100%)",
+  border: "1px solid rgba(96,165,250,0.24)",
+  boxShadow: "0 20px 46px rgba(2,6,23,0.28)",
+  transition: "transform 220ms ease",
+};
+const toolbarPickerItem = {
+  width: "100%",
+  padding: "12px 13px",
+  border: "none",
+  borderBottom: "1px solid rgba(96,165,250,0.12)",
+  background: "transparent",
+  color: "#eff6ff",
+  textAlign: "left",
+  cursor: "pointer",
+  fontWeight: 700,
 };
 const viewToggle = {
   display: "inline-flex",

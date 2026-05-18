@@ -28,6 +28,9 @@ public class ClientProfile {
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
 
+    @Column(name = "bio", length = 1200)
+    private String bio;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -54,6 +57,7 @@ public class ClientProfile {
     public String getLastName() { return lastName; }
     public String getPhone() { return phone; }
     public String getPhotoUrl() { return photoUrl; }
+    public String getBio() { return bio; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
@@ -62,4 +66,5 @@ public class ClientProfile {
     public void setLastName(String lastName) { this.lastName = lastName; }
     public void setPhone(String phone) { this.phone = phone; }
     public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+    public void setBio(String bio) { this.bio = bio; }
 }

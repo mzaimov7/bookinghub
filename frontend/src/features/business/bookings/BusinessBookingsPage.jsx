@@ -60,18 +60,18 @@ export default function BusinessBookingsPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: 24 }}>Зареждане на входящите резервации…</div>;
+  if (loading) return <div style={{ padding: 24, color: "#e2e8f0" }}>Зареждане на входящите резервации…</div>;
 
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top left, rgba(96,165,250,0.2) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, rgba(13,43,99,0.08) 0%, rgba(237,244,255,0.9) 20%, #f7faff 100%)" }}>
+    <div style={{ minHeight: "100vh", background: pageBackground }}>
       <Header categories={[]} recentSearches={[]} />
 
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 16px 44px" }}>
         <div style={hero}>
           <div>
             <div style={eyebrow}>Входящи резервации</div>
-            <h2 style={{ margin: "8px 0 10px", fontSize: 34, lineHeight: 1.05, color: "#0f172a" }}>Одобрявай, отказвай и поддържай графика под контрол.</h2>
-            <p style={{ margin: 0, color: "#475569", maxWidth: 720, lineHeight: 1.6 }}>
+            <h2 style={{ margin: "8px 0 10px", fontSize: 34, lineHeight: 1.05, color: "#eff6ff" }}>Одобрявай, отказвай и поддържай графика под контрол.</h2>
+            <p style={{ margin: 0, color: "rgba(226,232,240,0.8)", maxWidth: 720, lineHeight: 1.6 }}>
               Всяка заявка остава свързана с избрания служител или екип, така че можеш да решаваш кое да бъде потвърдено и кое да се освободи обратно в графика.
             </p>
           </div>
@@ -88,8 +88,8 @@ export default function BusinessBookingsPage() {
 
         {!items.length ? (
           <div style={emptyState}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>Все още няма заявки за резервации</div>
-            <div style={{ color: "#64748b", maxWidth: 520 }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: "#eff6ff" }}>Все още няма заявки за резервации</div>
+            <div style={{ color: "rgba(191,219,254,0.74)", maxWidth: 520 }}>
               Когато клиентите започнат да резервират услугите ти, тук ще виждаш всички изчакващи, потвърдени и отказани заявки.
             </div>
           </div>
@@ -109,8 +109,8 @@ export default function BusinessBookingsPage() {
                 <div style={{ display: "grid", gap: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap" }}>
                     <div style={{ display: "grid", gap: 4 }}>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: "#0f172a" }}>{item.serviceTitle}</div>
-                      <div style={{ color: "#475569" }}>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: "#eff6ff" }}>{item.serviceTitle}</div>
+                      <div style={{ color: "rgba(226,232,240,0.82)" }}>
                         {item.clientName} · {item.clientEmail}
                       </div>
                     </div>
@@ -127,7 +127,7 @@ export default function BusinessBookingsPage() {
                   {item.clientNote && (
                     <div style={noteBox}>
                       <div style={noteLabel}>Бележка от клиента</div>
-                      <div style={{ color: "#334155", lineHeight: 1.6 }}>{item.clientNote}</div>
+                      <div style={{ color: "rgba(226,232,240,0.82)", lineHeight: 1.6 }}>{item.clientNote}</div>
                     </div>
                   )}
 
@@ -163,7 +163,7 @@ export default function BusinessBookingsPage() {
                       </button>
                     </div>
                   ) : (
-                    <div style={{ color: "#64748b", fontWeight: 700 }}>
+                    <div style={{ color: "rgba(191,219,254,0.76)", fontWeight: 700 }}>
                       {item.status === "CONFIRMED"
                         ? "Тази заявка вече е потвърдена и блокира избрания час."
                         : item.status === "COMPLETED"
@@ -185,8 +185,8 @@ export default function BusinessBookingsPage() {
 function Stat({ label, value }) {
   return (
     <div style={statCard}>
-      <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1.3, color: "#64748b", fontWeight: 900 }}>{label}</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a" }}>{value}</div>
+      <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1.3, color: "rgba(191,219,254,0.72)", fontWeight: 900 }}>{label}</div>
+      <div style={{ fontSize: 28, fontWeight: 900, color: "#eff6ff" }}>{value}</div>
     </div>
   );
 }
@@ -194,8 +194,8 @@ function Stat({ label, value }) {
 function Meta({ label, value }) {
   return (
     <div style={metaCard}>
-      <div style={{ fontSize: 12, letterSpacing: 1, textTransform: "uppercase", color: "#64748b", fontWeight: 900 }}>{label}</div>
-      <div style={{ color: "#0f172a", fontWeight: 800 }}>{value}</div>
+      <div style={{ fontSize: 12, letterSpacing: 1, textTransform: "uppercase", color: "rgba(191,219,254,0.72)", fontWeight: 900 }}>{label}</div>
+      <div style={{ color: "#eff6ff", fontWeight: 800 }}>{value}</div>
     </div>
   );
 }
@@ -219,29 +219,30 @@ function formatStatus(status) {
   return status;
 }
 
-const hero = { display: "grid", gap: 18, marginBottom: 20, padding: "24px 26px", borderRadius: 28, background: "linear-gradient(135deg, rgba(224, 231, 255, 0.98), rgba(255, 255, 255, 0.96))", border: "1px solid rgba(148, 163, 184, 0.28)" };
+const pageBackground = "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 16%, #eaf2ff 44%, #f6f9ff 100%)";
+const hero = { display: "grid", gap: 18, marginBottom: 20, padding: "24px 26px", borderRadius: 28, background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)", border: "1px solid rgba(96,165,250,0.24)" };
 const eyebrow = { fontSize: 12, letterSpacing: 1.7, textTransform: "uppercase", color: "#4338ca", fontWeight: 900 };
 const stats = { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 };
-const statCard = { padding: "14px 16px", borderRadius: 20, background: "rgba(255,255,255,0.84)", border: "1px solid rgba(148, 163, 184, 0.18)" };
+const statCard = { padding: "14px 16px", borderRadius: 20, background: "rgba(15,23,42,0.38)", border: "1px solid rgba(96,165,250,0.18)" };
 const errorBox = { marginBottom: 16, padding: 14, borderRadius: 16, border: "1px solid #fecaca", background: "#fff1f2", color: "#9f1239", fontWeight: 700 };
-const emptyState = { minHeight: 280, display: "grid", gap: 8, placeContent: "center", padding: 24, borderRadius: 28, border: "1px dashed #cbd5e1", background: "#fff" };
-const card = { display: "grid", gridTemplateColumns: "240px 1fr", gap: 18, padding: 18, borderRadius: 26, border: "1px solid #dbe4f0", background: "#fff", boxShadow: "0 22px 45px rgba(15, 23, 42, 0.08)" };
+const emptyState = { minHeight: 280, display: "grid", gap: 8, placeContent: "center", padding: 24, borderRadius: 28, border: "1px dashed rgba(96,165,250,0.24)", background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)" };
+const card = { display: "grid", gridTemplateColumns: "240px 1fr", gap: 18, padding: 18, borderRadius: 26, border: "1px solid rgba(96,165,250,0.22)", background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)", boxShadow: "0 22px 45px rgba(15, 23, 42, 0.18)" };
 const imageCol = { borderRadius: 22, overflow: "hidden", background: "linear-gradient(135deg, #dbeafe, #eff6ff)" };
 const image = { width: "100%", height: "100%", minHeight: 220, objectFit: "cover", display: "block" };
 const imagePlaceholder = { minHeight: 220, display: "grid", placeItems: "center", color: "#1d4ed8", fontWeight: 900, letterSpacing: 1.4 };
 const metaGrid = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 };
-const metaCard = { padding: "12px 14px", borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0", display: "grid", gap: 4 };
+const metaCard = { padding: "12px 14px", borderRadius: 16, background: "rgba(15,23,42,0.34)", border: "1px solid rgba(96,165,250,0.18)", display: "grid", gap: 4 };
 const statusBadge = { padding: "10px 14px", borderRadius: 999, fontSize: 12, fontWeight: 900, letterSpacing: 1.1, textTransform: "uppercase", height: "fit-content" };
 const statusStyles = {
-  PENDING: { background: "#fef3c7", color: "#92400e" },
-  CONFIRMED: { background: "#dcfce7", color: "#166534" },
-  COMPLETED: { background: "#dbeafe", color: "#1d4ed8" },
+  PENDING: { background: "rgba(66,32,6,0.72)", color: "#fbbf24" },
+  CONFIRMED: { background: "rgba(8,37,34,0.72)", color: "#6ee7b7" },
+  COMPLETED: { background: "rgba(17,40,84,0.72)", color: "#93c5fd" },
   REJECTED: { background: "#fee2e2", color: "#991b1b" },
-  CANCELED: { background: "#e2e8f0", color: "#334155" },
+  CANCELED: { background: "rgba(15,23,42,0.6)", color: "#cbd5e1" },
 };
-const noteBox = { padding: "14px 16px", borderRadius: 18, background: "#f8fafc", border: "1px solid #e2e8f0", display: "grid", gap: 6 };
-const noteLabel = { fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "#64748b", fontWeight: 900 };
-const textarea = { width: "100%", minHeight: 92, padding: "12px 14px", borderRadius: 16, border: "1px solid #cbd5e1", boxSizing: "border-box", resize: "vertical" };
+const noteBox = { padding: "14px 16px", borderRadius: 18, background: "rgba(15,23,42,0.34)", border: "1px solid rgba(96,165,250,0.18)", display: "grid", gap: 6 };
+const noteLabel = { fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: "rgba(191,219,254,0.72)", fontWeight: 900 };
+const textarea = { width: "100%", minHeight: 92, padding: "12px 14px", borderRadius: 16, border: "1px solid rgba(96,165,250,0.22)", background: "rgba(15,23,42,0.3)", color: "#eff6ff", boxSizing: "border-box", resize: "vertical" };
 const approveBtn = { border: "none", background: "linear-gradient(135deg, #16a34a, #15803d)", color: "#fff", borderRadius: 14, padding: "12px 16px", fontWeight: 900, cursor: "pointer" };
 const completeBtn = { border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", borderRadius: 14, padding: "12px 16px", fontWeight: 900, cursor: "pointer" };
 const rejectBtn = { border: "1px solid #fecaca", background: "#fff1f2", color: "#9f1239", borderRadius: 14, padding: "12px 16px", fontWeight: 900, cursor: "pointer" };

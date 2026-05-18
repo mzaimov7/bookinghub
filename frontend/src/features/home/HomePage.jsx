@@ -50,6 +50,44 @@ export default function HomePage() {
     navigate(`/search?categoryId=${category.id}`);
   }
 
+  function findCategoryId(matchers) {
+    const found = categories.find((category) =>
+      matchers.some((matcher) => category.name?.toLowerCase().includes(matcher))
+    );
+    return found?.id ?? null;
+  }
+
+  function onHeroAction(slideId) {
+    if (slideId === "business") {
+      if (!isLoggedIn()) {
+        navigate("/register");
+        return;
+      }
+
+      if (getRole() === "BUSINESS") {
+        navigate("/business/services/new");
+        return;
+      }
+
+      navigate("/register");
+      return;
+    }
+
+    if (slideId === "barber") {
+      const categoryId = findCategoryId(["фризьорски и бръснарски услуги", "фризьор", "бръснар"]);
+      navigate(categoryId ? `/search?categoryId=${categoryId}` : "/search");
+      return;
+    }
+
+    if (slideId === "car") {
+      const categoryId = findCategoryId(["автомобил", "авто"]);
+      navigate(categoryId ? `/search?categoryId=${categoryId}` : "/search");
+      return;
+    }
+
+    navigate("/search");
+  }
+
   function onRecentSearchPick(item) {
     const params = new URLSearchParams();
     if (item.query) params.set("query", item.query);
@@ -92,7 +130,7 @@ export default function HomePage() {
         onRecentSearchPick={onRecentSearchPick}
       />
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 16px 26px" }}>
-        <HeroCarousel />
+        <HeroCarousel onSlideAction={onHeroAction} />
         <CategoryDiscoverySection categories={categories} onPickCategory={onCategoryPick} />
         <ServiceGrid
           services={services.slice(0, 6)}

@@ -16,6 +16,7 @@
  * @property {string} lastName
  * @property {string | null} phone
  * @property {string | null} photoUrl
+ * @property {string | null} bio
  */
 /**
  * @typedef {Object} BusinessProfileResponse

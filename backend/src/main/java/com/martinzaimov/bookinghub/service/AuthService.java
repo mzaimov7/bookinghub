@@ -9,9 +9,19 @@ import com.martinzaimov.bookinghub.entity.User;
 import com.martinzaimov.bookinghub.repo.BusinessProfileRepository;
 import com.martinzaimov.bookinghub.repo.ClientProfileRepository;
 import com.martinzaimov.bookinghub.repo.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Service
 public class AuthService {
@@ -20,15 +30,18 @@ public class AuthService {
     private final ClientProfileRepository clientProfiles;
     private final BusinessProfileRepository businessProfiles;
     private final PasswordEncoder encoder;
+    private final Path uploadDir;
 
     public AuthService(UserRepository users,
                        ClientProfileRepository clientProfiles,
                        BusinessProfileRepository businessProfiles,
-                       PasswordEncoder encoder) {
+                       PasswordEncoder encoder,
+                       @Value("${app.upload.dir:uploads}") String uploadDir) {
         this.users = users;
         this.clientProfiles = clientProfiles;
         this.businessProfiles = businessProfiles;
         this.encoder = encoder;
+        this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
     @Transactional(readOnly = true)
@@ -100,6 +113,8 @@ public class AuthService {
             cp.setFirstName(req.firstName.trim());
             cp.setLastName(req.lastName.trim());
             cp.setPhone(safeTrim(req.phone));
+            cp.setPhotoUrl(safeTrim(req.photoUrl));
+            cp.setBio(safeTrim(req.bio));
             clientProfiles.save(cp);
         } else {
             if (isBlank(req.providerType) || isBlank(req.businessName) || isBlank(req.city)) {
@@ -112,12 +127,40 @@ public class AuthService {
             bp.setCity(req.city.trim());
             bp.setAddress(safeTrim(req.address));
             bp.setPhone(safeTrim(req.businessPhone));
+            bp.setPhotoUrl(safeTrim(req.businessPhotoUrl));
             businessProfiles.save(bp);
+        }
+    }
+
+    public String uploadRegistrationPhoto(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(BAD_REQUEST, "Моля избери снимка");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new org.springframework.web.server.ResponseStatusException(BAD_REQUEST, "Разрешени са само снимки");
+        }
+
+        String filename = "register_" + UUID.randomUUID() + extensionOf(file.getOriginalFilename());
+        try {
+            Files.createDirectories(uploadDir);
+            Path target = uploadDir.resolve(filename);
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+            return "/uploads/" + filename;
+        } catch (IOException ex) {
+            throw new IllegalStateException("Неуспешно качване на снимката");
         }
     }
 
     private boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
     private String safeTrim(String s) { return isBlank(s) ? null : s.trim(); }
+
+    private String extensionOf(String originalFilename) {
+        if (originalFilename == null) return "";
+        int index = originalFilename.lastIndexOf('.');
+        return index >= 0 ? originalFilename.substring(index) : "";
+    }
 
     private AuthResponse toAuthResponse(User user, boolean devMode) {
         return AuthResponse.of(

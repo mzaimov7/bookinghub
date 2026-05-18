@@ -18,6 +18,7 @@
  * @property {string} lastName
  * @property {string} phone
  * @property {string | null} photoUrl
+ * @property {string} bio
  *
  * @typedef {Object} BusinessProfileModel
  * @property {number} userId

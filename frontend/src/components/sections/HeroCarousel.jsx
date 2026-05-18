@@ -4,7 +4,7 @@ import bannerCar from "../../assets/banners/CarRepair_Banner.png";
 import bannerBusiness from "../../assets/banners/Business_Banner.png";
 
 
-export default function HeroCarousel({ onBrowse, onLearnMore }) {
+export default function HeroCarousel({ onSlideAction }) {
   const slides = useMemo(
     () => [
       {
@@ -105,7 +105,7 @@ export default function HeroCarousel({ onBrowse, onLearnMore }) {
             <div style={ctaRow}>
               <button
                 style={{ ...primaryButton, background: slide.accent }}
-                onClick={() => (slide.id === "car" ? onLearnMore?.() : onBrowse?.())}
+                onClick={() => onSlideAction?.(slide.id)}
               >
                 {slide.ctaLabel || "Разгледай"}
               </button>
@@ -218,14 +218,13 @@ const primaryButton = {
 const visualColumn = {
   display: "grid",
   gap: 10,
-  justifyItems: "stretch",
+  justifyItems: "center",
 };
 
 const visualFrame = {
   position: "relative",
   minHeight: 452,
-  width: "100%",
-  marginLeft: 35,
+  width: "min(100%, 980px)",
   borderRadius: 28,
   overflow: "hidden",
   border: "1px solid rgba(255,255,255,0.16)",
@@ -238,11 +237,10 @@ const visualImage = {
   height: "100%",
   objectFit: "contain",
   display: "block",
-  padding: "0px 40px 0px",
-  marginLeft: 0,
+  padding: "0 22px",
   boxSizing: "border-box",
   filter: "saturate(0.92) contrast(0.98)",
-  transform: "scale(1.12)",
+  transform: "scale(1.1)",
 };
 
 const visualMask = {

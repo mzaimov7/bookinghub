@@ -26,6 +26,7 @@ export function mapClientProfile(item) {
     lastName: item?.lastName ?? "",
     phone: item?.phone ?? "",
     photoUrl: item?.photoUrl ?? null,
+    bio: item?.bio ?? "",
   };
 }
 

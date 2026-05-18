@@ -5,37 +5,12 @@ export default function PlatformStorySection() {
     <section style={wrap}>
       <div style={intro}>
         <div style={eyebrow}>За BookingHub</div>
-        <h2 style={title}>Платформа за по-подредено търсене, записване и управление на услуги.</h2>
+        <h2 style={title}>Откривай, резервирай и управлявай бизнес услуги по-лесно с BookingHub.</h2>
         <p style={lead}>
-          BookingHub е създадена с идеята клиентът да намира по-лесно точната услуга, а бизнесът да управлява
-          по-ясно своите обяви, слотове и резервации в един общ работен поток.
+          BookingHub помага на клиента бързо и удобно да открие точната услуга, да сравни различните предложения и
+          да запази своя час без излишно лутане, а на бизнеса да представи услугите си по-ясно, да организира
+          служителите и екипите си по-подредено и да работи без повече забравени и дублирани часове.
         </p>
-      </div>
-
-      <div style={grid}>
-        <article style={card}>
-          <h3 style={cardTitle}>За клиента</h3>
-          <p style={cardText}>
-            Търсене, филтри, любими, история и резервации се събират в едно място, за да е по-лесно да сравниш и
-            избереш точната услуга.
-          </p>
-        </article>
-
-        <article style={card}>
-          <h3 style={cardTitle}>За бизнеса</h3>
-          <p style={cardText}>
-            Услуги, екипи, ресурси и клиентски заявки могат да се управляват по-последователно, без разпокъсана
-            комуникация между различни канали.
-          </p>
-        </article>
-
-        <article style={card}>
-          <h3 style={cardTitle}>За развитието</h3>
-          <p style={cardText}>
-            Основата е подготвена за надграждане с нови категории, по-богати филтри, rating логика, online/on-site
-            режими и по-завършен booking цикъл.
-          </p>
-        </article>
       </div>
     </section>
   );
@@ -74,32 +49,4 @@ const lead = {
   color: "rgba(226,232,240,0.84)",
   lineHeight: 1.75,
   fontSize: 15,
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: 14,
-  marginTop: 18,
-};
-
-const card = {
-  padding: "16px 16px 14px",
-  borderRadius: 18,
-  background: "linear-gradient(180deg, rgba(15,23,42,0.7) 0%, rgba(18,42,82,0.88) 100%)",
-  border: "1px solid rgba(96,165,250,0.2)",
-};
-
-const cardTitle = {
-  margin: 0,
-  fontSize: 18,
-  lineHeight: 1.2,
-  color: "#eff6ff",
-};
-
-const cardText = {
-  margin: "8px 0 0",
-  color: "rgba(226,232,240,0.78)",
-  lineHeight: 1.7,
-  fontSize: 14,
 };

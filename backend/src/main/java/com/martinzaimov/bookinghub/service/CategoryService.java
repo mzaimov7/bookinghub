@@ -16,7 +16,7 @@ public class CategoryService {
     }
 
     public List<CategoryOTD> getActive() {
-        return repo.findAllByOrderByNameAsc()
+        return repo.findAllByActiveTrueOrderByNameAsc()
                 .stream()
                 .map(c -> new CategoryOTD(c.getId(), c.getName(), c.getDescription()))
                 .toList();

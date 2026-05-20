@@ -68,6 +68,7 @@
  * @property {string | null} closesAt
  * @property {number} slotIntervalMinutes
  * @property {number} bookingHorizonDays
+ * @property {boolean} active
  * @property {string | null} coverImageUrl
  *
  * @typedef {Object} RecentSearchModel
@@ -100,8 +101,48 @@
  * @property {string | null} coverImageUrl
  * @property {string[]} imageUrls
  * @property {number[]} resourceIds
+ * @property {string} approvalStatus
+ * @property {string} approvalNote
+ * @property {string | null} approvalReviewedAt
  * @property {string} adminDeletionReason
  * @property {string | null} adminDeletedAt
+ *
+ * @typedef {Object} CategorySuggestionModel
+ * @property {number} id
+ * @property {number} businessUserId
+ * @property {string} businessName
+ * @property {string} proposedName
+ * @property {string} description
+ * @property {string} status
+ * @property {string} adminNote
+ * @property {string | null} createdAt
+ * @property {string | null} reviewedAt
+ *
+ * @typedef {Object} AdminCommentModel
+ * @property {number} id
+ * @property {number} serviceId
+ * @property {string} serviceTitle
+ * @property {number} authorUserId
+ * @property {string} authorName
+ * @property {string} text
+ * @property {string} status
+ * @property {string} adminModerationReason
+ * @property {string | null} createdAt
+ * @property {string | null} moderatedAt
+ *
+ * @typedef {Object} AdminUserProfileModel
+ * @property {number} userId
+ * @property {string} username
+ * @property {string} email
+ * @property {string} role
+ * @property {boolean} active
+ * @property {string} displayName
+ * @property {string} city
+ * @property {string} address
+ * @property {string} phone
+ * @property {string | null} photoUrl
+ * @property {string} bio
+ * @property {number} listingCount
  *
  * @typedef {Object} ResourceModel
  * @property {number} id

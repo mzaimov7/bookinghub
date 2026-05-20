@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.time.LocalDateTime;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+    List<Booking> findAllByOrderByCreatedAtDesc();
     List<Booking> findByClientUserIdOrderByCreatedAtDesc(Long clientUserId);
     boolean existsBySlotIdAndStatusIn(Long slotId, List<Booking.Status> statuses);
 

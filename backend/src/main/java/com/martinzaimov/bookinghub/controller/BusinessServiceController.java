@@ -1,10 +1,11 @@
 package com.martinzaimov.bookinghub.controller;
 
-import com.martinzaimov.bookinghub.dto.AdminDeleteServiceRequest;
+import com.martinzaimov.bookinghub.dto.CreateCategorySuggestionRequest;
 import com.martinzaimov.bookinghub.dto.CreateServiceRequest;
 import com.martinzaimov.bookinghub.dto.UpdateServiceRequest;
 import com.martinzaimov.bookinghub.dto.UpdateBusinessBookingRequest;
 import com.martinzaimov.bookinghub.service.BusinessServiceService;
+import com.martinzaimov.bookinghub.service.CategorySuggestionService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,9 +19,11 @@ import java.util.Map;
 public class BusinessServiceController {
 
     private final BusinessServiceService businessServiceService;
+    private final CategorySuggestionService categorySuggestionService;
 
-    public BusinessServiceController(BusinessServiceService businessServiceService) {
+    public BusinessServiceController(BusinessServiceService businessServiceService, CategorySuggestionService categorySuggestionService) {
         this.businessServiceService = businessServiceService;
+        this.categorySuggestionService = categorySuggestionService;
     }
 
     /**
@@ -70,6 +73,14 @@ public class BusinessServiceController {
         return Map.of("imageUrl", imageUrl);
     }
 
+    @PostMapping("/category-suggestions")
+    public Object createCategorySuggestion(
+            @RequestHeader("X-Business-User-Id") Long businessUserId,
+            @Valid @RequestBody CreateCategorySuggestionRequest request
+    ) {
+        return categorySuggestionService.createSuggestion(businessUserId, request);
+    }
+
     @GetMapping("/bookings")
     public List<?> getBookings(@RequestHeader("X-Business-User-Id") Long businessUserId) {
         return businessServiceService.getBookings(businessUserId);
@@ -84,17 +95,4 @@ public class BusinessServiceController {
         return businessServiceService.updateBookingStatus(businessUserId, bookingId, request);
     }
 
-    @GetMapping("/admin/services")
-    public List<?> listServicesForAdmin(@RequestHeader("X-Admin-User-Id") Long adminUserId) {
-        return businessServiceService.getServicesForAdmin(adminUserId);
-    }
-
-    @PatchMapping("/admin/services/{serviceId}/delete")
-    public Object deleteServiceAsAdmin(
-            @RequestHeader("X-Admin-User-Id") Long adminUserId,
-            @PathVariable Long serviceId,
-            @Valid @RequestBody AdminDeleteServiceRequest request
-    ) {
-        return businessServiceService.deleteServiceAsAdmin(adminUserId, serviceId, request);
-    }
 }

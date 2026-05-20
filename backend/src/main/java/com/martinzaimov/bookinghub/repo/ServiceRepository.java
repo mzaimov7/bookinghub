@@ -11,14 +11,18 @@ import java.util.Optional;
 public interface ServiceRepository extends JpaRepository<Service, Long> {
 
     Optional<Service> findByIdAndActiveTrue(Long id);
+    Optional<Service> findByIdAndActiveTrueAndApprovalStatus(Long id, Service.ApprovalStatus approvalStatus);
     List<Service> findAllByBusinessUserIdOrderByIdDesc(Long businessUserId);
     List<Service> findAllByBusinessUserIdAndActiveTrueOrderByIdDesc(Long businessUserId);
     List<Service> findAllByActiveTrueOrderByIdDesc();
+    List<Service> findAllByOrderByIdDesc();
+    List<Service> findAllByApprovalStatusOrderByIdDesc(Service.ApprovalStatus approvalStatus);
 
     @Query("""
         select s
         from Service s
         where s.active = true
+          and s.approvalStatus = com.martinzaimov.bookinghub.entity.Service.ApprovalStatus.APPROVED
           and (:categoryId is null or s.category.id = :categoryId)
           and (:city is null or lower(s.city) = lower(:city))
           and (:minPrice is null or s.price >= :minPrice)

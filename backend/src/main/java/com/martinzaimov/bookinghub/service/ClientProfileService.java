@@ -102,7 +102,8 @@ public class ClientProfileService {
 
         List<ServiceOTD> items = new ArrayList<>();
         for (Long serviceId : serviceIds) {
-            services.findByIdAndActiveTrue(serviceId).ifPresent(service -> items.add(toServiceDto(service)));
+            services.findByIdAndActiveTrueAndApprovalStatus(serviceId, Service.ApprovalStatus.APPROVED)
+                    .ifPresent(service -> items.add(toServiceDto(service)));
         }
         return items;
     }
@@ -259,7 +260,7 @@ public class ClientProfileService {
     @Transactional
     public void addFavorite(Long userId, Long serviceId) {
         requireClientUser(userId);
-        services.findByIdAndActiveTrue(serviceId)
+        services.findByIdAndActiveTrueAndApprovalStatus(serviceId, Service.ApprovalStatus.APPROVED)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
 
         if (favorites.existsByIdUserIdAndIdServiceId(userId, serviceId)) {
@@ -323,7 +324,7 @@ public class ClientProfileService {
     }
 
     public List<AvailableSlotDTO> getAvailableSlots(Long serviceId) {
-        Service service = services.findByIdAndActiveTrue(serviceId)
+        Service service = services.findByIdAndActiveTrueAndApprovalStatus(serviceId, Service.ApprovalStatus.APPROVED)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
 
         List<Long> activeResourceIds = serviceResources.findResourceIdsByServiceId(serviceId);
@@ -353,7 +354,7 @@ public class ClientProfileService {
     public BookingItemDTO createBooking(Long userId, CreateBookingRequest request) {
         requireClientUser(userId);
 
-        Service service = services.findByIdAndActiveTrue(request.serviceId)
+        Service service = services.findByIdAndActiveTrueAndApprovalStatus(request.serviceId, Service.ApprovalStatus.APPROVED)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
 
         if (request.resourceId == null || request.startAt == null || request.endAt == null) {
@@ -448,7 +449,7 @@ public class ClientProfileService {
                 .map(ServiceImage::getImageUrl)
                 .orElse(null);
 
-        return new ServiceOTD(
+        ServiceOTD dto = new ServiceOTD(
                 service.getId(),
                 service.getCategory() != null ? service.getCategory().getId() : null,
                 service.getBusinessUserId(),
@@ -464,6 +465,9 @@ public class ClientProfileService {
                 service.getBookingHorizonDays(),
                 coverUrl
         );
+        dto.setActive(service.isActive());
+        dto.setApprovalStatus(service.getApprovalStatus() == null ? null : service.getApprovalStatus().name());
+        return dto;
     }
 
     private BookingItemDTO toBookingDto(Booking booking, Service service, ResourceSlot slot) {

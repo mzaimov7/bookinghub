@@ -1,6 +1,5 @@
 package com.martinzaimov.bookinghub.service;
 
-import com.martinzaimov.bookinghub.dto.AdminDeleteServiceRequest;
 import com.martinzaimov.bookinghub.dto.BusinessBookingDTO;
 import com.martinzaimov.bookinghub.dto.CreateServiceRequest;
 import com.martinzaimov.bookinghub.dto.ServiceOTD;
@@ -93,7 +92,9 @@ public class BusinessServiceService {
         s.setClosesAt(parseTime(req.closesAt, "closesAt"));
         s.setSlotIntervalMinutes(normalizePositive(req.slotIntervalMinutes, 30));
         s.setBookingHorizonDays(normalizePositive(req.bookingHorizonDays, 90));
-        s.setActive(req.active);
+        s.setActive(false);
+        s.setApprovalStatus(Service.ApprovalStatus.PENDING);
+        s.setApprovalNote("Очаква админ одобрение преди публикуване.");
 
         s = services.save(s);
 
@@ -186,7 +187,12 @@ public class BusinessServiceService {
         service.setClosesAt(parseTime(req.closesAt, "closesAt"));
         service.setSlotIntervalMinutes(normalizePositive(req.slotIntervalMinutes, 30));
         service.setBookingHorizonDays(normalizePositive(req.bookingHorizonDays, 90));
-        service.setActive(req.active);
+        if (service.getApprovalStatus() == Service.ApprovalStatus.REJECTED) {
+            service.setApprovalStatus(Service.ApprovalStatus.PENDING);
+            service.setApprovalNote("Редактирана е и очаква ново админ одобрение.");
+            service.setApprovalReviewedByUserId(null);
+            service.setApprovalReviewedAt(null);
+        }
         services.save(service);
 
         List<Long> currentResourceIds = serviceResourceDao.findResourceIdsByServiceId(serviceId);
@@ -331,50 +337,11 @@ public class BusinessServiceService {
         return toBusinessBookingDto(saved, service, slot, resource, client, profile);
     }
 
-    public List<ServiceOTD> getServicesForAdmin(Long adminUserId) {
-        requireAdminUser(adminUserId);
-        return services.findAllByActiveTrueOrderByIdDesc()
-                .stream()
-                .map(this::toServiceDto)
-                .toList();
-    }
-
-    @Transactional
-    public ServiceOTD deleteServiceAsAdmin(Long adminUserId, Long serviceId, AdminDeleteServiceRequest request) {
-        requireAdminUser(adminUserId);
-
-        String reason = normalize(request.reason);
-        if (reason == null) {
-            throw new ResponseStatusException(BAD_REQUEST, "Deletion reason is required");
-        }
-
-        Service service = services.findByIdAndActiveTrue(serviceId)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
-
-        service.setActive(false);
-        service.setAdminDeletionReason(reason);
-        service.setAdminDeletedByUserId(adminUserId);
-        service.setAdminDeletedAt(LocalDateTime.now());
-        services.save(service);
-
-        cancelFutureBookingsForDeletedService(serviceId, reason);
-        return toServiceDto(service);
-    }
-
     private User requireBusinessUser(Long businessUserId) {
         User user = users.findById(businessUserId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Business user not found"));
         if (user.getRole() != User.Role.BUSINESS) {
             throw new ResponseStatusException(BAD_REQUEST, "Only BUSINESS accounts can use this endpoint");
-        }
-        return user;
-    }
-
-    private User requireAdminUser(Long adminUserId) {
-        User user = users.findById(adminUserId)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Admin user not found"));
-        if (user.getRole() != User.Role.ADMIN) {
-            throw new ResponseStatusException(BAD_REQUEST, "Only ADMIN accounts can use this endpoint");
         }
         return user;
     }
@@ -407,6 +374,10 @@ public class BusinessServiceService {
                 imageUrls,
                 resourceIds
         );
+        dto.setActive(service.isActive());
+        dto.setApprovalStatus(service.getApprovalStatus() == null ? null : service.getApprovalStatus().name());
+        dto.setApprovalNote(service.getApprovalNote());
+        dto.setApprovalReviewedAt(service.getApprovalReviewedAt() == null ? null : service.getApprovalReviewedAt().toString());
         dto.setAdminDeletionReason(service.getAdminDeletionReason());
         dto.setAdminDeletedAt(service.getAdminDeletedAt() == null ? null : service.getAdminDeletedAt().toString());
         return dto;

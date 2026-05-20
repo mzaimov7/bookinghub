@@ -19,11 +19,15 @@ public class ServiceOTD {
     private String closesAt;
     private Integer slotIntervalMinutes;
     private Integer bookingHorizonDays;
+    private boolean active;
 
     // ✅ ново поле
     private String coverImageUrl;
     private List<String> imageUrls;
     private List<Long> resourceIds;
+    private String approvalStatus;
+    private String approvalNote;
+    private String approvalReviewedAt;
     private String adminDeletionReason;
     private String adminDeletedAt;
 
@@ -47,9 +51,13 @@ public class ServiceOTD {
         this.closesAt = closesAt;
         this.slotIntervalMinutes = slotIntervalMinutes;
         this.bookingHorizonDays = bookingHorizonDays;
+        this.active = false;
         this.coverImageUrl = coverImageUrl;
         this.imageUrls = List.of();
         this.resourceIds = List.of();
+        this.approvalStatus = null;
+        this.approvalNote = null;
+        this.approvalReviewedAt = null;
         this.adminDeletionReason = null;
         this.adminDeletedAt = null;
     }
@@ -72,9 +80,13 @@ public class ServiceOTD {
         this.closesAt = closesAt;
         this.slotIntervalMinutes = slotIntervalMinutes;
         this.bookingHorizonDays = bookingHorizonDays;
+        this.active = false;
         this.coverImageUrl = coverImageUrl;
         this.imageUrls = imageUrls == null ? List.of() : imageUrls;
         this.resourceIds = List.of();
+        this.approvalStatus = null;
+        this.approvalNote = null;
+        this.approvalReviewedAt = null;
         this.adminDeletionReason = null;
         this.adminDeletedAt = null;
     }
@@ -97,9 +109,13 @@ public class ServiceOTD {
         this.closesAt = closesAt;
         this.slotIntervalMinutes = slotIntervalMinutes;
         this.bookingHorizonDays = bookingHorizonDays;
+        this.active = false;
         this.coverImageUrl = coverImageUrl;
         this.imageUrls = imageUrls == null ? List.of() : imageUrls;
         this.resourceIds = resourceIds == null ? List.of() : resourceIds;
+        this.approvalStatus = null;
+        this.approvalNote = null;
+        this.approvalReviewedAt = null;
         this.adminDeletionReason = null;
         this.adminDeletedAt = null;
     }
@@ -117,9 +133,13 @@ public class ServiceOTD {
     public String getClosesAt() { return closesAt; }
     public Integer getSlotIntervalMinutes() { return slotIntervalMinutes; }
     public Integer getBookingHorizonDays() { return bookingHorizonDays; }
+    public boolean isActive() { return active; }
     public String getCoverImageUrl() { return coverImageUrl; }
     public List<String> getImageUrls() { return imageUrls; }
     public List<Long> getResourceIds() { return resourceIds; }
+    public String getApprovalStatus() { return approvalStatus; }
+    public String getApprovalNote() { return approvalNote; }
+    public String getApprovalReviewedAt() { return approvalReviewedAt; }
     public String getAdminDeletionReason() { return adminDeletionReason; }
     public String getAdminDeletedAt() { return adminDeletedAt; }
 
@@ -136,9 +156,13 @@ public class ServiceOTD {
     public void setClosesAt(String closesAt) { this.closesAt = closesAt; }
     public void setSlotIntervalMinutes(Integer slotIntervalMinutes) { this.slotIntervalMinutes = slotIntervalMinutes; }
     public void setBookingHorizonDays(Integer bookingHorizonDays) { this.bookingHorizonDays = bookingHorizonDays; }
+    public void setActive(boolean active) { this.active = active; }
     public void setCoverImageUrl(String coverImageUrl) { this.coverImageUrl = coverImageUrl; }
     public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls == null ? List.of() : imageUrls; }
     public void setResourceIds(List<Long> resourceIds) { this.resourceIds = resourceIds == null ? List.of() : resourceIds; }
+    public void setApprovalStatus(String approvalStatus) { this.approvalStatus = approvalStatus; }
+    public void setApprovalNote(String approvalNote) { this.approvalNote = approvalNote; }
+    public void setApprovalReviewedAt(String approvalReviewedAt) { this.approvalReviewedAt = approvalReviewedAt; }
     public void setAdminDeletionReason(String adminDeletionReason) { this.adminDeletionReason = adminDeletionReason; }
     public void setAdminDeletedAt(String adminDeletedAt) { this.adminDeletedAt = adminDeletedAt; }
 }

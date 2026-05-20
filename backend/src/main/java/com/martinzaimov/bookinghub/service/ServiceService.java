@@ -34,7 +34,7 @@ public class ServiceService {
     }
 
     public ServiceOTD getById(Long id) {
-        com.martinzaimov.bookinghub.entity.Service s = repo.findByIdAndActiveTrue(id)
+        com.martinzaimov.bookinghub.entity.Service s = repo.findByIdAndActiveTrueAndApprovalStatus(id, com.martinzaimov.bookinghub.entity.Service.ApprovalStatus.APPROVED)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
         return toDetailedDto(s);
     }
@@ -44,7 +44,7 @@ public class ServiceService {
                 .map(img -> img.getImageUrl()) // "/uploads/..."
                 .orElse(null);
 
-        return new ServiceOTD(
+        ServiceOTD dto = new ServiceOTD(
                 s.getId(),
                 s.getCategory() != null ? s.getCategory().getId() : null,
                 s.getBusinessUserId(),
@@ -60,6 +60,9 @@ public class ServiceService {
                 s.getBookingHorizonDays(),
                 coverUrl
         );
+        dto.setActive(s.isActive());
+        dto.setApprovalStatus(s.getApprovalStatus() == null ? null : s.getApprovalStatus().name());
+        return dto;
     }
 
     private ServiceOTD toDetailedDto(com.martinzaimov.bookinghub.entity.Service s) {
@@ -71,7 +74,7 @@ public class ServiceService {
                 .map(ServiceImage::getImageUrl)
                 .toList();
 
-        return new ServiceOTD(
+        ServiceOTD dto = new ServiceOTD(
                 s.getId(),
                 s.getCategory() != null ? s.getCategory().getId() : null,
                 s.getBusinessUserId(),
@@ -88,6 +91,9 @@ public class ServiceService {
                 coverUrl,
                 imageUrls
         );
+        dto.setActive(s.isActive());
+        dto.setApprovalStatus(s.getApprovalStatus() == null ? null : s.getApprovalStatus().name());
+        return dto;
     }
 
     private String normalize(String v) {

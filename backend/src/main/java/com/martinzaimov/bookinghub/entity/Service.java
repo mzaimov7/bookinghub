@@ -9,6 +9,8 @@ import java.time.LocalTime;
 @Table(name = "services")
 public class Service {
 
+    public enum ApprovalStatus { PENDING, APPROVED, REJECTED }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -53,6 +55,19 @@ public class Service {
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "approval_status", nullable = false)
+    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
+
+    @Column(name = "approval_note", columnDefinition = "TEXT")
+    private String approvalNote;
+
+    @Column(name = "approval_reviewed_by_user_id")
+    private Long approvalReviewedByUserId;
+
+    @Column(name = "approval_reviewed_at")
+    private LocalDateTime approvalReviewedAt;
+
     @Column(name = "admin_deletion_reason", columnDefinition = "TEXT")
     private String adminDeletionReason;
 
@@ -78,6 +93,10 @@ public class Service {
     public Integer getSlotIntervalMinutes() { return slotIntervalMinutes; }
     public Integer getBookingHorizonDays() { return bookingHorizonDays; }
     public boolean isActive() { return active; }
+    public ApprovalStatus getApprovalStatus() { return approvalStatus; }
+    public String getApprovalNote() { return approvalNote; }
+    public Long getApprovalReviewedByUserId() { return approvalReviewedByUserId; }
+    public LocalDateTime getApprovalReviewedAt() { return approvalReviewedAt; }
     public String getAdminDeletionReason() { return adminDeletionReason; }
     public Long getAdminDeletedByUserId() { return adminDeletedByUserId; }
     public LocalDateTime getAdminDeletedAt() { return adminDeletedAt; }
@@ -96,6 +115,10 @@ public class Service {
     public void setSlotIntervalMinutes(Integer slotIntervalMinutes) { this.slotIntervalMinutes = slotIntervalMinutes; }
     public void setBookingHorizonDays(Integer bookingHorizonDays) { this.bookingHorizonDays = bookingHorizonDays; }
     public void setActive(boolean active) { this.active = active; }
+    public void setApprovalStatus(ApprovalStatus approvalStatus) { this.approvalStatus = approvalStatus; }
+    public void setApprovalNote(String approvalNote) { this.approvalNote = approvalNote; }
+    public void setApprovalReviewedByUserId(Long approvalReviewedByUserId) { this.approvalReviewedByUserId = approvalReviewedByUserId; }
+    public void setApprovalReviewedAt(LocalDateTime approvalReviewedAt) { this.approvalReviewedAt = approvalReviewedAt; }
     public void setAdminDeletionReason(String adminDeletionReason) { this.adminDeletionReason = adminDeletionReason; }
     public void setAdminDeletedByUserId(Long adminDeletedByUserId) { this.adminDeletedByUserId = adminDeletedByUserId; }
     public void setAdminDeletedAt(LocalDateTime adminDeletedAt) { this.adminDeletedAt = adminDeletedAt; }

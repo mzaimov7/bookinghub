@@ -10,7 +10,6 @@ import com.martinzaimov.bookinghub.repo.CommentRepository;
 import com.martinzaimov.bookinghub.repo.ServiceRepository;
 import com.martinzaimov.bookinghub.repo.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -18,7 +17,7 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
-@Service
+@org.springframework.stereotype.Service
 public class CommentService {
 
     private final CommentRepository comments;
@@ -39,7 +38,7 @@ public class CommentService {
     }
 
     public List<CommentDTO> getVisibleComments(Long serviceId) {
-        services.findByIdAndActiveTrue(serviceId)
+        services.findByIdAndActiveTrueAndApprovalStatus(serviceId, com.martinzaimov.bookinghub.entity.Service.ApprovalStatus.APPROVED)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Услугата не е намерена"));
 
         return comments.findAllByServiceIdAndStatusOrderByCreatedAtDesc(serviceId, Comment.Status.VISIBLE)
@@ -56,7 +55,7 @@ public class CommentService {
             throw new ResponseStatusException(BAD_REQUEST, "Само клиентски профили могат да публикуват коментари");
         }
 
-        services.findByIdAndActiveTrue(serviceId)
+        services.findByIdAndActiveTrueAndApprovalStatus(serviceId, com.martinzaimov.bookinghub.entity.Service.ApprovalStatus.APPROVED)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Услугата не е намерена"));
 
         String text = normalize(request.text);

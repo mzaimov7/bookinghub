@@ -132,6 +132,111 @@ export function mapCategory(item) {
   };
 }
 
+export function mapCategorySuggestion(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    businessUserId: Number(item?.businessUserId ?? 0),
+    businessName: item?.businessName ?? "",
+    proposedName: item?.proposedName ?? "",
+    description: item?.description ?? "",
+    status: item?.status ?? "PENDING",
+    adminNote: item?.adminNote ?? "",
+    createdAt: item?.createdAt ?? null,
+    reviewedAt: item?.reviewedAt ?? null,
+  };
+}
+
+export function mapAdminComment(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    serviceId: Number(item?.serviceId ?? 0),
+    serviceTitle: item?.serviceTitle ?? "",
+    authorUserId: Number(item?.authorUserId ?? 0),
+    authorName: item?.authorName ?? "",
+    text: item?.text ?? "",
+    status: item?.status ?? "VISIBLE",
+    adminModerationReason: item?.adminModerationReason ?? "",
+    createdAt: item?.createdAt ?? null,
+    moderatedAt: item?.moderatedAt ?? null,
+  };
+}
+
+export function mapAdminUserProfile(item) {
+  return {
+    userId: Number(item?.userId ?? 0),
+    username: item?.username ?? "",
+    email: item?.email ?? "",
+    role: item?.role ?? "",
+    active: Boolean(item?.active),
+    displayName: item?.displayName ?? "",
+    city: item?.city ?? "",
+    address: item?.address ?? "",
+    phone: item?.phone ?? "",
+    photoUrl: item?.photoUrl ?? null,
+    bio: item?.bio ?? "",
+    listingCount: Number(item?.listingCount ?? 0),
+  };
+}
+
+export function mapAdminBooking(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    serviceId: Number(item?.serviceId ?? 0),
+    serviceTitle: item?.serviceTitle ?? "",
+    businessUserId: item?.businessUserId == null ? null : Number(item.businessUserId),
+    businessName: item?.businessName ?? "",
+    clientUserId: Number(item?.clientUserId ?? 0),
+    clientName: item?.clientName ?? "",
+    resourceName: item?.resourceName ?? "",
+    status: item?.status ?? "PENDING",
+    statusReason: item?.statusReason ?? "",
+    clientNote: item?.clientNote ?? "",
+    createdAt: item?.createdAt ?? null,
+    startAt: item?.startAt ?? null,
+    endAt: item?.endAt ?? null,
+    price: item?.price == null ? null : Number(item.price),
+  };
+}
+
+export function mapAdminCategory(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    name: item?.name ?? "",
+    description: item?.description ?? "",
+    active: Boolean(item?.active),
+  };
+}
+
+export function mapAdminReview(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    bookingId: Number(item?.bookingId ?? 0),
+    serviceId: Number(item?.serviceId ?? 0),
+    serviceTitle: item?.serviceTitle ?? "",
+    authorUserId: Number(item?.authorUserId ?? 0),
+    authorName: item?.authorName ?? "",
+    rating: Number(item?.rating ?? 0),
+    comment: item?.comment ?? "",
+    status: item?.status ?? "VISIBLE",
+    createdAt: item?.createdAt ?? null,
+  };
+}
+
+export function mapAdminReport(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    reporterUserId: Number(item?.reporterUserId ?? 0),
+    reporterName: item?.reporterName ?? "",
+    targetType: item?.targetType ?? "COMMENT",
+    targetId: Number(item?.targetId ?? 0),
+    targetLabel: item?.targetLabel ?? "",
+    reasonText: item?.reasonText ?? "",
+    status: item?.status ?? "OPEN",
+    resolutionNote: item?.resolutionNote ?? "",
+    createdAt: item?.createdAt ?? null,
+  };
+}
+
 /**
  * @param {import("../types/api").ServiceResponse} item
  * @returns {import("../types/models").ServiceModel}
@@ -150,9 +255,13 @@ export function mapService(item) {
     closesAt: item?.closesAt ?? null,
     slotIntervalMinutes: Number(item?.slotIntervalMinutes ?? 30),
     bookingHorizonDays: Number(item?.bookingHorizonDays ?? 90),
+    active: Boolean(item?.active),
     coverImageUrl: item?.coverImageUrl ?? null,
     imageUrls: Array.isArray(item?.imageUrls) ? item.imageUrls.filter(Boolean) : [],
     resourceIds: Array.isArray(item?.resourceIds) ? item.resourceIds.map(Number).filter((value) => !Number.isNaN(value)) : [],
+    approvalStatus: item?.approvalStatus ?? "PENDING",
+    approvalNote: item?.approvalNote ?? "",
+    approvalReviewedAt: item?.approvalReviewedAt ?? null,
     adminDeletionReason: item?.adminDeletionReason ?? "",
     adminDeletedAt: item?.adminDeletedAt ?? null,
   };

@@ -30,6 +30,15 @@ public class Comment {
     @Column(nullable = false)
     private Status status = Status.VISIBLE;
 
+    @Column(name = "admin_moderation_reason", columnDefinition = "TEXT")
+    private String adminModerationReason;
+
+    @Column(name = "admin_moderated_by_user_id")
+    private Long adminModeratedByUserId;
+
+    @Column(name = "admin_moderated_at")
+    private LocalDateTime adminModeratedAt;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -57,6 +66,9 @@ public class Comment {
     public Long getParentId() { return parentId; }
     public String getText() { return text; }
     public Status getStatus() { return status; }
+    public String getAdminModerationReason() { return adminModerationReason; }
+    public Long getAdminModeratedByUserId() { return adminModeratedByUserId; }
+    public LocalDateTime getAdminModeratedAt() { return adminModeratedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
@@ -66,4 +78,7 @@ public class Comment {
     public void setParentId(Long parentId) { this.parentId = parentId; }
     public void setText(String text) { this.text = text; }
     public void setStatus(Status status) { this.status = status; }
+    public void setAdminModerationReason(String adminModerationReason) { this.adminModerationReason = adminModerationReason; }
+    public void setAdminModeratedByUserId(Long adminModeratedByUserId) { this.adminModeratedByUserId = adminModeratedByUserId; }
+    public void setAdminModeratedAt(LocalDateTime adminModeratedAt) { this.adminModeratedAt = adminModeratedAt; }
 }

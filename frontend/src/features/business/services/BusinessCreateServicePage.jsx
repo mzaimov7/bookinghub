@@ -1,9 +1,16 @@
 import { resolveBackendImage } from "../../../lib/assets";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../../../components/layout/Header";
 import { getCategories } from "../../home/api";
-import { createService, getMyService, listActiveResources, updateService, uploadServiceImage } from "./api";
+import {
+  createCategorySuggestion,
+  createService,
+  getMyService,
+  listActiveResources,
+  updateService,
+  uploadServiceImage,
+} from "./api";
 
 export default function BusinessCreateServicePage() {
   const { id } = useParams();
@@ -17,7 +24,11 @@ export default function BusinessCreateServicePage() {
   const [loadingService, setLoadingService] = useState(isEditMode);
   const [uploading, setUploading] = useState(false);
   const [openPicker, setOpenPicker] = useState(false);
+  const [openCategoryPicker, setOpenCategoryPicker] = useState(false);
+  const [openSuggestionForm, setOpenSuggestionForm] = useState(false);
   const [error, setError] = useState("");
+  const [suggestionMessage, setSuggestionMessage] = useState("");
+  const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
@@ -36,6 +47,14 @@ export default function BusinessCreateServicePage() {
     bookingHorizonDays: 90,
     resourceIds: [],
   });
+  const [categorySuggestion, setCategorySuggestion] = useState({
+    suggestion: "",
+  });
+
+  const selectedCategory = useMemo(
+    () => categories.find((item) => String(item.id) === form.categoryId) || null,
+    [categories, form.categoryId]
+  );
 
   function onChange(event) {
     const { name, value, type, checked } = event.target;
@@ -52,6 +71,26 @@ export default function BusinessCreateServicePage() {
           : [...current.resourceIds, resourceId],
       };
     });
+  }
+
+  async function submitCategorySuggestion() {
+    if (!categorySuggestion.suggestion.trim()) {
+      alert("Опиши каква нова категория искаш да предложиш.");
+      return;
+    }
+
+    try {
+      setSubmittingSuggestion(true);
+      setSuggestionMessage("");
+      await createCategorySuggestion(categorySuggestion);
+      setSuggestionMessage("Предложението беше изпратено към админ за одобрение.");
+      setCategorySuggestion({ suggestion: "" });
+      setOpenSuggestionForm(false);
+    } catch (suggestionError) {
+      alert(suggestionError.message);
+    } finally {
+      setSubmittingSuggestion(false);
+    }
   }
 
   async function loadResources() {
@@ -189,7 +228,7 @@ export default function BusinessCreateServicePage() {
       }
 
       const data = isEditMode ? await updateService(id, payload) : await createService(payload);
-      navigate(`/services/${data.id}`);
+      navigate(`/business/services${data?.id ? `#service-${data.id}` : ""}`);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -231,35 +270,90 @@ export default function BusinessCreateServicePage() {
         {loadingCategories ? (
           <div style={categoryLoadingCard}>Зареждане на категории...</div>
         ) : (
-          <div style={categoryGrid}>
-            {categories.map((category) => {
-              const active = form.categoryId === String(category.id);
-              return (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => setForm((current) => ({ ...current, categoryId: String(category.id) }))}
+          <div style={categoryPickerWrap}>
+            <button
+              type="button"
+              onClick={() => setOpenCategoryPicker((current) => !current)}
+              style={categoryPickerTrigger}
+            >
+              <span>Избери категория</span>
+              <span
+                style={{
+                  ...categoryPickerArrow,
+                  transform: openCategoryPicker ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              >
+                ▾
+              </span>
+            </button>
+
+            <div
+              style={{
+                ...categoryPickerDropdownWrap,
+                gridTemplateRows: openCategoryPicker ? "1fr" : "0fr",
+                opacity: openCategoryPicker ? 1 : 0,
+                pointerEvents: openCategoryPicker ? "auto" : "none",
+              }}
+            >
+              <div style={categoryPickerDropdownInner}>
+                <div
                   style={{
-                    ...categoryCard,
-                    borderColor: active ? "#2563eb" : "#dbe4f0",
-                    background: active
-                      ? "linear-gradient(180deg, rgba(17,40,84,0.88) 0%, rgba(37,99,235,0.54) 100%)"
-                      : "linear-gradient(180deg, rgba(15,23,42,0.42) 0%, rgba(15,23,42,0.28) 100%)",
-                    boxShadow: active ? "0 0 0 3px rgba(37,99,235,0.12)" : "0 12px 24px rgba(15,23,42,0.04)",
+                    ...categoryPickerDropdown,
+                    transform: openCategoryPicker ? "translateY(0)" : "translateY(-8px)",
                   }}
                 >
-                  <div style={categoryCardTop}>
-                    <span style={categoryCardTitle}>{category.name}</span>
-                    <span style={{ ...categoryCheck, opacity: active ? 1 : 0.28 }}>
-                      {active ? "✓" : "○"}
-                    </span>
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => {
+                        setForm((current) => ({ ...current, categoryId: String(category.id) }));
+                        setOpenCategoryPicker(false);
+                      }}
+                      style={categoryPickerItem}
+                    >
+                      <span>{category.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={selectedCategoryCard}>
+              <div style={selectedCategoryTitle}>Избрана категория</div>
+              <div style={selectedCategoryName}>{selectedCategory?.name || "Все още няма избрана категория"}</div>
+              <div style={selectedCategoryText}>
+                {selectedCategory?.description?.trim() || "Избери категория, за да видиш какви услуги най-често попадат в нея."}
+              </div>
+            </div>
+
+            <div style={categorySuggestionWrap}>
+              <button type="button" onClick={() => setOpenSuggestionForm((current) => !current)} style={categorySuggestionToggle}>
+                Не намираш подходяща категория?
+              </button>
+
+              {openSuggestionForm ? (
+                <div style={categorySuggestionCard}>
+                  <label style={label}>Опиши липсващата категория</label>
+                  <textarea
+                    value={categorySuggestion.suggestion}
+                    onChange={(event) => setCategorySuggestion({ suggestion: event.target.value })}
+                    style={{ ...input, minHeight: 110 }}
+                    placeholder="Например: Детски аниматори, организиране на рождени дни и забавления за деца."
+                  />
+
+                  <div style={categorySuggestionHint}>
+                    Бизнесът изпраща само предложение. Ако админът прецени, по-късно ще създаде нова категория ръчно.
                   </div>
-                  <span style={categoryCardText}>
-                    {category.description?.trim() || "Избери тази категория, ако най-добре описва обявата ти."}
-                  </span>
-                </button>
-              );
-            })}
+
+                  <button type="button" onClick={submitCategorySuggestion} style={categorySuggestionButton} disabled={submittingSuggestion}>
+                    {submittingSuggestion ? "Изпращане..." : "Изпрати предложение"}
+                  </button>
+                </div>
+              ) : null}
+
+              {suggestionMessage ? <div style={categorySuggestionSuccess}>{suggestionMessage}</div> : null}
+            </div>
           </div>
         )}
 
@@ -410,7 +504,6 @@ export default function BusinessCreateServicePage() {
         </div>
 
         <div style={scheduleHintList}>
-          <div style={scheduleHintItem}>• Клиентите ще виждат свободни часове според работното време, което задаваш тук.</div>
           <div style={scheduleHintItem}>• Интервалът определя през колко минути да се показват часовете за резервация.</div>
           <div style={scheduleHintItem}>• Хоризонтът определя колко дни напред клиентите могат да резервират.</div>
           <div style={scheduleHintItem}>• Почивките и работните дни на служителите се управляват от менюто за персонала.</div>
@@ -490,46 +583,134 @@ const scheduleHintItem = {
 const categoryLoadingCard = {
   padding: "14px 16px",
   borderRadius: 18,
-  border: "1px solid #dbe4f0",
+  border: "1px solid rgba(96,165,250,0.22)",
   background: "rgba(15,23,42,0.34)",
   color: "rgba(191,219,254,0.72)",
   fontWeight: 700,
 };
-const categoryGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: 12,
-};
-const categoryCard = {
-  padding: "16px 16px 15px",
-  borderRadius: 20,
-  border: "1px solid #dbe4f0",
-  textAlign: "left",
-  cursor: "pointer",
+const categoryPickerWrap = {
   display: "grid",
   gap: 10,
 };
-const categoryCardTop = {
+const categoryPickerTrigger = {
+  width: "100%",
   display: "flex",
-  justifyContent: "space-between",
-  gap: 10,
   alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  textAlign: "left",
+  padding: "13px 14px",
+  borderRadius: 16,
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "rgba(15,23,42,0.3)",
+  color: "#eff6ff",
+  fontWeight: 900,
+  cursor: "pointer",
 };
-const categoryCardTitle = {
+const categoryPickerArrow = {
+  color: "rgba(191,219,254,0.86)",
   fontSize: 16,
+  lineHeight: 1,
+  transition: "transform 180ms ease",
+};
+const categoryPickerDropdownWrap = {
+  display: "grid",
+  transition: "grid-template-rows 180ms ease, opacity 180ms ease",
+};
+const categoryPickerDropdownInner = {
+  overflow: "hidden",
+};
+const categoryPickerDropdown = {
+  maxHeight: 280,
+  overflowY: "auto",
+  display: "grid",
+  gap: 6,
+  padding: 10,
+  borderRadius: 18,
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "rgba(8,18,36,0.96)",
+  boxShadow: "0 18px 40px rgba(2,6,23,0.28)",
+  transition: "transform 180ms ease",
+};
+const categoryPickerItem = {
+  padding: "12px 14px",
+  borderRadius: 14,
+  border: "1px solid transparent",
+  background: "rgba(15,23,42,0.48)",
+  color: "#eff6ff",
+  textAlign: "left",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+const selectedCategoryCard = {
+  display: "grid",
+  gap: 6,
+  padding: "14px 16px",
+  borderRadius: 18,
+  border: "1px solid rgba(96,165,250,0.2)",
+  background: "rgba(15,23,42,0.22)",
+};
+const selectedCategoryTitle = {
+  fontSize: 12,
+  fontWeight: 900,
+  color: "rgba(191,219,254,0.72)",
+  textTransform: "uppercase",
+  letterSpacing: 0.9,
+};
+const selectedCategoryName = {
+  fontSize: 15,
   fontWeight: 900,
   color: "#eff6ff",
 };
-const categoryCardText = {
+const selectedCategoryText = {
   color: "rgba(226,232,240,0.78)",
   lineHeight: 1.6,
   fontSize: 14,
 };
-const categoryCheck = {
-  color: "#2563eb",
+const categorySuggestionWrap = {
+  display: "grid",
+  gap: 10,
+};
+const categorySuggestionToggle = {
+  width: "fit-content",
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid rgba(96,165,250,0.2)",
+  background: "rgba(15,23,42,0.22)",
+  color: "#bfdbfe",
+  fontWeight: 800,
+  cursor: "pointer",
+};
+const categorySuggestionCard = {
+  display: "grid",
+  gap: 10,
+  padding: 14,
+  borderRadius: 18,
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.22)",
+};
+const categorySuggestionHint = {
+  color: "rgba(191,219,254,0.72)",
+  lineHeight: 1.6,
+  fontSize: 13,
+};
+const categorySuggestionButton = {
+  width: "fit-content",
+  padding: "12px 14px",
+  borderRadius: 14,
+  border: "none",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  color: "#fff",
   fontWeight: 900,
-  fontSize: 18,
-  lineHeight: 1,
+  cursor: "pointer",
+};
+const categorySuggestionSuccess = {
+  padding: "12px 14px",
+  borderRadius: 14,
+  border: "1px solid rgba(74,222,128,0.22)",
+  background: "rgba(20,83,45,0.22)",
+  color: "#dcfce7",
+  fontWeight: 700,
 };
 const uploadWrap = { display: "grid", padding: 12, border: "1px dashed rgba(96,165,250,0.24)", borderRadius: 14, background: "rgba(15,23,42,0.28)" };
 const previewGrid = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 };

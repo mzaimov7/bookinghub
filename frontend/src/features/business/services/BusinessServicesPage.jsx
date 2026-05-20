@@ -61,6 +61,13 @@ export default function BusinessServicesPage() {
           <div style={grid}>
             {items.map((service) => {
               const imageUrl = resolveBackendImage(service.coverImageUrl);
+              const approvalStatus = service.approvalStatus || "PENDING";
+              const statusLabel =
+                approvalStatus === "APPROVED"
+                  ? "Одобрена обява"
+                  : approvalStatus === "REJECTED"
+                    ? "Върната от админ"
+                    : "Чака одобрение";
               return (
                 <div key={service.id} style={card}>
                   <div style={imageWrap}>
@@ -69,7 +76,7 @@ export default function BusinessServicesPage() {
                     ) : (
                     <div style={imagePlaceholder}>BookingHub</div>
                     )}
-                    <div style={statusPill}>Активна обява</div>
+                    <div style={statusPill}>{statusLabel}</div>
                   </div>
 
                   <div style={{ display: "grid", gap: 10 }}>
@@ -84,6 +91,15 @@ export default function BusinessServicesPage() {
                       <span>€{service.price.toFixed(2)}</span>
                     </div>
 
+                    {approvalStatus !== "APPROVED" && service.approvalNote ? (
+                      <div style={pendingNotice}>
+                        <div style={{ fontWeight: 900, color: "#dbeafe" }}>
+                          {approvalStatus === "REJECTED" ? "Админ бележка" : "Статус на одобрението"}
+                        </div>
+                        <div style={{ color: "rgba(226,232,240,0.82)", lineHeight: 1.6 }}>{service.approvalNote}</div>
+                      </div>
+                    ) : null}
+
                     {!service.active && service.adminDeletionReason ? (
                       <div style={adminNotice}>
                         <div style={{ fontWeight: 900, color: "#991b1b" }}>Премахната от админ</div>
@@ -95,9 +111,11 @@ export default function BusinessServicesPage() {
                       <Link to={`/business/services/${service.id}/edit`} style={solidBtn}>
                         Редактирай обявата
                       </Link>
-                      <Link to={`/services/${service.id}`} style={ghostBtn}>
-                        Отвори публичната страница
-                      </Link>
+                      {approvalStatus === "APPROVED" ? (
+                        <Link to={`/services/${service.id}`} style={ghostBtn}>
+                          Отвори публичната страница
+                        </Link>
+                      ) : null}
                       <Link to="/business/bookings" style={softBtn}>
                         Виж входящите резервации
                       </Link>
@@ -127,6 +145,7 @@ const imagePlaceholder = { minHeight: 210, display: "grid", placeItems: "center"
 const statusPill = { position: "absolute", top: 14, right: 14, padding: "8px 12px", borderRadius: 999, background: "rgba(15, 23, 42, 0.72)", color: "#fff", fontWeight: 800, fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase" };
 const metaRow = { display: "flex", gap: 12, flexWrap: "wrap", color: "rgba(191,219,254,0.76)", fontWeight: 700 };
 const actions = { display: "flex", gap: 10, flexWrap: "wrap" };
+const pendingNotice = { padding: "12px 14px", borderRadius: 16, background: "rgba(15,23,42,0.42)", border: "1px solid rgba(96,165,250,0.18)" };
 const adminNotice = { padding: "12px 14px", borderRadius: 16, background: "#fff1f2", border: "1px solid #fecdd3" };
 const ghostBtn = { textDecoration: "none", padding: "12px 14px", borderRadius: 14, border: "1px solid rgba(96,165,250,0.24)", color: "#eff6ff", fontWeight: 800, background: "rgba(15,23,42,0.34)" };
 const solidBtn = { textDecoration: "none", padding: "12px 14px", borderRadius: 14, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", fontWeight: 900 };

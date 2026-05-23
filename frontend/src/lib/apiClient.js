@@ -21,7 +21,12 @@ async function readJsonOrThrow(response) {
     return null;
   }
 
-  return response.json();
+  const text = await response.text();
+  if (!text.trim()) {
+    return null;
+  }
+
+  return JSON.parse(text);
 }
 
 export async function apiGet(url, options = {}) {

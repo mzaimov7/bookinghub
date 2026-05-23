@@ -42,9 +42,13 @@ export function mapBusinessProfile(item) {
     role: item?.role ?? "BUSINESS",
     providerType: item?.providerType ?? "COMPANY",
     businessName: item?.businessName ?? "",
+    companyLegalName: item?.companyLegalName ?? "",
+    companyEik: item?.companyEik ?? "",
+    companyRepresentative: item?.companyRepresentative ?? "",
     city: item?.city ?? "",
     address: item?.address ?? "",
     phone: item?.phone ?? "",
+    description: item?.description ?? "",
     photoUrl: item?.photoUrl ?? null,
   };
 }
@@ -86,6 +90,24 @@ export function mapBooking(item) {
     price: Number(item?.price ?? 0),
     durationMinutes: Number(item?.durationMinutes ?? 0),
     coverImageUrl: item?.coverImageUrl ?? null,
+    reviewId: item?.reviewId == null ? null : Number(item.reviewId),
+    reviewRating: item?.reviewRating == null ? null : Number(item.reviewRating),
+    reviewComment: item?.reviewComment ?? "",
+  };
+}
+
+export function mapReview(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    bookingId: item?.bookingId == null ? null : Number(item.bookingId),
+    serviceId: Number(item?.serviceId ?? 0),
+    authorUserId: Number(item?.authorUserId ?? 0),
+    authorName: item?.authorName ?? "Клиент",
+    authorPhotoUrl: item?.authorPhotoUrl ?? null,
+    rating: Number(item?.rating ?? 0),
+    comment: item?.comment ?? "",
+    status: item?.status ?? "VISIBLE",
+    createdAt: item?.createdAt ?? "",
   };
 }
 
@@ -99,6 +121,9 @@ export function mapComment(item) {
     serviceId: Number(item?.serviceId ?? 0),
     authorUserId: Number(item?.authorUserId ?? 0),
     authorName: item?.authorName ?? "Потребител",
+    authorRole: item?.authorRole ?? "CLIENT",
+    authorPhotoUrl: item?.authorPhotoUrl ?? null,
+    parentId: item?.parentId == null ? null : Number(item.parentId),
     text: item?.text ?? "",
     createdAt: item?.createdAt ?? "",
   };
@@ -132,20 +157,6 @@ export function mapCategory(item) {
   };
 }
 
-export function mapCategorySuggestion(item) {
-  return {
-    id: Number(item?.id ?? 0),
-    businessUserId: Number(item?.businessUserId ?? 0),
-    businessName: item?.businessName ?? "",
-    proposedName: item?.proposedName ?? "",
-    description: item?.description ?? "",
-    status: item?.status ?? "PENDING",
-    adminNote: item?.adminNote ?? "",
-    createdAt: item?.createdAt ?? null,
-    reviewedAt: item?.reviewedAt ?? null,
-  };
-}
-
 export function mapAdminComment(item) {
   return {
     id: Number(item?.id ?? 0),
@@ -168,6 +179,8 @@ export function mapAdminUserProfile(item) {
     email: item?.email ?? "",
     role: item?.role ?? "",
     active: Boolean(item?.active),
+    createdAt: item?.createdAt ?? null,
+    lastLoginAt: item?.lastLoginAt ?? null,
     displayName: item?.displayName ?? "",
     city: item?.city ?? "",
     address: item?.address ?? "",
@@ -245,6 +258,8 @@ export function mapService(item) {
   return {
     id: Number(item?.id ?? 0),
     categoryId: item?.categoryId == null ? null : Number(item.categoryId),
+    categorySuggestion: item?.categorySuggestion ?? "",
+    businessUserId: item?.businessUserId == null ? null : Number(item.businessUserId),
     title: item?.title ?? "",
     description: item?.description ?? "",
     city: item?.city ?? "",

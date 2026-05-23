@@ -8,4 +8,7 @@ public class CreateCommentRequest {
     @NotBlank
     @Size(max = 1500)
     public String text;
+
+    public Long parentId;
+    public Long parentReviewId;
 }

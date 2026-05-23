@@ -4,7 +4,6 @@ import Footer from "../../components/layout/Footer";
 import Header from "../../components/layout/Header";
 import CategoryDiscoverySection from "../../components/sections/CategoryDiscoverySection";
 import HeroCarousel from "../../components/sections/HeroCarousel";
-import PlatformStorySection from "../../components/sections/PlatformStorySection";
 import ServiceGrid from "../../components/sections/ServiceGrid";
 import { getRecentSearches, getFavoriteIds, addFavorite, removeFavorite } from "../client/api";
 import { getCategories, searchServices } from "./api";
@@ -133,12 +132,11 @@ export default function HomePage() {
         <HeroCarousel onSlideAction={onHeroAction} />
         <CategoryDiscoverySection categories={categories} onPickCategory={onCategoryPick} />
         <ServiceGrid
-          services={services.slice(0, 6)}
+          services={services.slice(0, 9)}
           favoriteIds={favoriteIds}
           onToggleFavorite={onToggleFavorite}
           title="Най-популярни в момента"
         />
-        <PlatformStorySection />
       </div>
 
       <Footer />

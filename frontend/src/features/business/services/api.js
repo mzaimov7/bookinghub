@@ -8,7 +8,6 @@ import {
   mapAdminReview,
   mapAdminUserProfile,
   mapBusinessBooking,
-  mapCategorySuggestion,
   mapCollection,
   mapResource,
   mapService,
@@ -32,6 +31,15 @@ function adminHeaders() {
   return { "X-Admin-User-Id": String(userId) };
 }
 
+function currentUserHeaders() {
+  const userId = getUserId();
+  if (!userId) {
+    throw new Error("Трябва да си влязъл в профила си, за да подадеш сигнал.");
+  }
+
+  return { "X-User-Id": String(userId) };
+}
+
 export async function listActiveResources() {
   const data = await apiGet("/api/business/resources", { headers: businessHeaders() });
   return mapCollection(data, mapResource).filter((resource) => resource.active);
@@ -43,16 +51,6 @@ export async function createService(payload) {
     headers: { ...businessHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-}
-
-export async function createCategorySuggestion(payload) {
-  const data = await apiSend("/api/business/category-suggestions", {
-    method: "POST",
-    headers: { ...businessHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  return mapCategorySuggestion(data);
 }
 
 export async function getMyService(serviceId) {
@@ -99,6 +97,14 @@ export async function updateBusinessBookingStatus(bookingId, payload) {
   });
 
   return mapBusinessBooking(data);
+}
+
+export async function createReport(payload) {
+  return apiSend("/api/reports", {
+    method: "POST",
+    headers: { ...currentUserHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function listAdminServices() {
@@ -172,11 +178,6 @@ export async function deleteServiceAsAdmin(serviceId, payload) {
   return mapService(data);
 }
 
-export async function listAdminCategorySuggestions() {
-  const data = await apiGet("/api/admin/category-suggestions", { headers: adminHeaders() });
-  return mapCollection(data, mapCategorySuggestion);
-}
-
 export async function listAdminComments() {
   const data = await apiGet("/api/admin/comments", { headers: adminHeaders() });
   return mapCollection(data, mapAdminComment);
@@ -187,10 +188,11 @@ export async function listAdminReviews() {
   return mapCollection(data, mapAdminReview);
 }
 
-export async function hideReviewAsAdmin(reviewId) {
+export async function hideReviewAsAdmin(reviewId, payload) {
   const data = await apiSend(`/api/admin/reviews/${reviewId}/hide`, {
     method: "PATCH",
-    headers: adminHeaders(),
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
   return mapAdminReview(data);
 }

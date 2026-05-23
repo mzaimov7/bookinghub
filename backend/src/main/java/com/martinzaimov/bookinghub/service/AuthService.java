@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -30,21 +31,24 @@ public class AuthService {
     private final ClientProfileRepository clientProfiles;
     private final BusinessProfileRepository businessProfiles;
     private final PasswordEncoder encoder;
+    private final EmailService emailService;
     private final Path uploadDir;
 
     public AuthService(UserRepository users,
                        ClientProfileRepository clientProfiles,
                        BusinessProfileRepository businessProfiles,
                        PasswordEncoder encoder,
+                       EmailService emailService,
                        @Value("${app.upload.dir:uploads}") String uploadDir) {
         this.users = users;
         this.clientProfiles = clientProfiles;
         this.businessProfiles = businessProfiles;
         this.encoder = encoder;
+        this.emailService = emailService;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest req) {
         String identifier = safeTrim(req.identifier);
         if (identifier == null) {
@@ -61,6 +65,9 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid username/email or password");
         }
 
+        user.setLastLoginAt(LocalDateTime.now());
+        users.save(user);
+
         return AuthResponse.of(
                 user.getId(),
                 user.getUsername(),
@@ -71,15 +78,29 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse loginAsDev(String requestedRole) {
-        String role = requestedRole == null ? "" : requestedRole.trim().toUpperCase();
+    public AuthResponse loginAsDev(String rawRole) {
+        User.Role role = parseDevRole(rawRole);
+        User user = users.findByUsernameIgnoreCase(devUsername(role))
+                .orElseGet(() -> createDevUser(role));
 
-        return switch (role) {
-            case "CLIENT" -> toAuthResponse(ensureDevClient(), true);
-            case "BUSINESS" -> toAuthResponse(ensureDevBusiness(), true);
-            case "ADMIN" -> toAuthResponse(ensureDevAdmin(), true);
-            default -> throw new IllegalArgumentException("Invalid dev role");
-        };
+        user.setActive(true);
+        user.setRole(role);
+        user.setLastLoginAt(LocalDateTime.now());
+        users.save(user);
+
+        if (role == User.Role.CLIENT) {
+            ensureDevClientProfile(user);
+        } else if (role == User.Role.BUSINESS) {
+            ensureDevBusinessProfile(user);
+        }
+
+        return AuthResponse.of(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole().name(),
+                true
+        );
     }
 
     @Transactional
@@ -87,14 +108,15 @@ public class AuthService {
         String role = req.role == null ? "" : req.role.trim().toUpperCase();
 
         if (users.existsByUsernameIgnoreCase(req.username)) {
-            throw new IllegalArgumentException("Username already taken");
+            throw new IllegalArgumentException("Потребителското име вече е заето");
         }
         if (users.existsByEmailIgnoreCase(req.email)) {
-            throw new IllegalArgumentException("Email already used");
+            throw new IllegalArgumentException("Имейлът вече се използва");
         }
         if (!role.equals("CLIENT") && !role.equals("BUSINESS")) {
-            throw new IllegalArgumentException("Invalid role");
+            throw new IllegalArgumentException("Невалиден тип профил");
         }
+        validatePassword(req.password);
 
         User u = new User();
         u.setUsername(req.username.trim());
@@ -106,7 +128,7 @@ public class AuthService {
 
         if (role.equals("CLIENT")) {
             if (isBlank(req.firstName) || isBlank(req.lastName)) {
-                throw new IllegalArgumentException("First name and last name are required");
+                throw new IllegalArgumentException("Името и фамилията са задължителни");
             }
             ClientProfile cp = new ClientProfile();
             cp.setUser(u);
@@ -117,19 +139,38 @@ public class AuthService {
             cp.setBio(safeTrim(req.bio));
             clientProfiles.save(cp);
         } else {
-            if (isBlank(req.providerType) || isBlank(req.businessName) || isBlank(req.city)) {
-                throw new IllegalArgumentException("Business name, provider type and city are required");
+            if (isBlank(req.providerType) || isBlank(req.businessName) || isBlank(req.city) || isBlank(req.address) || isBlank(req.businessPhone) || isBlank(req.businessDescription)) {
+                throw new IllegalArgumentException("Името на бизнеса, типът, градът, адресът, телефонът и описанието са задължителни");
+            }
+            BusinessProfile.ProviderType providerType;
+            try {
+                providerType = BusinessProfile.ProviderType.valueOf(req.providerType.trim().toUpperCase());
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Невалиден тип на бизнес акаунта");
+            }
+            if (providerType == BusinessProfile.ProviderType.COMPANY && (isBlank(req.companyLegalName) || isBlank(req.companyEik) || isBlank(req.companyRepresentative))) {
+                throw new IllegalArgumentException("Име на фирмата, ЕИК и МОЛ са задължителни при регистрация на фирма");
             }
             BusinessProfile bp = new BusinessProfile();
             bp.setUser(u);
-            bp.setProviderType(BusinessProfile.ProviderType.valueOf(req.providerType.trim().toUpperCase()));
+            bp.setProviderType(providerType);
             bp.setBusinessName(req.businessName.trim());
+            bp.setCompanyLegalName(providerType == BusinessProfile.ProviderType.COMPANY ? req.companyLegalName.trim() : null);
+            bp.setCompanyEik(providerType == BusinessProfile.ProviderType.COMPANY ? req.companyEik.trim() : null);
+            bp.setCompanyRepresentative(providerType == BusinessProfile.ProviderType.COMPANY ? req.companyRepresentative.trim() : null);
             bp.setCity(req.city.trim());
-            bp.setAddress(safeTrim(req.address));
-            bp.setPhone(safeTrim(req.businessPhone));
+            bp.setAddress(req.address.trim());
+            bp.setPhone(req.businessPhone.trim());
+            bp.setDescription(req.businessDescription.trim());
             bp.setPhotoUrl(safeTrim(req.businessPhotoUrl));
             businessProfiles.save(bp);
         }
+
+        emailService.send(
+                u.getEmail(),
+                "Добре дошъл в BookingHub",
+                "Здравей, " + u.getUsername() + "!\n\nПрофилът ти в BookingHub беше създаден успешно."
+        );
     }
 
     public String uploadRegistrationPhoto(MultipartFile file) {
@@ -156,68 +197,88 @@ public class AuthService {
     private boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
     private String safeTrim(String s) { return isBlank(s) ? null : s.trim(); }
 
+    private User.Role parseDevRole(String rawRole) {
+        String role = rawRole == null ? "" : rawRole.trim().toUpperCase();
+        return switch (role) {
+            case "CLIENT" -> User.Role.CLIENT;
+            case "BUSINESS" -> User.Role.BUSINESS;
+            case "ADMIN" -> User.Role.ADMIN;
+            default -> throw new IllegalArgumentException("Невалиден dev профил");
+        };
+    }
+
+    private String devUsername(User.Role role) {
+        return switch (role) {
+            case CLIENT -> "dev_client";
+            case BUSINESS -> "dev_business";
+            case ADMIN -> "dev_admin";
+        };
+    }
+
+    private User createDevUser(User.Role role) {
+        String username = devUsername(role);
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(username + "@bookinghub.dev");
+        user.setPasswordHash(encoder.encode("Dev12345"));
+        user.setRole(role);
+        user.setActive(true);
+        return users.save(user);
+    }
+
+    private void ensureDevClientProfile(User user) {
+        if (clientProfiles.findById(user.getId()).isPresent()) {
+            return;
+        }
+
+        ClientProfile profile = new ClientProfile();
+        profile.setUser(user);
+        profile.setFirstName("Дев");
+        profile.setLastName("Клиент");
+        profile.setPhone("0888000001");
+        profile.setBio("Тестов клиентски профил");
+        clientProfiles.save(profile);
+    }
+
+    private void ensureDevBusinessProfile(User user) {
+        if (businessProfiles.findById(user.getId()).isPresent()) {
+            return;
+        }
+
+        BusinessProfile profile = new BusinessProfile();
+        profile.setUser(user);
+        profile.setProviderType(BusinessProfile.ProviderType.INDIVIDUAL);
+        profile.setBusinessName("Дев бизнес");
+        profile.setCity("София");
+        profile.setAddress("Тестов адрес 1");
+        profile.setPhone("0888000002");
+        profile.setDescription("Тестов бизнес профил за бърза разработка.");
+        businessProfiles.save(profile);
+    }
+
+    private void validatePassword(String password) {
+        if (isBlank(password)) {
+            throw new IllegalArgumentException("Паролата е задължителна");
+        }
+        String value = password.trim();
+        if (value.length() < 8) {
+            throw new IllegalArgumentException("Паролата трябва да е поне 8 символа");
+        }
+        if (!value.matches(".*[A-Z].*")) {
+            throw new IllegalArgumentException("Паролата трябва да съдържа поне една главна буква");
+        }
+        if (!value.matches(".*[a-z].*")) {
+            throw new IllegalArgumentException("Паролата трябва да съдържа поне една малка буква");
+        }
+        if (!value.matches(".*\\d.*")) {
+            throw new IllegalArgumentException("Паролата трябва да съдържа поне една цифра");
+        }
+    }
+
     private String extensionOf(String originalFilename) {
         if (originalFilename == null) return "";
         int index = originalFilename.lastIndexOf('.');
         return index >= 0 ? originalFilename.substring(index) : "";
     }
 
-    private AuthResponse toAuthResponse(User user, boolean devMode) {
-        return AuthResponse.of(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.getRole().name(),
-                devMode
-        );
-    }
-
-    private User ensureDevClient() {
-        User user = users.findByUsernameIgnoreCase("dev_client")
-                .orElseGet(() -> createDevUser("dev_client", "dev-client@bookinghub.local", User.Role.CLIENT));
-
-        if (clientProfiles.findById(user.getId()).isEmpty()) {
-            ClientProfile profile = new ClientProfile();
-            profile.setUser(user);
-            profile.setFirstName("Dev");
-            profile.setLastName("Client");
-            profile.setPhone("0000000000");
-            clientProfiles.save(profile);
-        }
-
-        return user;
-    }
-
-    private User ensureDevBusiness() {
-        User user = users.findByUsernameIgnoreCase("dev_business")
-                .orElseGet(() -> createDevUser("dev_business", "dev-business@bookinghub.local", User.Role.BUSINESS));
-
-        if (businessProfiles.findById(user.getId()).isEmpty()) {
-            BusinessProfile profile = new BusinessProfile();
-            profile.setUser(user);
-            profile.setProviderType(BusinessProfile.ProviderType.COMPANY);
-            profile.setBusinessName("Dev Business");
-            profile.setCity("Sofia");
-            profile.setAddress("Development Street 1");
-            profile.setPhone("0000000001");
-            businessProfiles.save(profile);
-        }
-
-        return user;
-    }
-
-    private User ensureDevAdmin() {
-        return users.findByUsernameIgnoreCase("dev_admin")
-                .orElseGet(() -> createDevUser("dev_admin", "dev-admin@bookinghub.local", User.Role.ADMIN));
-    }
-
-    private User createDevUser(String username, String email, User.Role role) {
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPasswordHash(encoder.encode("dev-pass-123"));
-        user.setRole(role);
-        user.setActive(true);
-        return users.save(user);
-    }
 }

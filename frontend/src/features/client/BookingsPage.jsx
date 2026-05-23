@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Footer from "../../components/layout/Footer";
 import Header from "../../components/layout/Header";
 import { getRole, isLoggedIn } from "../../lib/authStore";
-import { getMyBookings } from "./api";
+import { cancelMyBooking, getMyBookings, saveBookingReview } from "./api";
 import { resolveBackendImage, serviceFallbackImage } from "../../lib/assets";
 
 function bookingImage(item) {
@@ -29,6 +29,12 @@ export default function BookingsPage() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [activeFilter, setActiveFilter] = useState("upcoming");
+  const [cancelReasonById, setCancelReasonById] = useState({});
+  const [cancelOpenId, setCancelOpenId] = useState(null);
+  const [cancelSavingId, setCancelSavingId] = useState(null);
+  const [reviewOpenId, setReviewOpenId] = useState(null);
+  const [reviewDraftById, setReviewDraftById] = useState({});
+  const [reviewSavingId, setReviewSavingId] = useState(null);
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -83,6 +89,53 @@ export default function BookingsPage() {
     return bookings;
   }, [activeFilter, bookings]);
 
+  async function onCancelBooking(bookingId) {
+    const reason = (cancelReasonById[bookingId] || "").trim();
+    if (!reason) {
+      alert("Въведи причина за отказа от услугата.");
+      return;
+    }
+
+    setCancelSavingId(bookingId);
+    try {
+      const updated = await cancelMyBooking(bookingId, { reason });
+      setBookings((current) => current.map((item) => (item.id === bookingId ? updated : item)));
+      setCancelReasonById((current) => ({ ...current, [bookingId]: "" }));
+      setCancelOpenId(null);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setCancelSavingId(null);
+    }
+  }
+
+  async function onSaveReview(item) {
+    const draft = reviewDraftById[item.id] || {};
+    const rating = Number(draft.rating || item.reviewRating || 5);
+    const comment = (draft.comment ?? item.reviewComment ?? "").trim();
+
+    if (!rating || rating < 1 || rating > 5) {
+      alert("Избери оценка от 1 до 5.");
+      return;
+    }
+
+    setReviewSavingId(item.id);
+    try {
+      const saved = await saveBookingReview(item.id, { rating, comment: comment || null });
+      setBookings((current) => current.map((booking) => (
+        booking.id === item.id
+          ? { ...booking, reviewId: saved.id, reviewRating: saved.rating, reviewComment: saved.comment }
+          : booking
+      )));
+      setReviewOpenId(null);
+      setReviewDraftById((current) => ({ ...current, [item.id]: { rating: saved.rating, comment: saved.comment } }));
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setReviewSavingId(null);
+    }
+  }
+
   return (
     <div style={page}>
       <Header />
@@ -125,6 +178,14 @@ export default function BookingsPage() {
               <>
                 <div style={timelineList}>
                   {visibleBookings.map((item) => {
+                    const canCancel = (item.status === "PENDING" || item.status === "CONFIRMED") && new Date(item.startAt) > new Date();
+                    const isCancelOpen = cancelOpenId === item.id;
+                    const canReview = item.status === "COMPLETED";
+                    const isReviewOpen = reviewOpenId === item.id;
+                    const reviewDraft = reviewDraftById[item.id] || {
+                      rating: item.reviewRating || 5,
+                      comment: item.reviewComment || "",
+                    };
                     return (
                       <article key={item.id} style={bookingCard}>
                         <div style={timelineRail}>
@@ -190,7 +251,87 @@ export default function BookingsPage() {
                                 <Link to={`/services/${item.serviceId}`} style={primaryAction}>
                                   Отвори услугата
                                 </Link>
+                                {canCancel ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCancelOpenId((current) => (current === item.id ? null : item.id))}
+                                    style={cancelActionButton}
+                                  >
+                                    Откажи резервацията
+                                  </button>
+                                ) : null}
+                                {canReview ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setReviewOpenId((current) => (current === item.id ? null : item.id));
+                                      setReviewDraftById((current) => ({
+                                        ...current,
+                                        [item.id]: current[item.id] || { rating: item.reviewRating || 5, comment: item.reviewComment || "" },
+                                      }));
+                                    }}
+                                    style={reviewActionButton}
+                                  >
+                                    {item.reviewId ? "Редактирай отзива" : "Остави отзив"}
+                                  </button>
+                                ) : null}
                               </div>
+
+                              {isCancelOpen ? (
+                                <div style={cancelBox}>
+                                  <div style={noteLabel}>Причина за отказ</div>
+                                  <textarea
+                                    value={cancelReasonById[item.id] || ""}
+                                    onChange={(event) => setCancelReasonById((current) => ({ ...current, [item.id]: event.target.value }))}
+                                    placeholder="Напиши защо отказваш тази услуга"
+                                    style={cancelTextarea}
+                                  />
+                                  <div style={cancelActions}>
+                                    <button type="button" onClick={() => onCancelBooking(item.id)} disabled={cancelSavingId === item.id} style={dangerConfirmButton}>
+                                      {cancelSavingId === item.id ? "Отказване..." : "Потвърди отказа"}
+                                    </button>
+                                    <button type="button" onClick={() => setCancelOpenId(null)} style={cancelSecondaryButton}>
+                                      Назад
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              {isReviewOpen ? (
+                                <div style={reviewBox}>
+                                  <div style={noteLabel}>Оценка за услугата</div>
+                                  <div style={ratingPicker}>
+                                    {[1, 2, 3, 4, 5].map((value) => (
+                                      <button
+                                        key={value}
+                                        type="button"
+                                        onClick={() => setReviewDraftById((current) => ({ ...current, [item.id]: { ...reviewDraft, rating: value } }))}
+                                        style={{
+                                          ...ratingButton,
+                                          background: value <= Number(reviewDraft.rating || 0) ? "#2563eb" : "rgba(15,23,42,0.42)",
+                                          color: value <= Number(reviewDraft.rating || 0) ? "#fff" : "#bfdbfe",
+                                        }}
+                                      >
+                                        ★
+                                      </button>
+                                    ))}
+                                  </div>
+                                  <textarea
+                                    value={reviewDraft.comment}
+                                    onChange={(event) => setReviewDraftById((current) => ({ ...current, [item.id]: { ...reviewDraft, comment: event.target.value } }))}
+                                    placeholder="Разкажи накратко как мина услугата"
+                                    style={cancelTextarea}
+                                  />
+                                  <div style={cancelActions}>
+                                    <button type="button" onClick={() => onSaveReview(item)} disabled={reviewSavingId === item.id} style={reviewConfirmButton}>
+                                      {reviewSavingId === item.id ? "Запазване..." : "Запази отзива"}
+                                    </button>
+                                    <button type="button" onClick={() => setReviewOpenId(null)} style={cancelSecondaryButton}>
+                                      Назад
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -392,6 +533,111 @@ const sectionAction = {
   background: "linear-gradient(180deg, rgba(37,99,235,0.94) 0%, rgba(29,78,216,0.98) 100%)",
   border: "1px solid rgba(147,197,253,0.34)",
   boxShadow: "0 14px 30px rgba(37,99,235,0.18)",
+};
+
+const cancelActionButton = {
+  padding: "12px 16px",
+  borderRadius: 14,
+  border: "1px solid rgba(248,113,113,0.28)",
+  background: "rgba(255,241,242,0.9)",
+  color: "#be123c",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
+const reviewActionButton = {
+  padding: "12px 16px",
+  borderRadius: 14,
+  border: "1px solid rgba(147,197,253,0.28)",
+  background: "rgba(37,99,235,0.16)",
+  color: "#bfdbfe",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
+const reviewBox = {
+  marginTop: 14,
+  padding: "14px 16px",
+  borderRadius: 18,
+  border: "1px solid rgba(96,165,250,0.22)",
+  background: "rgba(15,23,42,0.34)",
+  display: "grid",
+  gap: 10,
+};
+
+const ratingPicker = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+};
+
+const ratingButton = {
+  width: 42,
+  height: 42,
+  borderRadius: 12,
+  border: "1px solid rgba(96,165,250,0.22)",
+  cursor: "pointer",
+  fontSize: 18,
+  fontWeight: 900,
+};
+
+const reviewConfirmButton = {
+  padding: "12px 16px",
+  borderRadius: 14,
+  border: "none",
+  background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+  color: "#fff",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
+const cancelBox = {
+  marginTop: 14,
+  padding: "14px 16px",
+  borderRadius: 18,
+  border: "1px solid rgba(248,113,113,0.22)",
+  background: "rgba(255,241,242,0.08)",
+  display: "grid",
+  gap: 10,
+};
+
+const cancelTextarea = {
+  width: "100%",
+  minHeight: 90,
+  padding: "12px 14px",
+  borderRadius: 14,
+  border: "1px solid rgba(248,113,113,0.18)",
+  background: "rgba(15,23,42,0.28)",
+  color: "#eff6ff",
+  boxSizing: "border-box",
+  resize: "vertical",
+  font: "inherit",
+};
+
+const cancelActions = {
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const dangerConfirmButton = {
+  padding: "12px 16px",
+  borderRadius: 14,
+  border: "none",
+  background: "linear-gradient(135deg, #be123c, #9f1239)",
+  color: "#fff",
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
+const cancelSecondaryButton = {
+  padding: "12px 16px",
+  borderRadius: 14,
+  border: "1px solid rgba(148,163,184,0.26)",
+  background: "rgba(15,23,42,0.22)",
+  color: "#eff6ff",
+  fontWeight: 900,
+  cursor: "pointer",
 };
 const timelineList = { display: "grid", gap: 18 };
 const bookingCard = {

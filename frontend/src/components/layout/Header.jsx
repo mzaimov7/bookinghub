@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { getAuth, getRole, isLoggedIn, isPreviewMode, logoutLocal, startAdminPreview, stopAdminPreview } from "../../lib/authStore";
+import { getAuth, getRole, isAdminPreview, isLoggedIn, logoutLocal, saveAuth, startAdminPreview, stopAdminPreview } from "../../lib/authStore";
 import logoPng from "../../assets/BookingHub-logo-header.png";
 import { resolveBackendImage } from "../../lib/assets";
 import { getMyBusinessProfile } from "../../features/business/profile/api";
@@ -22,7 +22,7 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
 
   const role = getRole();
   const auth = getAuth();
-  const previewMode = isPreviewMode();
+  const adminPreview = isAdminPreview();
   const effectiveCategories = Array.isArray(categories) && categories.length > 0 ? categories : loadedCategories;
   const effectiveRecentSearches = Array.isArray(recentSearches) && recentSearches.length > 0 ? recentSearches : loadedRecentSearches;
   const catItems = useMemo(() => effectiveCategories, [effectiveCategories]);
@@ -96,23 +96,6 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
     navigate(path);
   }
 
-  async function continueAsDev(nextRole) {
-    try {
-      const nextAuth = await loginAsDev(nextRole);
-      startAdminPreview(nextAuth);
-      setOpenProfile(false);
-      navigate(nextRole === "CLIENT" ? "/my-profile" : "/business");
-    } catch (error) {
-      alert(error?.message || "Неуспешно превключване към dev профил.");
-    }
-  }
-
-  function stopPreview() {
-    stopAdminPreview();
-    setOpenProfile(false);
-    navigate("/admin");
-  }
-
   function requireLogin(actionName) {
     if (!isLoggedIn()) {
       alert(`За "${actionName}" трябва първо да влезеш в профила си.`);
@@ -121,6 +104,29 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
     }
 
     return false;
+  }
+
+  async function continueAs(roleName) {
+    try {
+      const nextAuth = await loginAsDev(roleName);
+      startAdminPreview(nextAuth);
+      window.location.href = roleName === "business" ? "/business" : "/";
+    } catch (error) {
+      alert(error.message || "Неуспешно превключване на изгледа");
+    }
+  }
+
+  async function stopPreviewMode() {
+    const restored = stopAdminPreview();
+    if (!restored) {
+      try {
+        const adminAuth = await loginAsDev("admin");
+        saveAuth({ ...adminAuth, devMode: false });
+      } catch {
+        logoutLocal();
+      }
+    }
+    window.location.href = "/admin";
   }
 
   function labelForRecentSearch(item) {
@@ -218,13 +224,20 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {role === "ADMIN" ? (
+          {adminPreview ? (
+            <button onClick={stopPreviewMode} title="Върни се в админ профила" style={adminStopBtn}>
+              Стоп preview
+            </button>
+          ) : role === "ADMIN" ? (
             <>
-              <button onClick={() => continueAsDev("CLIENT")} title="Продължи като клиент" style={adminQuickBtn}>
-                <span style={adminQuickBtnLabel}>Клиент</span>
+              <button onClick={() => continueAs("client")} title="Продължи като клиент" style={adminPreviewBtn}>
+                Клиент
               </button>
-              <button onClick={() => continueAsDev("BUSINESS")} title="Продължи като бизнес" style={adminQuickBtn}>
-                <span style={adminQuickBtnLabel}>Бизнес</span>
+              <button onClick={() => continueAs("business")} title="Продължи като бизнес" style={adminPreviewBtn}>
+                Бизнес
+              </button>
+              <button onClick={() => go("/admin")} title="Админ панел" style={iconBtn}>
+                <span style={iconGlyph}>▦</span>
               </button>
             </>
           ) : role !== "BUSINESS" && (
@@ -269,7 +282,6 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
                   <>
                     <div style={{ padding: "10px 12px", fontSize: 13, opacity: 0.8 }}>
                       @{auth?.username} • {role}
-                      {auth?.devMode ? " • DEV" : ""}
                     </div>
                     <div style={{ height: 1, background: "#e5e7eb" }} />
 
@@ -292,8 +304,14 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
                       </>
                     )}
 
-                    {role === "ADMIN" && <MenuItem label="Админ панел" onClick={() => go("/admin")} />}
-                    {previewMode && <MenuItem label="Спри preview режима" danger onClick={stopPreview} />}
+                    {adminPreview && <MenuItem label="Стоп тестов режим" onClick={stopPreviewMode} />}
+                    {role === "ADMIN" && !adminPreview && (
+                      <>
+                        <MenuItem label="Продължи като клиент" onClick={() => continueAs("client")} />
+                        <MenuItem label="Продължи като бизнес" onClick={() => continueAs("business")} />
+                        <MenuItem label="Админ панел" onClick={() => go("/admin")} />
+                      </>
+                    )}
 
                     <div style={{ height: 1, background: "#e5e7eb" }} />
                     <MenuItem
@@ -362,11 +380,6 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
             </div>
           </div>
 
-          {previewMode && (
-            <button onClick={stopPreview} style={previewStopButton}>
-              Stop preview
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -400,6 +413,30 @@ const iconBtn = {
   boxShadow: "0 8px 18px rgba(37, 99, 235, 0.08)",
 };
 
+const adminStopBtn = {
+  border: "1px solid rgba(248,113,113,0.45)",
+  background: "linear-gradient(135deg, #ef4444 0%, #991b1b 100%)",
+  borderRadius: 14,
+  height: 44,
+  padding: "0 16px",
+  cursor: "pointer",
+  color: "#fff",
+  fontWeight: 900,
+  boxShadow: "0 10px 24px rgba(239,68,68,0.20)",
+};
+
+const adminPreviewBtn = {
+  border: "1px solid rgba(147,197,253,0.40)",
+  background: "linear-gradient(180deg, #ffffff 0%, #eff6ff 100%)",
+  borderRadius: 14,
+  height: 44,
+  padding: "0 16px",
+  cursor: "pointer",
+  color: "#1d4ed8",
+  fontWeight: 900,
+  boxShadow: "0 8px 18px rgba(37, 99, 235, 0.08)",
+};
+
 const headerProfileImage = {
   width: 28,
   height: 28,
@@ -423,26 +460,6 @@ const heartGlyph = {
   color: "#2563eb",
   fontWeight: 900,
   lineHeight: 1,
-};
-
-const adminQuickBtn = {
-  border: "1px solid rgba(96,165,250,0.24)",
-  background: "linear-gradient(135deg, rgba(15,23,42,0.92), rgba(30,41,59,0.84))",
-  color: "#eff6ff",
-  borderRadius: 999,
-  padding: "10px 14px",
-  cursor: "pointer",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minWidth: 86,
-  boxShadow: "0 10px 20px rgba(2,6,23,0.16)",
-};
-
-const adminQuickBtnLabel = {
-  fontSize: 13,
-  fontWeight: 900,
-  letterSpacing: "0.02em",
 };
 
 const categoryDropdownWrap = {
@@ -561,15 +578,4 @@ const recentSearchText = {
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
   fontWeight: 700,
-};
-
-const previewStopButton = {
-  marginLeft: "auto",
-  border: "1px solid rgba(248,113,113,0.28)",
-  background: "rgba(127,29,29,0.26)",
-  color: "#fee2e2",
-  borderRadius: 999,
-  padding: "10px 14px",
-  cursor: "pointer",
-  fontWeight: 900,
 };

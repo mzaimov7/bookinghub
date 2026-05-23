@@ -27,14 +27,26 @@ public class BusinessProfile {
     @Column(name = "business_name", length = 255, nullable = false)
     private String businessName;
 
+    @Column(name = "company_legal_name", length = 255)
+    private String companyLegalName;
+
+    @Column(name = "company_eik", length = 30)
+    private String companyEik;
+
+    @Column(name = "company_representative", length = 160)
+    private String companyRepresentative;
+
     @Column(name = "city", length = 120, nullable = false)
     private String city;
 
-    @Column(name = "address", length = 255)
+    @Column(name = "address", length = 255, nullable = false)
     private String address;
 
     @Column(name = "phone", length = 30)
     private String phone;
+
+    @Column(name = "description", length = 1500)
+    private String description;
 
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
@@ -63,16 +75,24 @@ public class BusinessProfile {
     public User getUser() { return user; }
     public ProviderType getProviderType() { return providerType; }
     public String getBusinessName() { return businessName; }
+    public String getCompanyLegalName() { return companyLegalName; }
+    public String getCompanyEik() { return companyEik; }
+    public String getCompanyRepresentative() { return companyRepresentative; }
     public String getCity() { return city; }
     public String getAddress() { return address; }
     public String getPhone() { return phone; }
+    public String getDescription() { return description; }
     public String getPhotoUrl() { return photoUrl; }
 
     public void setUser(User user) { this.user = user; }
     public void setProviderType(ProviderType providerType) { this.providerType = providerType; }
     public void setBusinessName(String businessName) { this.businessName = businessName; }
+    public void setCompanyLegalName(String companyLegalName) { this.companyLegalName = companyLegalName; }
+    public void setCompanyEik(String companyEik) { this.companyEik = companyEik; }
+    public void setCompanyRepresentative(String companyRepresentative) { this.companyRepresentative = companyRepresentative; }
     public void setCity(String city) { this.city = city; }
     public void setAddress(String address) { this.address = address; }
     public void setPhone(String phone) { this.phone = phone; }
+    public void setDescription(String description) { this.description = description; }
     public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
 }

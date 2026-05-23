@@ -1,11 +1,9 @@
 package com.martinzaimov.bookinghub.controller;
 
-import com.martinzaimov.bookinghub.dto.CreateCategorySuggestionRequest;
 import com.martinzaimov.bookinghub.dto.CreateServiceRequest;
 import com.martinzaimov.bookinghub.dto.UpdateServiceRequest;
 import com.martinzaimov.bookinghub.dto.UpdateBusinessBookingRequest;
 import com.martinzaimov.bookinghub.service.BusinessServiceService;
-import com.martinzaimov.bookinghub.service.CategorySuggestionService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,11 +17,9 @@ import java.util.Map;
 public class BusinessServiceController {
 
     private final BusinessServiceService businessServiceService;
-    private final CategorySuggestionService categorySuggestionService;
 
-    public BusinessServiceController(BusinessServiceService businessServiceService, CategorySuggestionService categorySuggestionService) {
+    public BusinessServiceController(BusinessServiceService businessServiceService) {
         this.businessServiceService = businessServiceService;
-        this.categorySuggestionService = categorySuggestionService;
     }
 
     /**
@@ -71,14 +67,6 @@ public class BusinessServiceController {
     ) {
         String imageUrl = businessServiceService.uploadListingImage(businessUserId, file);
         return Map.of("imageUrl", imageUrl);
-    }
-
-    @PostMapping("/category-suggestions")
-    public Object createCategorySuggestion(
-            @RequestHeader("X-Business-User-Id") Long businessUserId,
-            @Valid @RequestBody CreateCategorySuggestionRequest request
-    ) {
-        return categorySuggestionService.createSuggestion(businessUserId, request);
     }
 
     @GetMapping("/bookings")

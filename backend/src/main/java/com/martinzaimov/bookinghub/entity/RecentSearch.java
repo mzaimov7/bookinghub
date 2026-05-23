@@ -9,8 +9,6 @@ import java.time.LocalDateTime;
 @Table(name = "recent_searches")
 public class RecentSearch {
 
-    public enum Sort { NEWEST, PRICE_ASC, PRICE_DESC, RATING_DESC }
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,9 +31,6 @@ public class RecentSearch {
     @Column(name = "max_price", precision = 10, scale = 2)
     private BigDecimal maxPrice;
 
-    @Enumerated(EnumType.STRING)
-    private Sort sort;
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -51,7 +46,6 @@ public class RecentSearch {
     public Long getCategoryId() { return categoryId; }
     public BigDecimal getMinPrice() { return minPrice; }
     public BigDecimal getMaxPrice() { return maxPrice; }
-    public Sort getSort() { return sort; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
     public void setUserId(Long userId) { this.userId = userId; }
@@ -60,5 +54,4 @@ public class RecentSearch {
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public void setMinPrice(BigDecimal minPrice) { this.minPrice = minPrice; }
     public void setMaxPrice(BigDecimal maxPrice) { this.maxPrice = maxPrice; }
-    public void setSort(Sort sort) { this.sort = sort; }
 }

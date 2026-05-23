@@ -11,6 +11,8 @@ public class CreateServiceRequest {
     @NotNull
     public Long categoryId;
 
+    public String categorySuggestion;
+
     @NotBlank
     public String title;
 

@@ -85,7 +85,7 @@ export default function ServiceGrid({
 
               <div style={viewMode === "list" ? listBody : body}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ fontWeight: 800 }}>{service.title}</div>
+                  <div style={serviceTitle}>{service.title}</div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <button
                       onClick={onFavoriteClick}
@@ -101,9 +101,10 @@ export default function ServiceGrid({
 
                 <div style={description}>{service.description}</div>
 
-                <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ fontSize: 13, color: "rgba(226,232,240,0.78)" }}>
-                    📍 {service.city} • ⏱ {service.durationMinutes} мин
+                <div style={cardFooter}>
+                  <div style={metaStack}>
+                    <span>📍 {service.city}</span>
+                    <span>⏱ {service.durationMinutes} мин</span>
                   </div>
 
                   <button onClick={onReserveClick} data-service-id={service.id} style={reserveBtn} title="Резервирай">
@@ -131,6 +132,9 @@ const header = { marginBottom: 16 };
 const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#93c5fd" };
 const sectionTitle = { margin: "10px 0 0", color: "#eff6ff", fontSize: 34, lineHeight: 1.04 };
 const card = {
+  height: "100%",
+  display: "grid",
+  gridTemplateRows: "160px 1fr",
   border: "1px solid rgba(96,165,250,0.28)",
   borderRadius: 20,
   overflow: "hidden",
@@ -138,8 +142,25 @@ const card = {
   boxShadow: "0 20px 46px rgba(2,6,23,0.22)",
 };
 const image = { width: "100%", height: 160, objectFit: "cover", display: "block" };
-const body = { padding: 12, color: "#e2e8f0" };
-const description = { marginTop: 6, color: "rgba(226,232,240,0.82)", fontSize: 14 };
+const body = { padding: 12, color: "#e2e8f0", display: "grid", gridTemplateRows: "auto auto 1fr", minHeight: 190 };
+const serviceTitle = {
+  fontWeight: 800,
+  lineHeight: 1.25,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
+const description = {
+  marginTop: 6,
+  color: "rgba(226,232,240,0.82)",
+  fontSize: 14,
+  lineHeight: 1.45,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
 const listWrap = { display: "grid", gap: 14 };
 const listCard = {
   display: "grid",
@@ -152,6 +173,21 @@ const listCard = {
 };
 const listImage = { width: "100%", height: "100%", minHeight: 210, objectFit: "cover", display: "block" };
 const listBody = { padding: 16, color: "#e2e8f0" };
+const cardFooter = {
+  marginTop: 10,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-end",
+  gap: 12,
+  alignSelf: "end",
+};
+const metaStack = {
+  display: "grid",
+  gap: 3,
+  fontSize: 13,
+  color: "rgba(226,232,240,0.78)",
+  lineHeight: 1.35,
+};
 
 const reserveBtn = {
   border: "1px solid rgba(96,165,250,0.34)",

@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import Header from "../../../components/layout/Header";
 import { getCategories } from "../../home/api";
 import {
-  createCategorySuggestion,
   createService,
   getMyService,
   listActiveResources,
@@ -27,8 +26,6 @@ export default function BusinessCreateServicePage() {
   const [openCategoryPicker, setOpenCategoryPicker] = useState(false);
   const [openSuggestionForm, setOpenSuggestionForm] = useState(false);
   const [error, setError] = useState("");
-  const [suggestionMessage, setSuggestionMessage] = useState("");
-  const [submittingSuggestion, setSubmittingSuggestion] = useState(false);
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
@@ -46,9 +43,7 @@ export default function BusinessCreateServicePage() {
     slotIntervalMinutes: 30,
     bookingHorizonDays: 90,
     resourceIds: [],
-  });
-  const [categorySuggestion, setCategorySuggestion] = useState({
-    suggestion: "",
+    categorySuggestion: "",
   });
 
   const selectedCategory = useMemo(
@@ -71,26 +66,6 @@ export default function BusinessCreateServicePage() {
           : [...current.resourceIds, resourceId],
       };
     });
-  }
-
-  async function submitCategorySuggestion() {
-    if (!categorySuggestion.suggestion.trim()) {
-      alert("Опиши каква нова категория искаш да предложиш.");
-      return;
-    }
-
-    try {
-      setSubmittingSuggestion(true);
-      setSuggestionMessage("");
-      await createCategorySuggestion(categorySuggestion);
-      setSuggestionMessage("Предложението беше изпратено към админ за одобрение.");
-      setCategorySuggestion({ suggestion: "" });
-      setOpenSuggestionForm(false);
-    } catch (suggestionError) {
-      alert(suggestionError.message);
-    } finally {
-      setSubmittingSuggestion(false);
-    }
   }
 
   async function loadResources() {
@@ -154,6 +129,7 @@ export default function BusinessCreateServicePage() {
           slotIntervalMinutes: data.slotIntervalMinutes ? String(data.slotIntervalMinutes) : "30",
           bookingHorizonDays: data.bookingHorizonDays ? String(data.bookingHorizonDays) : "90",
           resourceIds: Array.isArray(data.resourceIds) ? data.resourceIds : [],
+          categorySuggestion: data.categorySuggestion ?? "",
         }));
         setExistingImages(Array.isArray(data.imageUrls) ? data.imageUrls.filter(Boolean) : []);
       } catch (loadError) {
@@ -176,6 +152,7 @@ export default function BusinessCreateServicePage() {
 
     const payload = {
       categoryId: Number(form.categoryId),
+      categorySuggestion: form.categorySuggestion.trim() || null,
       title: form.title.trim(),
       description: form.description?.trim() || null,
       city: form.city.trim(),
@@ -336,23 +313,18 @@ export default function BusinessCreateServicePage() {
                 <div style={categorySuggestionCard}>
                   <label style={label}>Опиши липсващата категория</label>
                   <textarea
-                    value={categorySuggestion.suggestion}
-                    onChange={(event) => setCategorySuggestion({ suggestion: event.target.value })}
+                    name="categorySuggestion"
+                    value={form.categorySuggestion}
+                    onChange={onChange}
                     style={{ ...input, minHeight: 110 }}
                     placeholder="Например: Детски аниматори, организиране на рождени дни и забавления за деца."
                   />
 
                   <div style={categorySuggestionHint}>
-                    Бизнесът изпраща само предложение. Ако админът прецени, по-късно ще създаде нова категория ръчно.
+                    Текстът ще се запази към тази обява. Ако админът прецени, по-късно ще създаде нова категория ръчно.
                   </div>
-
-                  <button type="button" onClick={submitCategorySuggestion} style={categorySuggestionButton} disabled={submittingSuggestion}>
-                    {submittingSuggestion ? "Изпращане..." : "Изпрати предложение"}
-                  </button>
                 </div>
               ) : null}
-
-              {suggestionMessage ? <div style={categorySuggestionSuccess}>{suggestionMessage}</div> : null}
             </div>
           </div>
         )}

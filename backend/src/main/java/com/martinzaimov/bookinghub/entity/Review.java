@@ -39,6 +39,21 @@ public class Review {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+        if (status == null) {
+            status = Status.VISIBLE;
+        }
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public Long getId() { return id; }
     public Long getBookingId() { return bookingId; }
     public Long getServiceId() { return serviceId; }

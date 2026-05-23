@@ -1,6 +1,6 @@
 import { apiGet, apiSend } from "../../lib/apiClient";
 import { getUserId } from "../../lib/authStore";
-import { mapAvailableSlot, mapBooking, mapClientProfile, mapCollection, mapRecentSearch, mapService } from "../../lib/mapper";
+import { mapAvailableSlot, mapBooking, mapClientProfile, mapCollection, mapRecentSearch, mapReview, mapService } from "../../lib/mapper";
 
 function userHeaders() {
   const userId = getUserId();
@@ -126,4 +126,30 @@ export async function createBooking(payload) {
 export async function getMyBookings() {
   const data = await apiGet("/api/client/bookings", { headers: userHeaders() });
   return mapCollection(data, mapBooking);
+}
+
+export async function cancelMyBooking(bookingId, payload) {
+  const data = await apiSend(`/api/client/bookings/${bookingId}/cancel`, {
+    method: "PATCH",
+    headers: {
+      ...userHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return mapBooking(data);
+}
+
+export async function saveBookingReview(bookingId, payload) {
+  const data = await apiSend(`/api/client/bookings/${bookingId}/review`, {
+    method: "PUT",
+    headers: {
+      ...userHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return mapReview(data);
 }

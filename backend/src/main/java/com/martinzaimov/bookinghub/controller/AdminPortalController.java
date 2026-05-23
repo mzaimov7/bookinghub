@@ -12,7 +12,6 @@ import com.martinzaimov.bookinghub.dto.AdminReviewServiceRequest;
 import com.martinzaimov.bookinghub.dto.AdminReviewOTD;
 import com.martinzaimov.bookinghub.dto.AdminUserStatusRequest;
 import com.martinzaimov.bookinghub.dto.AdminUserProfileOTD;
-import com.martinzaimov.bookinghub.dto.CategorySuggestionOTD;
 import com.martinzaimov.bookinghub.dto.ServiceOTD;
 import com.martinzaimov.bookinghub.service.AdminPortalService;
 import jakarta.validation.Valid;
@@ -97,11 +96,6 @@ public class AdminPortalController {
         return adminPortalService.deleteService(adminUserId, serviceId, request);
     }
 
-    @GetMapping("/category-suggestions")
-    public List<CategorySuggestionOTD> getCategorySuggestions(@RequestHeader("X-Admin-User-Id") Long adminUserId) {
-        return adminPortalService.getCategorySuggestions(adminUserId);
-    }
-
     @GetMapping("/comments")
     public List<AdminCommentOTD> getComments(@RequestHeader("X-Admin-User-Id") Long adminUserId) {
         return adminPortalService.getComments(adminUserId);
@@ -115,9 +109,10 @@ public class AdminPortalController {
     @PatchMapping("/reviews/{reviewId}/hide")
     public AdminReviewOTD hideReview(
             @RequestHeader("X-Admin-User-Id") Long adminUserId,
-            @PathVariable Long reviewId
+            @PathVariable Long reviewId,
+            @Valid @RequestBody AdminHideCommentRequest request
     ) {
-        return adminPortalService.hideReview(adminUserId, reviewId);
+        return adminPortalService.hideReview(adminUserId, reviewId, request);
     }
 
     @GetMapping("/reports")

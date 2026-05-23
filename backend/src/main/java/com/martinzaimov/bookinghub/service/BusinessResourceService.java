@@ -90,6 +90,14 @@ public class BusinessResourceService {
         Resource r = resources.findByIdAndBusinessUserId(resourceId, businessUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Resource not found"));
 
+        if (req.type != null) {
+            try {
+                r.setType(Resource.Type.valueOf(req.type.trim().toUpperCase()));
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Invalid type. Use STAFF or TEAM.");
+            }
+        }
+
         if (req.name != null) {
             String n = req.name.trim();
             if (!n.isEmpty()) r.setName(n);

@@ -18,6 +18,9 @@ public record BookingItemDTO(
         String address,
         BigDecimal price,
         Integer durationMinutes,
-        String coverImageUrl
+        String coverImageUrl,
+        Long reviewId,
+        Byte reviewRating,
+        String reviewComment
 ) {
 }

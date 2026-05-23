@@ -21,10 +21,18 @@ public class UpdateBusinessProfileRequest {
     @NotBlank
     public String businessName;
 
+    public String companyLegalName;
+
+    public String companyEik;
+
+    public String companyRepresentative;
+
     @NotBlank
     public String city;
 
     public String address;
 
     public String phone;
+
+    public String description;
 }

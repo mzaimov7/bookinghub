@@ -6,6 +6,7 @@ import com.martinzaimov.bookinghub.entity.ClientProfile;
 import com.martinzaimov.bookinghub.entity.Favorite;
 import com.martinzaimov.bookinghub.entity.FavoriteId;
 import com.martinzaimov.bookinghub.entity.RecentSearch;
+import com.martinzaimov.bookinghub.entity.Review;
 import com.martinzaimov.bookinghub.entity.Resource;
 import com.martinzaimov.bookinghub.entity.ResourceDayOff;
 import com.martinzaimov.bookinghub.entity.ResourceSlot;
@@ -54,7 +55,9 @@ public class ClientProfileService {
     private final ServiceResourceDao serviceResources;
     private final ResourceWeeklyOffDayRepository resourceWeeklyOffDays;
     private final ResourceDayOffRepository resourceDayOffs;
+    private final ReviewRepository reviews;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
     private final Path uploadDir;
 
     public ClientProfileService(
@@ -70,7 +73,9 @@ public class ClientProfileService {
             ServiceResourceDao serviceResources,
             ResourceWeeklyOffDayRepository resourceWeeklyOffDays,
             ResourceDayOffRepository resourceDayOffs,
+            ReviewRepository reviews,
             PasswordEncoder passwordEncoder,
+            EmailService emailService,
             @Value("${app.upload.dir:uploads}") String uploadDir
     ) {
         this.users = users;
@@ -85,7 +90,9 @@ public class ClientProfileService {
         this.serviceResources = serviceResources;
         this.resourceWeeklyOffDays = resourceWeeklyOffDays;
         this.resourceDayOffs = resourceDayOffs;
+        this.reviews = reviews;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -308,6 +315,8 @@ public class ClientProfileService {
             return;
         }
 
+        recentSearches.deleteDuplicateSearch(userId, query, city, categoryId, minPrice, maxPrice);
+
         RecentSearch item = new RecentSearch();
         item.setUserId(userId);
         item.setQueryText(query);
@@ -412,9 +421,19 @@ public class ClientProfileService {
         booking.setClientUserId(userId);
         booking.setStatus(Booking.Status.PENDING);
         booking.setClientNote(normalize(request.clientNote));
-        booking.setSource(Booking.Source.ONLINE);
 
         Booking saved = bookings.save(booking);
+        LocalDateTime bookedStartAt = slot.getStartAt();
+        String clientNote = booking.getClientNote();
+        users.findById(service.getBusinessUserId()).ifPresent(businessUser ->
+                emailService.send(
+                        businessUser.getEmail(),
+                        "Нова заявка за резервация",
+                        "Имате нова заявка за \"" + service.getTitle() + "\".\n\n" +
+                                "Дата и час: " + bookedStartAt + "\n" +
+                                "Бележка от клиента: " + (clientNote == null ? "—" : clientNote)
+                )
+        );
         return toBookingDto(saved, service, slot);
     }
 
@@ -431,6 +450,50 @@ public class ClientProfileService {
                     return toBookingDto(booking, service, slot);
                 })
                 .toList();
+    }
+
+    @Transactional
+    public BookingItemDTO cancelBooking(Long userId, Long bookingId, CancelBookingRequest request) {
+        requireClientUser(userId);
+
+        Booking booking = bookings.findById(bookingId)
+                .filter(item -> item.getClientUserId().equals(userId))
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Резервацията не е намерена"));
+
+        if (booking.getStatus() != Booking.Status.PENDING && booking.getStatus() != Booking.Status.CONFIRMED) {
+            throw new ResponseStatusException(BAD_REQUEST, "Само изчакващи или потвърдени резервации могат да бъдат отменени");
+        }
+
+        ResourceSlot slot = slots.findById(booking.getSlotId())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Slot not found"));
+
+        if (slot.getStartAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(BAD_REQUEST, "Минала резервация не може да бъде отменена");
+        }
+
+        String reason = normalize(request.reason);
+        if (reason == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Причината за отказ е задължителна");
+        }
+
+        booking.setStatus(Booking.Status.CANCELED);
+        booking.setStatusReason(reason);
+        slot.setStatus(ResourceSlot.Status.AVAILABLE);
+
+        slots.save(slot);
+        Booking saved = bookings.save(booking);
+        Service service = services.findById(saved.getServiceId())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
+        users.findById(service.getBusinessUserId()).ifPresent(businessUser ->
+                emailService.send(
+                        businessUser.getEmail(),
+                        "Клиент отказа резервация",
+                        "Клиент отказа резервацията за \"" + service.getTitle() + "\".\n\n" +
+                                "Дата и час: " + slot.getStartAt() + "\n" +
+                                "Причина: " + reason
+                )
+        );
+        return toBookingDto(saved, service, slot);
     }
 
     private User requireClientUser(Long userId) {
@@ -466,6 +529,7 @@ public class ClientProfileService {
                 coverUrl
         );
         dto.setActive(service.isActive());
+        dto.setCategorySuggestion(service.getCategorySuggestion());
         dto.setApprovalStatus(service.getApprovalStatus() == null ? null : service.getApprovalStatus().name());
         return dto;
     }
@@ -474,6 +538,8 @@ public class ClientProfileService {
         String coverUrl = serviceImages.findFirstByServiceIdAndCoverTrueOrderBySortOrderAsc(service.getId())
                 .map(ServiceImage::getImageUrl)
                 .orElse(null);
+
+        Review review = reviews.findByBookingId(booking.getId()).orElse(null);
 
         return new BookingItemDTO(
                 booking.getId(),
@@ -490,7 +556,10 @@ public class ClientProfileService {
                 service.getAddress(),
                 service.getPrice(),
                 service.getDurationMinutes(),
-                coverUrl
+                coverUrl,
+                review == null ? null : review.getId(),
+                review == null ? null : review.getRating(),
+                review == null ? null : review.getComment()
         );
     }
 

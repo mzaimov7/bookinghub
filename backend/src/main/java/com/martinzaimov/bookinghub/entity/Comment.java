@@ -23,6 +23,9 @@ public class Comment {
     @Column(name = "parent_id")
     private Long parentId;
 
+    @Column(name = "parent_review_id")
+    private Long parentReviewId;
+
     @Column(name = "text", nullable = false, columnDefinition = "TEXT")
     private String text;
 
@@ -64,6 +67,7 @@ public class Comment {
     public Long getServiceId() { return serviceId; }
     public Long getAuthorUserId() { return authorUserId; }
     public Long getParentId() { return parentId; }
+    public Long getParentReviewId() { return parentReviewId; }
     public String getText() { return text; }
     public Status getStatus() { return status; }
     public String getAdminModerationReason() { return adminModerationReason; }
@@ -76,6 +80,7 @@ public class Comment {
     public void setServiceId(Long serviceId) { this.serviceId = serviceId; }
     public void setAuthorUserId(Long authorUserId) { this.authorUserId = authorUserId; }
     public void setParentId(Long parentId) { this.parentId = parentId; }
+    public void setParentReviewId(Long parentReviewId) { this.parentReviewId = parentReviewId; }
     public void setText(String text) { this.text = text; }
     public void setStatus(Status status) { this.status = status; }
     public void setAdminModerationReason(String adminModerationReason) { this.adminModerationReason = adminModerationReason; }

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Header from "../../../components/layout/Header";
 import { resolveBackendImage } from "../../../lib/assets";
+import { getAvailableSlots } from "../../client/api";
+import { listMyServices } from "../services/api";
 import { createResource, listResources, updateResource, uploadResourcePhoto } from "./api";
 
 const weekdayOptions = [
@@ -20,6 +22,10 @@ export default function BusinessResourcesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [create, setCreate] = useState({ type: "STAFF", name: "", photoUrl: "", photoFile: null, weeklyOffDays: [] });
   const [previewUrl, setPreviewUrl] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editForms, setEditForms] = useState({});
+  const [scheduleCards, setScheduleCards] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
 
   async function load() {
     setLoading(true);
@@ -36,8 +42,49 @@ export default function BusinessResourcesPage() {
     }
   }
 
+  async function loadSchedule() {
+    setScheduleLoading(true);
+    try {
+      const [services, resourceList] = await Promise.all([listMyServices(), listResources()]);
+      const resourceById = new Map(resourceList.map((resource) => [resource.id, resource]));
+      const published = services.filter((item) => item.active && item.approvalStatus === "APPROVED").slice(0, 4);
+      const cards = await Promise.all(
+        published.map(async (service) => {
+          const slots = await getAvailableSlots(service.id).catch(() => []);
+          const assignedResources = (service.resourceIds || [])
+            .map((resourceId) => resourceById.get(resourceId))
+            .filter(Boolean);
+          const dateMap = new Map();
+          slots.forEach((slot) => {
+            const dateKey = new Date(slot.startAt).toLocaleDateString("bg-BG", { day: "2-digit", month: "short" });
+            const timeValue = new Date(slot.startAt).toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" });
+            if (!dateMap.has(dateKey)) {
+              dateMap.set(dateKey, []);
+            }
+            const current = dateMap.get(dateKey);
+            if (current.length < 4) current.push(timeValue);
+          });
+
+          return {
+            serviceId: service.id,
+            title: service.title,
+            assignedResources,
+            dates: Array.from(dateMap.entries()).slice(0, 3),
+            totalSlots: slots.length,
+          };
+        })
+      );
+      setScheduleCards(cards);
+    } catch {
+      setScheduleCards([]);
+    } finally {
+      setScheduleLoading(false);
+    }
+  }
+
   useEffect(() => {
     load();
+    loadSchedule();
   }, []);
 
   async function onCreate(event) {
@@ -66,6 +113,7 @@ export default function BusinessResourcesPage() {
       setCreate({ type: "STAFF", name: "", photoUrl: "", photoFile: null, weeklyOffDays: [] });
       setPreviewUrl("");
       await load();
+      await loadSchedule();
     } catch (createError) {
       alert(createError?.message || "Неуспешно създаване");
     } finally {
@@ -77,6 +125,90 @@ export default function BusinessResourcesPage() {
     try {
       await updateResource(resource.id, { active: !resource.active });
       await load();
+      await loadSchedule();
+    } catch (updateError) {
+      alert(updateError?.message || "Неуспешно обновяване");
+    }
+  }
+
+  function startEdit(resource) {
+    setEditingId(resource.id);
+    setEditForms((current) => ({
+      ...current,
+      [resource.id]: {
+        type: resource.type,
+        name: resource.name,
+        photoUrl: resource.photoUrl || "",
+        photoFile: null,
+        previewUrl: "",
+        weeklyOffDays: resource.weeklyOffDays || [],
+      },
+    }));
+  }
+
+  function cancelEdit(resourceId) {
+    setEditingId(null);
+    setEditForms((current) => {
+      const next = { ...current };
+      delete next[resourceId];
+      return next;
+    });
+  }
+
+  function updateEditForm(resourceId, updates) {
+    setEditForms((current) => ({
+      ...current,
+      [resourceId]: { ...(current[resourceId] || {}), ...updates },
+    }));
+  }
+
+  function onEditFileChange(resourceId, event) {
+    const file = event.target.files?.[0] || null;
+    updateEditForm(resourceId, {
+      photoFile: file,
+      previewUrl: file ? URL.createObjectURL(file) : "",
+    });
+  }
+
+  function toggleEditWeeklyOffDay(resourceId, dayValue) {
+    setEditForms((current) => {
+      const form = current[resourceId] || { weeklyOffDays: [] };
+      const days = form.weeklyOffDays || [];
+      return {
+        ...current,
+        [resourceId]: {
+          ...form,
+          weeklyOffDays: days.includes(dayValue)
+            ? days.filter((item) => item !== dayValue)
+            : [...days, dayValue].sort((a, b) => a - b),
+        },
+      };
+    });
+  }
+
+  async function saveEdit(resource) {
+    const form = editForms[resource.id];
+    if (!form?.name?.trim()) {
+      alert("Въведи име");
+      return;
+    }
+
+    try {
+      let uploadedPhotoUrl = form.photoUrl?.trim() || null;
+      if (form.photoFile) {
+        uploadedPhotoUrl = await uploadResourcePhoto(form.photoFile);
+      }
+
+      await updateResource(resource.id, {
+        type: form.type,
+        name: form.name.trim(),
+        photoUrl: uploadedPhotoUrl,
+        weeklyOffDays: form.weeklyOffDays || [],
+      });
+
+      cancelEdit(resource.id);
+      await load();
+      await loadSchedule();
     } catch (updateError) {
       alert(updateError?.message || "Неуспешно обновяване");
     }
@@ -107,6 +239,7 @@ export default function BusinessResourcesPage() {
     try {
       await updateResource(resource.id, { weeklyOffDays: nextWeeklyOffDays });
       await load();
+      await loadSchedule();
     } catch (updateError) {
       alert(updateError?.message || "Неуспешно обновяване");
     }
@@ -192,10 +325,67 @@ export default function BusinessResourcesPage() {
           Твоите служители и екипи
         </div>
 
+        <div style={{ marginBottom: 18, padding: 18, borderRadius: 20, border: "1px solid rgba(96,165,250,0.22)", background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)", boxShadow: "0 18px 34px rgba(15,23,42,0.16)", display: "grid", gap: 12 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#eff6ff" }}>Актуален работен график</div>
+          <div style={{ color: "rgba(191,219,254,0.78)", lineHeight: 1.6 }}>
+            Виж обявите и хората, които ги обслужват.
+          </div>
+          {scheduleLoading ? (
+            <div style={{ color: "#cbd5e1" }}>Зареждане на свободните часове…</div>
+          ) : !scheduleCards.length ? (
+            <div style={{ color: "#cbd5e1" }}>Все още няма публикувани активни обяви със свободни часове.</div>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              {scheduleCards.map((card) => (
+                <div key={card.serviceId} style={{ padding: 14, borderRadius: 16, border: "1px solid rgba(96,165,250,0.18)", background: "rgba(15,23,42,0.28)", display: "grid", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ fontWeight: 900, color: "#eff6ff" }}>{card.title}</div>
+                    <div style={{ color: "#93c5fd", fontWeight: 800 }}>{card.totalSlots} свободни часа</div>
+                  </div>
+                  <div style={assignedWrap}>
+                    <span style={assignedLabel}>Обслужват</span>
+                    {!card.assignedResources.length ? (
+                      <span style={{ color: "rgba(191,219,254,0.72)" }}>Няма избран служител или екип.</span>
+                    ) : (
+                      <div style={assignedList}>
+                        {card.assignedResources.map((resource) => (
+                          <span key={resource.id} style={assignedChip}>
+                            <img
+                              src={resolveBackendImage(resource.photoUrl) || "https://via.placeholder.com/24?text=%F0%9F%91%A4"}
+                              alt=""
+                              style={assignedAvatar}
+                            />
+                            <span>{resource.name}</span>
+                            <span style={{ color: "rgba(191,219,254,0.62)", fontSize: 11 }}>
+                              {resource.type === "TEAM" ? "екип" : "служител"}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div style={{ display: "grid", gap: 10 }}>
           {items.map((resource) => (
             <div key={resource.id} style={{ padding: 14, border: "1px solid rgba(96,165,250,0.22)", borderRadius: 14, background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 18px 34px rgba(15,23,42,0.16)" }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              {editingId === resource.id ? (
+                <EditResourceCard
+                  form={editForms[resource.id]}
+                  resource={resource}
+                  onChange={(updates) => updateEditForm(resource.id, updates)}
+                  onFileChange={(event) => onEditFileChange(resource.id, event)}
+                  onToggleDay={(dayValue) => toggleEditWeeklyOffDay(resource.id, dayValue)}
+                  onSave={() => saveEdit(resource)}
+                  onCancel={() => cancelEdit(resource.id)}
+                />
+              ) : (
+              <>
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <img
                   src={resolveBackendImage(resource.photoUrl) || "https://via.placeholder.com/48?text=%F0%9F%91%A4"}
                   alt=""
@@ -234,12 +424,89 @@ export default function BusinessResourcesPage() {
                 </div>
               </div>
 
-              <button onClick={() => toggleActive(resource)} style={smallBtn}>
-                {resource.active ? "Деактивирай" : "Активирай"}
-              </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <button onClick={() => startEdit(resource)} style={smallBtn}>
+                  Редактирай
+                </button>
+                <button onClick={() => toggleActive(resource)} style={smallBtn}>
+                  {resource.active ? "Деактивирай" : "Активирай"}
+                </button>
+              </div>
+              </>
+              )}
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay, onSave, onCancel }) {
+  const current = form || {
+    type: resource.type,
+    name: resource.name,
+    photoUrl: resource.photoUrl || "",
+    previewUrl: "",
+    weeklyOffDays: resource.weeklyOffDays || [],
+  };
+  const imageUrl = current.previewUrl || resolveBackendImage(current.photoUrl);
+
+  return (
+    <div style={editCard}>
+      <div style={editHeader}>
+        <img
+          src={imageUrl || "https://via.placeholder.com/72?text=%F0%9F%91%A4"}
+          alt=""
+          style={{ width: 72, height: 72, borderRadius: 999, objectFit: "cover", border: "1px solid rgba(96,165,250,0.28)" }}
+        />
+        <div style={{ display: "grid", gap: 8, minWidth: 0 }}>
+          <select value={current.type} onChange={(event) => onChange({ type: event.target.value })} style={input}>
+            <option value="STAFF">СЛУЖИТЕЛ</option>
+            <option value="TEAM">ЕКИП</option>
+          </select>
+          <input value={current.name} onChange={(event) => onChange({ name: event.target.value })} style={input} placeholder="Име" />
+        </div>
+      </div>
+
+      <label style={uploadWrap}>
+        <span style={{ fontWeight: 800, color: "#eff6ff" }}>Смени снимката</span>
+        <input type="file" accept="image/*" onChange={onFileChange} style={{ marginTop: 8, color: "#cbd5e1" }} />
+      </label>
+
+      {imageUrl ? (
+        <button type="button" onClick={() => onChange({ photoUrl: "", photoFile: null, previewUrl: "" })} style={smallBtn}>
+          Махни снимката
+        </button>
+      ) : null}
+
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ fontWeight: 800, color: "#eff6ff" }}>Седмични почивни дни</div>
+        <div style={dayChipWrap}>
+          {weekdayOptions.map((day) => {
+            const active = current.weeklyOffDays.includes(day.value);
+            return (
+              <button
+                key={day.value}
+                type="button"
+                onClick={() => onToggleDay(day.value)}
+                style={{
+                  ...dayChip,
+                  background: active ? "rgba(127,29,29,0.3)" : "rgba(15,23,42,0.3)",
+                  borderColor: active ? "#fda4af" : "rgba(96,165,250,0.22)",
+                  color: active ? "#fda4af" : "#cbd5e1",
+                }}
+              >
+                {day.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <button type="button" onClick={onCancel} style={smallBtn}>Откажи</button>
+        <button type="button" onClick={onSave} style={btn}>Запази</button>
       </div>
     </div>
   );
@@ -252,3 +519,40 @@ const smallBtn = { border: "1px solid rgba(96,165,250,0.22)", background: "rgba(
 const uploadWrap = { display: "grid", padding: 12, border: "1px dashed rgba(96,165,250,0.24)", borderRadius: 14, background: "rgba(15,23,42,0.26)" };
 const dayChipWrap = { display: "flex", gap: 8, flexWrap: "wrap" };
 const dayChip = { border: "1px solid rgba(96,165,250,0.22)", borderRadius: 999, padding: "8px 12px", fontWeight: 800, cursor: "pointer", background: "rgba(15,23,42,0.3)" };
+const editCard = { width: "100%", display: "grid", gap: 12 };
+const editHeader = { display: "grid", gridTemplateColumns: "72px minmax(0, 1fr)", gap: 12, alignItems: "center" };
+const assignedWrap = {
+  display: "grid",
+  gap: 8,
+  padding: "10px 12px",
+  borderRadius: 14,
+  border: "1px solid rgba(96,165,250,0.14)",
+  background: "rgba(8,18,36,0.34)",
+};
+const assignedLabel = {
+  color: "#93c5fd",
+  fontSize: 12,
+  fontWeight: 900,
+  letterSpacing: 1.4,
+  textTransform: "uppercase",
+};
+const assignedList = { display: "flex", gap: 8, flexWrap: "wrap" };
+const assignedChip = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 7,
+  padding: "6px 10px 6px 6px",
+  borderRadius: 999,
+  border: "1px solid rgba(96,165,250,0.2)",
+  background: "rgba(37,99,235,0.12)",
+  color: "#eff6ff",
+  fontWeight: 850,
+  fontSize: 13,
+};
+const assignedAvatar = {
+  width: 24,
+  height: 24,
+  borderRadius: 999,
+  objectFit: "cover",
+  border: "1px solid rgba(147,197,253,0.35)",
+};

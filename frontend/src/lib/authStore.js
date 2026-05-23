@@ -1,5 +1,5 @@
 const KEY = "bookinghub_auth";
-const PREVIEW_BACKUP_KEY = "bookinghub_admin_preview_backup";
+const ADMIN_RETURN_KEY = "bookinghub_admin_return_auth";
 
 export function isLoggedIn() {
   return !!getAuth();
@@ -20,20 +20,6 @@ export function getRole() {
   return getAuth()?.role || null;
 }
 
-export function isPreviewMode() {
-  return !!localStorage.getItem(PREVIEW_BACKUP_KEY);
-}
-
-export function getPreviewBackupAuth() {
-  const raw = localStorage.getItem(PREVIEW_BACKUP_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
 export function getUserId() {
   return getAuth()?.userId ?? null;
 }
@@ -42,20 +28,32 @@ export function saveAuth(auth) {
   localStorage.setItem(KEY, JSON.stringify(auth));
 }
 
-export function startAdminPreview(nextAuth) {
+export function startAdminPreview(auth) {
   const current = getAuth();
-  if (current && current.role === "ADMIN" && !isPreviewMode()) {
-    localStorage.setItem(PREVIEW_BACKUP_KEY, JSON.stringify(current));
+  if (current?.role === "ADMIN") {
+    localStorage.setItem(ADMIN_RETURN_KEY, JSON.stringify({ ...current, devMode: false }));
   }
-  saveAuth({ ...nextAuth, previewMode: true });
+  saveAuth({ ...auth, devMode: true });
 }
 
 export function stopAdminPreview() {
-  const backup = getPreviewBackupAuth();
-  if (backup) {
-    saveAuth(backup);
+  const raw = localStorage.getItem(ADMIN_RETURN_KEY);
+  if (!raw) return null;
+
+  try {
+    const adminAuth = JSON.parse(raw);
+    localStorage.removeItem(ADMIN_RETURN_KEY);
+    saveAuth({ ...adminAuth, devMode: false });
+    return adminAuth;
+  } catch {
+    localStorage.removeItem(ADMIN_RETURN_KEY);
+    return null;
   }
-  localStorage.removeItem(PREVIEW_BACKUP_KEY);
+}
+
+export function isAdminPreview() {
+  const auth = getAuth();
+  return Boolean(auth?.devMode && auth?.role !== "ADMIN");
 }
 
 export function updateStoredAuth(updates = {}) {
@@ -64,17 +62,7 @@ export function updateStoredAuth(updates = {}) {
   saveAuth({ ...current, ...updates });
 }
 
-export function loginLocal(role = "CLIENT", username = "demo", options = {}) {
-  saveAuth({
-    userId: null,
-    username,
-    email: options.email || "",
-    role,
-    devMode: Boolean(options.devMode),
-  });
-}
-
 export function logoutLocal() {
   localStorage.removeItem(KEY);
-  localStorage.removeItem(PREVIEW_BACKUP_KEY);
+  localStorage.removeItem(ADMIN_RETURN_KEY);
 }

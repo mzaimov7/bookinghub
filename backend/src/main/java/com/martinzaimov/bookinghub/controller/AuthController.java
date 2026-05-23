@@ -27,7 +27,7 @@ public class AuthController {
     }
 
     @PostMapping("/dev-login/{role}")
-    public ResponseEntity<?> loginAsDev(@PathVariable String role) {
+    public ResponseEntity<?> devLogin(@PathVariable String role) {
         return ResponseEntity.ok(auth.loginAsDev(role));
     }
 

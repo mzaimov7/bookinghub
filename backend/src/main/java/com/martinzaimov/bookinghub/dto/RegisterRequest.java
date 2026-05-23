@@ -6,13 +6,17 @@ import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
 
-    @NotBlank @Size(min=3, max=100)
+    @NotBlank(message = "Потребителското име е задължително")
+    @Size(min=3, max=100, message = "Потребителското име трябва да е между 3 и 100 символа")
     public String username;
 
-    @NotBlank @Email @Size(max=255)
+    @NotBlank(message = "Имейлът е задължителен")
+    @Email(message = "Въведи валиден имейл")
+    @Size(max=255, message = "Имейлът е твърде дълъг")
     public String email;
 
-    @NotBlank @Size(min=6, max=100)
+    @NotBlank(message = "Паролата е задължителна")
+    @Size(min=8, max=100, message = "Паролата трябва да е поне 8 символа")
     public String password;
 
     @NotBlank
@@ -28,8 +32,13 @@ public class RegisterRequest {
     // BUSINESS
     public String providerType;   // COMPANY или INDIVIDUAL
     public String businessName;
+    public String companyLegalName;
+    public String companyEik;
+    public String companyRepresentative;
     public String city;
     public String address;
     public String businessPhone;
     public String businessPhotoUrl;
+    public String businessDescription;
+    public Long businessCategoryId;
 }

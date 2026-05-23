@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Header from "../../../components/layout/Header";
 import { resolveBackendImage } from "../../../lib/assets";
-import { listBusinessBookings, updateBusinessBookingStatus } from "../services/api";
+import { createReport, listBusinessBookings, updateBusinessBookingStatus } from "../services/api";
 
 export default function BusinessBookingsPage() {
   const [items, setItems] = useState([]);
@@ -60,6 +60,26 @@ export default function BusinessBookingsPage() {
     }
   }
 
+  async function onReportClient(item) {
+    const reason = window.prompt("Опиши защо докладваш този клиент");
+    if (reason == null) return;
+    if (!reason.trim()) {
+      alert("Причината за сигнала е задължителна.");
+      return;
+    }
+
+    try {
+      await createReport({
+        targetType: "USER",
+        targetId: item.clientUserId,
+        reasonText: reason.trim(),
+      });
+      alert("Сигналът беше подаден успешно.");
+    } catch (error) {
+      alert(error.message || "Неуспешно докладване на клиента");
+    }
+  }
+
   if (loading) return <div style={{ padding: 24, color: "#e2e8f0" }}>Зареждане на входящите резервации…</div>;
 
   return (
@@ -98,7 +118,7 @@ export default function BusinessBookingsPage() {
             {items.map((item) => {
               const imageUrl = resolveBackendImage(item.coverImageUrl);
               const canModerate = item.status === "PENDING";
-              const canComplete = item.status === "CONFIRMED" && new Date(item.endAt).getTime() < Date.now();
+              const canComplete = item.status === "CONFIRMED";
               const isSaving = savingId === item.id;
               return (
                 <div key={item.id} style={card}>
@@ -122,6 +142,12 @@ export default function BusinessBookingsPage() {
                     <Meta label="Час" value={`${formatDate(item.startAt)} · ${formatTimeRange(item.startAt, item.endAt)}`} />
                     <Meta label="Цена" value={`€${item.price.toFixed(2)}`} />
                     <Meta label="Продължителност" value={`${item.durationMinutes} мин`} />
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <button type="button" onClick={() => onReportClient(item)} style={reportClientButton}>
+                      Докладвай клиента
+                    </button>
                   </div>
 
                   {item.clientNote && (
@@ -246,3 +272,4 @@ const textarea = { width: "100%", minHeight: 92, padding: "12px 14px", borderRad
 const approveBtn = { border: "none", background: "linear-gradient(135deg, #16a34a, #15803d)", color: "#fff", borderRadius: 14, padding: "12px 16px", fontWeight: 900, cursor: "pointer" };
 const completeBtn = { border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", borderRadius: 14, padding: "12px 16px", fontWeight: 900, cursor: "pointer" };
 const rejectBtn = { border: "1px solid #fecaca", background: "#fff1f2", color: "#9f1239", borderRadius: 14, padding: "12px 16px", fontWeight: 900, cursor: "pointer" };
+const reportClientButton = { border: "1px solid rgba(248,113,113,0.22)", background: "rgba(255,241,242,0.92)", color: "#be123c", borderRadius: 12, padding: "10px 14px", fontWeight: 900, cursor: "pointer" };

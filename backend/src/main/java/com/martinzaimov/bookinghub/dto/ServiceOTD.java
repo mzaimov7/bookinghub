@@ -7,6 +7,7 @@ public class ServiceOTD {
     private Long id;
     private Long categoryId;
     private Long businessUserId;
+    private String categorySuggestion;
 
     private String title;
     private String description;
@@ -123,6 +124,7 @@ public class ServiceOTD {
     public Long getId() { return id; }
     public Long getCategoryId() { return categoryId; }
     public Long getBusinessUserId() { return businessUserId; }
+    public String getCategorySuggestion() { return categorySuggestion; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public String getCity() { return city; }
@@ -146,6 +148,7 @@ public class ServiceOTD {
     public void setId(Long id) { this.id = id; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public void setBusinessUserId(Long businessUserId) { this.businessUserId = businessUserId; }
+    public void setCategorySuggestion(String categorySuggestion) { this.categorySuggestion = categorySuggestion; }
     public void setTitle(String title) { this.title = title; }
     public void setDescription(String description) { this.description = description; }
     public void setCity(String city) { this.city = city; }

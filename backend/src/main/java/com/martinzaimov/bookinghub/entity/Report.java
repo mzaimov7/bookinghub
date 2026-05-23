@@ -44,6 +44,21 @@ public class Report {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+        if (status == null) {
+            status = Status.OPEN;
+        }
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public Long getId() { return id; }
     public Long getReporterUserId() { return reporterUserId; }
     public TargetType getTargetType() { return targetType; }

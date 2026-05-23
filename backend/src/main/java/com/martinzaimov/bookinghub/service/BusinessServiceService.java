@@ -46,6 +46,7 @@ public class BusinessServiceService {
     private final BookingRepository bookings;
     private final ClientProfileRepository clientProfiles;
     private final ResourceSlotRepository slots;
+    private final EmailService emailService;
     private final Path uploadDir;
 
     public BusinessServiceService(
@@ -58,6 +59,7 @@ public class BusinessServiceService {
             BookingRepository bookings,
             ClientProfileRepository clientProfiles,
             ResourceSlotRepository slots,
+            EmailService emailService,
             @Value("${app.upload.dir:uploads}") String uploadDir
     ) {
         this.services = services;
@@ -69,6 +71,7 @@ public class BusinessServiceService {
         this.bookings = bookings;
         this.clientProfiles = clientProfiles;
         this.slots = slots;
+        this.emailService = emailService;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -82,6 +85,7 @@ public class BusinessServiceService {
         Service s = new Service();
         s.setBusinessUserId(businessUserId);
         s.setCategory(cat);
+        s.setCategorySuggestion(normalize(req.categorySuggestion));
         s.setTitle(req.title.trim());
         s.setDescription(req.description);
         s.setCity(req.city.trim());
@@ -177,6 +181,7 @@ public class BusinessServiceService {
         }
 
         service.setCategory(cat);
+        service.setCategorySuggestion(normalize(req.categorySuggestion));
         service.setTitle(req.title.trim());
         service.setDescription(req.description);
         service.setCity(req.city.trim());
@@ -317,9 +322,6 @@ public class BusinessServiceService {
             if (booking.getStatus() != Booking.Status.CONFIRMED) {
                 throw new ResponseStatusException(BAD_REQUEST, "Only confirmed bookings can be marked as completed");
             }
-            if (slot.getEndAt().isAfter(LocalDateTime.now())) {
-                throw new ResponseStatusException(BAD_REQUEST, "The booking can be completed only after its scheduled end time");
-            }
             booking.setStatus(Booking.Status.COMPLETED);
             booking.setStatusReason(null);
             slot.setStatus(ResourceSlot.Status.BOOKED);
@@ -330,6 +332,7 @@ public class BusinessServiceService {
 
         Service service = services.findById(saved.getServiceId())
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
+        notifyClientForBusinessBookingUpdate(saved, service, slot, nextStatus, reason);
         Resource resource = resources.findById(slot.getResourceId()).orElse(null);
         User client = users.findById(saved.getClientUserId()).orElse(null);
         ClientProfile profile = clientProfiles.findById(saved.getClientUserId()).orElse(null);
@@ -375,6 +378,7 @@ public class BusinessServiceService {
                 resourceIds
         );
         dto.setActive(service.isActive());
+        dto.setCategorySuggestion(service.getCategorySuggestion());
         dto.setApprovalStatus(service.getApprovalStatus() == null ? null : service.getApprovalStatus().name());
         dto.setApprovalNote(service.getApprovalNote());
         dto.setApprovalReviewedAt(service.getApprovalReviewedAt() == null ? null : service.getApprovalReviewedAt().toString());
@@ -484,6 +488,33 @@ public class BusinessServiceService {
             booking.setStatusReason(reason);
             bookings.save(booking);
         }
+    }
+
+    private void notifyClientForBusinessBookingUpdate(
+            Booking booking,
+            Service service,
+            ResourceSlot slot,
+            Booking.Status nextStatus,
+            String reason
+    ) {
+        users.findById(booking.getClientUserId()).ifPresent(client -> {
+            if (nextStatus == Booking.Status.CONFIRMED) {
+                emailService.send(
+                        client.getEmail(),
+                        "Резервацията ти е потвърдена",
+                        "Резервацията ти за \"" + service.getTitle() + "\" беше потвърдена.\n\n" +
+                                "Дата и час: " + slot.getStartAt()
+                );
+            } else if (nextStatus == Booking.Status.REJECTED) {
+                emailService.send(
+                        client.getEmail(),
+                        "Резервацията ти е отказана",
+                        "Резервацията ти за \"" + service.getTitle() + "\" беше отказана.\n\n" +
+                                "Дата и час: " + slot.getStartAt() + "\n" +
+                                "Причина: " + reason
+                );
+            }
+        });
     }
 
     private String normalize(String value) {

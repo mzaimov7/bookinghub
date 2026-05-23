@@ -7,9 +7,13 @@ public record BusinessProfileOTD(
         String role,
         String providerType,
         String businessName,
+        String companyLegalName,
+        String companyEik,
+        String companyRepresentative,
         String city,
         String address,
         String phone,
+        String description,
         String photoUrl
 ) {
 }

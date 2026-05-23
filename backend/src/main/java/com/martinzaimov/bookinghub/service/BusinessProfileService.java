@@ -101,9 +101,10 @@ public class BusinessProfileService {
         String providerType = normalize(request.providerType);
         String businessName = normalize(request.businessName);
         String city = normalize(request.city);
+        String address = normalize(request.address);
 
-        if (username == null || email == null || providerType == null || businessName == null || city == null) {
-            throw new IllegalArgumentException("Username, email, provider type, business name and city are required");
+        if (username == null || email == null || providerType == null || businessName == null || city == null || address == null) {
+            throw new IllegalArgumentException("Username, email, provider type, business name, city and address are required");
         }
 
         users.findByUsernameIgnoreCase(username)
@@ -122,16 +123,27 @@ public class BusinessProfileService {
         user.setEmail(email.toLowerCase());
         users.save(user);
 
+        BusinessProfile.ProviderType nextProviderType;
         try {
-            profile.setProviderType(BusinessProfile.ProviderType.valueOf(providerType.toUpperCase()));
+            nextProviderType = BusinessProfile.ProviderType.valueOf(providerType.toUpperCase());
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(BAD_REQUEST, "Невалиден тип на бизнес профила");
         }
 
+        if (nextProviderType == BusinessProfile.ProviderType.COMPANY
+                && (normalize(request.companyLegalName) == null || normalize(request.companyEik) == null || normalize(request.companyRepresentative) == null)) {
+            throw new ResponseStatusException(BAD_REQUEST, "Име на фирмата, ЕИК и МОЛ са задължителни при фирмен профил");
+        }
+
+        profile.setProviderType(nextProviderType);
         profile.setBusinessName(businessName);
+        profile.setCompanyLegalName(nextProviderType == BusinessProfile.ProviderType.COMPANY ? normalize(request.companyLegalName) : null);
+        profile.setCompanyEik(nextProviderType == BusinessProfile.ProviderType.COMPANY ? normalize(request.companyEik) : null);
+        profile.setCompanyRepresentative(nextProviderType == BusinessProfile.ProviderType.COMPANY ? normalize(request.companyRepresentative) : null);
         profile.setCity(city);
-        profile.setAddress(normalize(request.address));
+        profile.setAddress(address);
         profile.setPhone(normalize(request.phone));
+        profile.setDescription(request.description != null ? normalize(request.description) : profile.getDescription());
         businessProfiles.save(profile);
 
         return toDto(user, profile);
@@ -177,9 +189,13 @@ public class BusinessProfileService {
                 user.getRole().name(),
                 profile.getProviderType().name(),
                 profile.getBusinessName(),
+                profile.getCompanyLegalName(),
+                profile.getCompanyEik(),
+                profile.getCompanyRepresentative(),
                 profile.getCity(),
                 profile.getAddress(),
                 profile.getPhone(),
+                profile.getDescription(),
                 profile.getPhotoUrl()
         );
     }

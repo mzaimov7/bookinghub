@@ -225,7 +225,6 @@ CREATE TABLE bookings (
   status ENUM('PENDING','CONFIRMED','REJECTED','CANCELED') NOT NULL DEFAULT 'PENDING',
   status_reason TEXT NULL,
   client_note TEXT NULL,
-  source ENUM('ONLINE','WALK_IN') NOT NULL DEFAULT 'ONLINE',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
@@ -381,7 +380,6 @@ CREATE TABLE recent_searches (
   category_id BIGINT NULL,
   min_price DECIMAL(10,2) NULL,
   max_price DECIMAL(10,2) NULL,
-  sort ENUM('NEWEST','PRICE_ASC','PRICE_DESC','RATING_DESC') NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_recent_searches_user_created (user_id, created_at),
@@ -393,62 +391,6 @@ CREATE TABLE recent_searches (
   CONSTRAINT fk_recent_searches_category
     FOREIGN KEY (category_id) REFERENCES categories(id)
     ON DELETE SET NULL
-    ON UPDATE CASCADE
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
-
--- =========================
--- 16) CATEGORY SUGGESTIONS
--- =========================
-CREATE TABLE category_suggestions (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  suggested_by_user_id BIGINT NOT NULL,
-  name VARCHAR(120) NOT NULL,
-  description TEXT NULL,
-  status ENUM('PENDING','APPROVED','REJECTED') NOT NULL DEFAULT 'PENDING',
-  admin_note TEXT NULL,
-  created_category_id BIGINT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_cat_sugg_user (suggested_by_user_id),
-  KEY idx_cat_sugg_status (status),
-  KEY idx_cat_sugg_created_category (created_category_id),
-  CONSTRAINT fk_cat_sugg_user
-    FOREIGN KEY (suggested_by_user_id) REFERENCES users(id)
-    ON DELETE RESTRICT
-    ON UPDATE CASCADE,
-  CONSTRAINT fk_cat_sugg_created_category
-    FOREIGN KEY (created_category_id) REFERENCES categories(id)
-    ON DELETE SET NULL
-    ON UPDATE CASCADE
-) ENGINE=InnoDB
-  DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
-
--- =========================
--- 17) EMAIL NOTIFICATIONS (log)
--- =========================
-CREATE TABLE email_notifications (
-  id BIGINT NOT NULL AUTO_INCREMENT,
-  event_type ENUM('BOOKING_CREATED','BOOKING_CONFIRMED','BOOKING_REJECTED','BOOKING_CANCELED') NOT NULL,
-  booking_id BIGINT NOT NULL,
-  to_email VARCHAR(255) NOT NULL,
-  subject VARCHAR(255) NOT NULL,
-  body TEXT NOT NULL,
-  status ENUM('PENDING','SENT','FAILED') NOT NULL DEFAULT 'PENDING',
-  attempts INT NOT NULL DEFAULT 0,
-  last_error TEXT NULL,
-  provider_message_id VARCHAR(255) NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  sent_at DATETIME NULL,
-  PRIMARY KEY (id),
-  KEY idx_email_booking (booking_id),
-  KEY idx_email_status_created (status, created_at),
-  CONSTRAINT fk_email_booking
-    FOREIGN KEY (booking_id) REFERENCES bookings(id)
-    ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4

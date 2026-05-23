@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 public class Booking {
 
     public enum Status { PENDING, CONFIRMED, COMPLETED, REJECTED, CANCELED }
-    public enum Source { ONLINE, WALK_IN }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,10 +32,6 @@ public class Booking {
 
     @Column(name = "client_note", columnDefinition = "TEXT")
     private String clientNote;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Source source;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -63,7 +58,6 @@ public class Booking {
     public Status getStatus() { return status; }
     public String getStatusReason() { return statusReason; }
     public String getClientNote() { return clientNote; }
-    public Source getSource() { return source; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
@@ -73,5 +67,4 @@ public class Booking {
     public void setStatus(Status status) { this.status = status; }
     public void setStatusReason(String statusReason) { this.statusReason = statusReason; }
     public void setClientNote(String clientNote) { this.clientNote = clientNote; }
-    public void setSource(Source source) { this.source = source; }
 }

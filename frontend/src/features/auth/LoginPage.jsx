@@ -88,21 +88,18 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div style={dividerRow}>
-              <div style={divider} />
-              <span style={dividerLabel}>Dev достъп</span>
-              <div style={divider} />
-            </div>
-
-            <div style={devGrid}>
-              <DevRoleCard title="Dev Клиент" onClick={() => onDevLogin("CLIENT")} disabled={loading} />
-              <DevRoleCard title="Dev Бизнес" onClick={() => onDevLogin("BUSINESS")} disabled={loading} />
-              <DevRoleCard title="Dev Админ" onClick={() => onDevLogin("ADMIN")} disabled={loading} />
-            </div>
-
             <p style={registerText}>
               Нямаш профил? <Link to="/register" style={registerLink}>Създай си</Link>
             </p>
+
+            <div style={devBox}>
+              <span style={devLabel}>Временен dev вход</span>
+              <div style={devButtons}>
+                <button type="button" style={devButton} disabled={loading} onClick={() => onDevLogin("admin")}>
+                  Dev админ
+                </button>
+              </div>
+            </div>
           </div>
         </section>
       </div>
@@ -110,19 +107,12 @@ export default function LoginPage() {
   );
 }
 
-function DevRoleCard({ title, onClick, disabled }) {
-  return (
-    <button type="button" onClick={onClick} style={devCard} disabled={disabled}>
-      <span style={devCardTitle}>{title}</span>
-    </button>
-  );
-}
-
 const shell = {
   minHeight: "100vh",
   position: "relative",
   overflow: "hidden",
-  background: "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 22%), radial-gradient(circle at top right, rgba(30,64,175,0.18) 0%, rgba(30,64,175,0) 26%), linear-gradient(180deg, #081224 0%, #0d2b63 12%, #edf4ff 34%, #f7faff 100%)",
+  background:
+    "radial-gradient(circle at 18% 12%, rgba(37,99,235,0.22) 0%, rgba(37,99,235,0) 30%), linear-gradient(145deg, #020617 0%, #061225 44%, #08245a 100%)",
 };
 
 const backdropGlowOne = {
@@ -132,8 +122,8 @@ const backdropGlowOne = {
   width: 420,
   height: 420,
   borderRadius: "50%",
-  background: "rgba(59, 130, 246, 0.18)",
-  filter: "blur(40px)",
+  background: "rgba(37, 99, 235, 0.12)",
+  filter: "blur(72px)",
 };
 
 const backdropGlowTwo = {
@@ -143,8 +133,8 @@ const backdropGlowTwo = {
   width: 360,
   height: 360,
   borderRadius: "50%",
-  background: "rgba(59, 130, 246, 0.14)",
-  filter: "blur(44px)",
+  background: "rgba(14, 116, 184, 0.10)",
+  filter: "blur(76px)",
 };
 
 const layout = {
@@ -162,8 +152,10 @@ const layout = {
 
 const logoStyle = {
   display: "block",
-  height: 60,
-  marginBottom: 6,
+  height: 72,
+  marginBottom: 8,
+  borderRadius: 18,
+  boxShadow: "0 18px 45px rgba(2,6,23,0.28)",
 };
 
 const formPanel = {
@@ -175,10 +167,10 @@ const formPanel = {
 const card = {
   width: "min(460px, 100%)",
   padding: 28,
-  borderRadius: 30,
-  background: "rgba(255,255,255,0.84)",
-  border: "1px solid rgba(255,255,255,0.7)",
-  boxShadow: "0 24px 80px rgba(15, 23, 42, 0.14)",
+  borderRadius: 26,
+  background: "linear-gradient(180deg, rgba(5,13,28,0.96) 0%, rgba(9,25,55,0.94) 100%)",
+  border: "1px solid rgba(147,197,253,0.24)",
+  boxShadow: "0 28px 90px rgba(2,6,23,0.34)",
   backdropFilter: "blur(18px)",
 };
 
@@ -192,12 +184,12 @@ const eyebrow = {
   fontWeight: 800,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#2563eb",
+  color: "#93c5fd",
 };
 
 const title = {
   margin: "10px 0 8px",
-  color: "#0f172a",
+  color: "#eff6ff",
   fontSize: 34,
   lineHeight: 1.05,
   textAlign: "center",
@@ -210,7 +202,7 @@ const form = {
 
 const label = {
   marginTop: 4,
-  color: "#0f172a",
+  color: "#dbeafe",
   fontSize: 13,
   fontWeight: 800,
 };
@@ -218,9 +210,9 @@ const label = {
 const input = {
   padding: "14px 15px",
   borderRadius: 16,
-  border: "1px solid #cbd5e1",
-  background: "rgba(255,255,255,0.9)",
-  color: "#0f172a",
+  border: "1px solid rgba(147,197,253,0.28)",
+  background: "rgba(15,23,42,0.46)",
+  color: "#eff6ff",
   outline: "none",
   fontSize: 15,
 };
@@ -230,66 +222,55 @@ const primaryButton = {
   padding: "15px 16px",
   borderRadius: 16,
   border: "none",
-  background: "linear-gradient(135deg, #0f172a 0%, #2563eb 100%)",
+  background: "linear-gradient(135deg, #2563eb 0%, #0f172a 100%)",
   color: "#fff",
   fontWeight: 900,
   cursor: "pointer",
   boxShadow: "0 16px 30px rgba(37, 99, 235, 0.28)",
 };
 
-const dividerRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
-  marginTop: 24,
-  marginBottom: 18,
-};
-
-const divider = {
-  height: 1,
-  background: "rgba(148, 163, 184, 0.35)",
-  flex: 1,
-};
-
-const dividerLabel = {
-  fontSize: 12,
-  color: "#64748b",
-  fontWeight: 800,
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-};
-
-const devGrid = {
-  display: "grid",
-  gap: 12,
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-};
-
-const devCard = {
-  width: "100%",
-  padding: "14px 12px",
-  borderRadius: 18,
-  border: "1px solid #dbeafe",
-  background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
-  textAlign: "center",
-  cursor: "pointer",
-};
-
-const devCardTitle = {
-  color: "#0f172a",
-  fontWeight: 900,
-  fontSize: 14,
-};
-
 const registerText = {
   marginTop: 18,
   marginBottom: 0,
-  color: "#475569",
+  color: "#cbd5e1",
   fontSize: 14,
 };
 
 const registerLink = {
-  color: "#2563eb",
+  color: "#93c5fd",
   fontWeight: 800,
   textDecoration: "none",
+};
+
+const devBox = {
+  marginTop: 18,
+  padding: 12,
+  borderRadius: 18,
+  background: "rgba(37,99,235,0.10)",
+  border: "1px dashed rgba(147,197,253,0.34)",
+};
+
+const devLabel = {
+  display: "block",
+  marginBottom: 10,
+  color: "#bfdbfe",
+  fontSize: 12,
+  fontWeight: 900,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const devButtons = {
+  display: "flex",
+};
+
+const devButton = {
+  width: "100%",
+  padding: "10px 8px",
+  borderRadius: 12,
+  border: "1px solid rgba(147,197,253,0.28)",
+  background: "rgba(15,23,42,0.58)",
+  color: "#eff6ff",
+  fontWeight: 800,
+  cursor: "pointer",
 };

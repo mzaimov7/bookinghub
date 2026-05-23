@@ -11,7 +11,6 @@ import {
   listAdminBookings,
   listAdminBusinesses,
   listAdminCategories,
-  listAdminCategorySuggestions,
   listAdminClients,
   listAdminComments,
   listAdminReports,
@@ -28,8 +27,7 @@ const tabs = [
   { id: "bookings", label: "Резервации" },
   { id: "categories", label: "Категории" },
   { id: "reports", label: "Докладвания" },
-  { id: "reviews", label: "Отзиви" },
-  { id: "comments", label: "Коментари" },
+  { id: "moderation", label: "Коментари и отзиви" },
   { id: "businesses", label: "Бизнес профили" },
   { id: "clients", label: "Клиенти" },
 ];
@@ -45,7 +43,6 @@ export default function AdminServicesPage() {
   const [services, setServices] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [categorySuggestions, setCategorySuggestions] = useState([]);
   const [reports, setReports] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [comments, setComments] = useState([]);
@@ -66,7 +63,6 @@ export default function AdminServicesPage() {
         nextServices,
         nextBookings,
         nextCategories,
-        nextCategorySuggestions,
         nextReports,
         nextReviews,
         nextComments,
@@ -76,7 +72,6 @@ export default function AdminServicesPage() {
         listAdminServices(),
         listAdminBookings(),
         listAdminCategories(),
-        listAdminCategorySuggestions(),
         listAdminReports(),
         listAdminReviews(),
         listAdminComments(),
@@ -87,7 +82,6 @@ export default function AdminServicesPage() {
       setServices(nextServices);
       setBookings(nextBookings);
       setCategories(nextCategories);
-      setCategorySuggestions(nextCategorySuggestions);
       setReports(nextReports);
       setReviews(nextReviews);
       setComments(nextComments);
@@ -118,12 +112,37 @@ export default function AdminServicesPage() {
       bookings: `${bookings.length} общо`,
       categories: `${categories.filter((item) => item.active).length} активни`,
       reports: `${reports.filter((item) => item.status === "OPEN" || item.status === "IN_REVIEW").length} активни`,
-      reviews: `${reviews.filter((item) => item.status === "VISIBLE").length} видими`,
-      comments: `${comments.filter((item) => item.status === "VISIBLE").length} видими`,
+      moderation: `${reviews.filter((item) => item.status === "VISIBLE").length + comments.filter((item) => item.status === "VISIBLE").length} видими`,
       businesses: `${businesses.length} профила`,
       clients: `${clients.length} профила`,
     }),
     [services, bookings, categories, reports, reviews, comments, businesses, clients]
+  );
+
+  const moderationItems = useMemo(
+    () => [
+      ...reviews.map((item) => ({
+        ...item,
+        moderationType: "review",
+        moderationKey: `review-${item.id}`,
+        title: item.serviceTitle,
+        text: item.comment || "Няма текст към отзива.",
+        meta: `От ${item.authorName} • Оценка ${item.rating}/5`,
+        label: item.status === "HIDDEN" ? "Скрит отзив" : "Видим отзив",
+        createdAt: item.createdAt,
+      })),
+      ...comments.map((item) => ({
+        ...item,
+        moderationType: "comment",
+        moderationKey: `comment-${item.id}`,
+        title: item.serviceTitle,
+        text: item.text,
+        meta: `От ${item.authorName}`,
+        label: item.status === "HIDDEN" ? "Скрит коментар" : "Видим коментар",
+        createdAt: item.createdAt,
+      })),
+    ].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)),
+    [reviews, comments]
   );
 
   async function onApproveService(service) {
@@ -159,8 +178,8 @@ export default function AdminServicesPage() {
     if (!reason) return alert("Добави причина за сваляне.");
     try {
       setBusyKey(`delete-${service.id}`);
-      const next = await deleteServiceAsAdmin(service.id, { reason });
-      setServices((current) => current.map((item) => (item.id === service.id ? next : item)));
+      await deleteServiceAsAdmin(service.id, { reason });
+      setServices((current) => current.filter((item) => item.id !== service.id));
     } catch (actionError) {
       alert(actionError.message);
     } finally {
@@ -215,12 +234,12 @@ export default function AdminServicesPage() {
   }
 
   async function onHideComment(comment) {
-    const reason = (commentReasons[comment.id] ?? "").trim();
+    const reason = (commentReasons[comment.moderationKey ?? `comment-${comment.id}`] ?? "").trim();
     if (!reason) return alert("Добави причина за скриването.");
     try {
       setBusyKey(`comment-${comment.id}`);
-      const next = await hideCommentAsAdmin(comment.id, { reason });
-      setComments((current) => current.map((item) => (item.id === comment.id ? next : item)));
+      await hideCommentAsAdmin(comment.id, { reason });
+      setComments((current) => current.filter((item) => item.id !== comment.id));
     } catch (actionError) {
       alert(actionError.message);
     } finally {
@@ -229,10 +248,12 @@ export default function AdminServicesPage() {
   }
 
   async function onHideReview(review) {
+    const reason = (commentReasons[review.moderationKey ?? `review-${review.id}`] ?? "").trim();
+    if (!reason) return alert("Добави причина за скриването.");
     try {
       setBusyKey(`review-${review.id}`);
-      const next = await hideReviewAsAdmin(review.id);
-      setReviews((current) => current.map((item) => (item.id === review.id ? next : item)));
+      await hideReviewAsAdmin(review.id, { reason });
+      setReviews((current) => current.filter((item) => item.id !== review.id));
     } catch (actionError) {
       alert(actionError.message);
     } finally {
@@ -253,13 +274,27 @@ export default function AdminServicesPage() {
   }
 
   async function onToggleUser(profile) {
+    const nextActive = !profile.active;
+    let reason = "";
+    if (!nextActive) {
+      reason = window.prompt("Добави причина за деактивиране на профила")?.trim() || "";
+      if (!reason) return;
+    }
     try {
       setBusyKey(`user-${profile.userId}`);
-      const next = await updateAdminUserStatus(profile.userId, { active: !profile.active });
+      const next = await updateAdminUserStatus(profile.userId, { active: nextActive, reason: reason || null });
       if (profile.role === "BUSINESS") {
-        setBusinesses((current) => current.map((item) => (item.userId === profile.userId ? next : item)));
+        setBusinesses((current) => (
+          next.active
+            ? current.map((item) => (item.userId === profile.userId ? next : item))
+            : current.filter((item) => item.userId !== profile.userId)
+        ));
       } else {
-        setClients((current) => current.map((item) => (item.userId === profile.userId ? next : item)));
+        setClients((current) => (
+          next.active
+            ? current.map((item) => (item.userId === profile.userId ? next : item))
+            : current.filter((item) => item.userId !== profile.userId)
+        ));
       }
     } catch (actionError) {
       alert(actionError.message);
@@ -313,7 +348,13 @@ export default function AdminServicesPage() {
                     <div style={statusChip(service.approvalStatus)}>{labelForServiceStatus(service.approvalStatus, service.active)}</div>
                     <div style={cardTitle}>{service.title}</div>
                     <div style={mutedText}>{service.city} • €{service.price.toFixed(2)}</div>
-                    <div style={bodyText}>{service.description || "Няма описание."}</div>
+                    {service.categorySuggestion ? (
+                      <div style={subtlePanel}>
+                        <strong style={{ color: "#bfdbfe" }}>Предложение за категория</strong>
+                        <div style={bodyText}>{service.categorySuggestion}</div>
+                      </div>
+                    ) : null}
+                    <div style={previewBodyText}>{service.description || "Няма описание."}</div>
                     <textarea
                       value={serviceNotes[service.id] ?? service.approvalNote ?? ""}
                       onChange={(event) => setServiceNotes((current) => ({ ...current, [service.id]: event.target.value }))}
@@ -323,7 +364,7 @@ export default function AdminServicesPage() {
                     <div style={actions}>
                       <button type="button" onClick={() => onApproveService(service)} style={primaryButton} disabled={busyKey === `approve-${service.id}`}>Одобри</button>
                       <button type="button" onClick={() => onRejectService(service)} style={secondaryButton} disabled={busyKey === `reject-${service.id}`}>Върни</button>
-                      <button type="button" onClick={() => onDeleteService(service)} style={dangerButton} disabled={busyKey === `delete-${service.id}`}>Свали</button>
+                      <button type="button" onClick={() => onDeleteService(service)} style={dangerButton} disabled={busyKey === `delete-${service.id}`}>Изтрий</button>
                     </div>
                   </div>
                 </div>
@@ -340,6 +381,11 @@ export default function AdminServicesPage() {
                   <div style={mutedText}>Час: {formatDateRange(booking.startAt, booking.endAt)}</div>
                   <div style={mutedText}>Статус причина: {booking.statusReason || "—"}</div>
                   <div style={mutedText}>Бележка от клиента: {booking.clientNote || "—"}</div>
+                  <div style={actions}>
+                    <button type="button" onClick={() => setBookings((current) => current.filter((item) => item.id !== booking.id))} style={dangerButton}>
+                      Изтрий
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}
@@ -360,20 +406,6 @@ export default function AdminServicesPage() {
                     </div>
                   </div>
                 </article>
-
-                {categorySuggestions.length ? (
-                  <article style={panelCard}>
-                    <div style={{ display: "grid", gap: 10 }}>
-                      <div style={cardTitle}>Предложения от бизнеса</div>
-                      {categorySuggestions.map((item) => (
-                        <div key={item.id} style={subtlePanel}>
-                          <div style={{ fontWeight: 800, color: "#eff6ff" }}>{item.businessName}</div>
-                          <div style={bodyText}>{item.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                ) : null}
 
                 {categories.map((category) => (
                   <article key={category.id} style={panelCard}>
@@ -407,65 +439,73 @@ export default function AdminServicesPage() {
               </div>
             )}
 
-            {activeTab === "reports" && reports.map((report) => (
-              <article key={report.id} style={panelCard}>
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div style={statusChip(report.status)}>{labelForReportStatus(report.status)}</div>
-                  <div style={cardTitle}>{report.targetType} • {report.targetLabel}</div>
-                  <div style={mutedText}>Подаден от: {report.reporterName}</div>
-                  <div style={bodyText}>{report.reasonText}</div>
-                  <textarea
-                    value={reportNotes[report.id] ?? report.resolutionNote ?? ""}
-                    onChange={(event) => setReportNotes((current) => ({ ...current, [report.id]: event.target.value }))}
-                    placeholder="Бележка по сигнала"
-                    style={textarea}
-                  />
-                  <div style={actions}>
-                    <button type="button" onClick={() => onUpdateReport(report, "IN_REVIEW")} style={secondaryButton} disabled={busyKey === `report-${report.id}-IN_REVIEW`}>В преглед</button>
-                    <button type="button" onClick={() => onUpdateReport(report, "RESOLVED")} style={primaryButton} disabled={busyKey === `report-${report.id}-RESOLVED`}>Решен</button>
-                    <button type="button" onClick={() => onUpdateReport(report, "REJECTED")} style={dangerButton} disabled={busyKey === `report-${report.id}-REJECTED`}>Отхвърли</button>
-                  </div>
-                </div>
-              </article>
-            ))}
+            {activeTab === "reports" && (
+              <div style={moderationList}>
+                {reports.map((report) => (
+                  <article key={report.id} style={reportCard}>
+                    <div style={reportContent}>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                        <div style={statusChip(report.status)}>{labelForReportStatus(report.status)}</div>
+                        <div style={reportTypePill}>{labelForTargetType(report.targetType)}</div>
+                      </div>
+                      <div style={cardTitle}>{report.targetLabel}</div>
+                      <div style={reportTextBox}>
+                        <strong style={{ color: "#dbeafe" }}>Причина за докладване:</strong>
+                        <div style={bodyText}>{report.reasonText}</div>
+                      </div>
+                      <div style={mutedText}>Докладвано от: {report.reporterName}</div>
+                      <div style={mutedText}>Дата: {formatDateTime(report.createdAt)}</div>
+                      <textarea
+                        value={reportNotes[report.id] ?? report.resolutionNote ?? ""}
+                        onChange={(event) => setReportNotes((current) => ({ ...current, [report.id]: event.target.value }))}
+                        placeholder="Бележка по сигнала"
+                        style={textarea}
+                      />
+                    </div>
+                    <div style={reportActions}>
+                      <button type="button" onClick={() => onUpdateReport(report, "IN_REVIEW")} style={secondaryButton} disabled={busyKey === `report-${report.id}-IN_REVIEW`}>В преглед</button>
+                      <button type="button" onClick={() => onUpdateReport(report, "RESOLVED")} style={primaryButton} disabled={busyKey === `report-${report.id}-RESOLVED`}>Решен</button>
+                      <button type="button" onClick={() => onUpdateReport(report, "REJECTED")} style={dangerButton} disabled={busyKey === `report-${report.id}-REJECTED`}>Отхвърли</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
 
-            {activeTab === "reviews" && reviews.map((review) => (
-              <article key={review.id} style={panelCard}>
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div style={statusChip(review.status)}>{review.status === "HIDDEN" ? "Скрит отзив" : "Видим отзив"}</div>
-                  <div style={cardTitle}>{review.serviceTitle}</div>
-                  <div style={mutedText}>От {review.authorName} • Оценка {review.rating}/5</div>
-                  <div style={bodyText}>{review.comment || "Няма текст към отзива."}</div>
-                  <div style={actions}>
-                    <button type="button" onClick={() => onHideReview(review)} style={dangerButton} disabled={busyKey === `review-${review.id}` || review.status === "HIDDEN"}>
-                      {review.status === "HIDDEN" ? "Вече е скрит" : "Скрий отзива"}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-
-            {activeTab === "comments" && comments.map((comment) => (
-              <article key={comment.id} style={panelCard}>
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div style={statusChip(comment.status)}>{comment.status === "HIDDEN" ? "Скрит коментар" : "Видим коментар"}</div>
-                  <div style={cardTitle}>{comment.serviceTitle}</div>
-                  <div style={mutedText}>От {comment.authorName}</div>
-                  <div style={bodyText}>{comment.text}</div>
-                  <textarea
-                    value={commentReasons[comment.id] ?? comment.adminModerationReason ?? ""}
-                    onChange={(event) => setCommentReasons((current) => ({ ...current, [comment.id]: event.target.value }))}
-                    placeholder="Причина за скриване"
-                    style={textarea}
-                  />
-                  <div style={actions}>
-                    <button type="button" onClick={() => onHideComment(comment)} style={dangerButton} disabled={busyKey === `comment-${comment.id}` || comment.status === "HIDDEN"}>
-                      {comment.status === "HIDDEN" ? "Вече е скрит" : "Скрий коментара"}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
+            {activeTab === "moderation" && (
+              <div style={moderationList}>
+                {moderationItems.map((item) => (
+                  <article key={item.moderationKey} style={reportCard}>
+                    <div style={reportContent}>
+                      <div style={statusChip(item.status)}>{item.label}</div>
+                      <div style={cardTitle}>{item.title}</div>
+                      <div style={reportTextBox}>
+                        <strong style={{ color: "#dbeafe" }}>{item.moderationType === "review" ? "Текст на отзива:" : "Текст на коментара:"}</strong>
+                        <div style={bodyText}>{item.text}</div>
+                      </div>
+                      <div style={mutedText}>{item.meta}</div>
+                      <div style={mutedText}>Дата: {formatDateTime(item.createdAt)}</div>
+                      <textarea
+                        value={commentReasons[item.moderationKey] ?? item.adminModerationReason ?? ""}
+                        onChange={(event) => setCommentReasons((current) => ({ ...current, [item.moderationKey]: event.target.value }))}
+                        placeholder="Причина за скриване"
+                        style={textarea}
+                      />
+                    </div>
+                    <div style={reportActions}>
+                      <button
+                        type="button"
+                        onClick={() => (item.moderationType === "review" ? onHideReview(item) : onHideComment(item))}
+                        style={dangerButton}
+                        disabled={busyKey === `${item.moderationType}-${item.id}` || item.status === "HIDDEN"}
+                      >
+                        Изтрий
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
 
             {activeTab === "businesses" && (
               <div style={profileGrid}>
@@ -477,8 +517,10 @@ export default function AdminServicesPage() {
                     <div style={profileMeta}>Адрес: {profile.address || "—"}</div>
                     <div style={profileMeta}>Телефон: {profile.phone || "—"}</div>
                     <div style={profileMeta}>Обяви: {profile.listingCount}</div>
+                    <div style={profileMeta}>Регистриран: {formatDateTime(profile.createdAt)}</div>
+                    <div style={profileMeta}>Последно влизане: {formatDateTime(profile.lastLoginAt)}</div>
                     <button type="button" onClick={() => onToggleUser(profile)} style={profile.active ? dangerButton : primaryButton} disabled={busyKey === `user-${profile.userId}`}>
-                      {profile.active ? "Деактивирай профила" : "Активирай профила"}
+                      {profile.active ? "Изтрий" : "Активирай профила"}
                     </button>
                   </article>
                 ))}
@@ -492,9 +534,11 @@ export default function AdminServicesPage() {
                     <ProfileHeader profile={profile} />
                     <div style={profileMeta}>Потребител: {profile.username}</div>
                     <div style={profileMeta}>Телефон: {profile.phone || "—"}</div>
+                    <div style={profileMeta}>Регистриран: {formatDateTime(profile.createdAt)}</div>
+                    <div style={profileMeta}>Последно влизане: {formatDateTime(profile.lastLoginAt)}</div>
                     <div style={profileMeta}>Биография: {profile.bio || "Няма добавена биография."}</div>
                     <button type="button" onClick={() => onToggleUser(profile)} style={profile.active ? dangerButton : primaryButton} disabled={busyKey === `user-${profile.userId}`}>
-                      {profile.active ? "Деактивирай профила" : "Активирай профила"}
+                      {profile.active ? "Изтрий" : "Активирай профила"}
                     </button>
                   </article>
                 ))}
@@ -546,11 +590,32 @@ function labelForReportStatus(status) {
   return "Отворен";
 }
 
+function labelForTargetType(type) {
+  if (type === "BUSINESS_PROFILE") return "Бизнес профил";
+  if (type === "CLIENT_PROFILE") return "Клиентски профил";
+  if (type === "REVIEW") return "Отзив";
+  if (type === "COMMENT") return "Коментар";
+  return "Сигнал";
+}
+
 function formatDateRange(startAt, endAt) {
   if (!startAt) return "—";
   const start = new Date(startAt);
   const end = endAt ? new Date(endAt) : null;
   return `${start.toLocaleDateString("bg-BG")} ${start.toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" })}${end ? ` - ${end.toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" })}` : ""}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("bg-BG", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function initialsOf(value) {
@@ -572,6 +637,37 @@ const tabRow = { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18, marg
 const tabButton = { border: "1px solid rgba(96,165,250,0.18)", color: "#fff", borderRadius: 16, padding: "12px 16px", cursor: "pointer", display: "grid", gap: 4, minWidth: 126 };
 const loadingCard = { padding: 24, borderRadius: 22, background: "rgba(10,20,40,0.84)", color: "#dbeafe", border: "1px solid rgba(96,165,250,0.16)" };
 const panelCard = { padding: 18, borderRadius: 24, background: "linear-gradient(180deg, rgba(10,20,40,0.92), rgba(15,23,42,0.86))", border: "1px solid rgba(96,165,250,0.16)", boxShadow: "0 18px 46px rgba(2,6,23,0.18)" };
+const moderationList = { display: "grid", gap: 14 };
+const reportCard = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) 180px",
+  gap: 18,
+  padding: 18,
+  borderRadius: 24,
+  background: "linear-gradient(180deg, rgba(10,20,40,0.94), rgba(15,23,42,0.88))",
+  border: "1px solid rgba(148,163,184,0.22)",
+  boxShadow: "0 18px 46px rgba(2,6,23,0.18)",
+};
+const reportContent = { display: "grid", gap: 10, minWidth: 0 };
+const reportActions = { display: "flex", flexDirection: "column", gap: 10, alignSelf: "start" };
+const reportTextBox = {
+  display: "grid",
+  gap: 6,
+  padding: "12px 14px",
+  borderRadius: 16,
+  background: "rgba(226,232,240,0.08)",
+  border: "1px solid rgba(96,165,250,0.14)",
+};
+const reportTypePill = {
+  width: "fit-content",
+  padding: "7px 10px",
+  borderRadius: 999,
+  background: "rgba(37,99,235,0.18)",
+  color: "#bfdbfe",
+  border: "1px solid rgba(96,165,250,0.2)",
+  fontSize: 12,
+  fontWeight: 900,
+};
 const serviceRow = { display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 18, alignItems: "start" };
 const serviceImageWrap = { minHeight: 160, borderRadius: 20, overflow: "hidden", background: "rgba(15,23,42,0.72)", border: "1px solid rgba(148,163,184,0.16)" };
 const serviceImage = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
@@ -579,6 +675,14 @@ const imagePlaceholder = { minHeight: 160, display: "grid", placeItems: "center"
 const cardTitle = { fontSize: 22, fontWeight: 900, color: "#eff6ff" };
 const mutedText = { color: "rgba(191,219,254,0.8)", lineHeight: 1.55 };
 const bodyText = { color: "rgba(226,232,240,0.82)", lineHeight: 1.65 };
+const previewBodyText = {
+  color: "rgba(226,232,240,0.82)",
+  lineHeight: 1.65,
+  display: "-webkit-box",
+  WebkitLineClamp: 3,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
 const textarea = { width: "100%", minHeight: 96, borderRadius: 16, border: "1px solid rgba(96,165,250,0.16)", background: "rgba(15,23,42,0.78)", color: "#eff6ff", padding: 12, resize: "vertical", boxSizing: "border-box" };
 const input = { width: "100%", borderRadius: 14, border: "1px solid rgba(96,165,250,0.16)", background: "rgba(15,23,42,0.78)", color: "#eff6ff", padding: "12px 14px", boxSizing: "border-box" };
 const actions = { display: "flex", gap: 10, flexWrap: "wrap" };

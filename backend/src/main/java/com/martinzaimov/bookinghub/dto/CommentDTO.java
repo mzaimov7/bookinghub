@@ -7,6 +7,10 @@ public record CommentDTO(
         Long serviceId,
         Long authorUserId,
         String authorName,
+        String authorRole,
+        String authorPhotoUrl,
+        Long parentId,
+        Long parentReviewId,
         String text,
         LocalDateTime createdAt
 ) {

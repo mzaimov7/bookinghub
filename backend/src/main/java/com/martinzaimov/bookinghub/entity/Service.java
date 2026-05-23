@@ -22,6 +22,9 @@ public class Service {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @Column(name = "category_suggestion", columnDefinition = "TEXT")
+    private String categorySuggestion;
+
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -82,6 +85,7 @@ public class Service {
     public Long getId() { return id; }
     public Long getBusinessUserId() { return businessUserId; }
     public Category getCategory() { return category; }
+    public String getCategorySuggestion() { return categorySuggestion; }
     public String getTitle() { return title; }
     public String getDescription() { return description; }
     public String getCity() { return city; }
@@ -104,6 +108,7 @@ public class Service {
     public void setId(Long id) { this.id = id; }
     public void setBusinessUserId(Long businessUserId) { this.businessUserId = businessUserId; }
     public void setCategory(Category category) { this.category = category; }
+    public void setCategorySuggestion(String categorySuggestion) { this.categorySuggestion = categorySuggestion; }
     public void setTitle(String title) { this.title = title; }
     public void setDescription(String description) { this.description = description; }
     public void setCity(String city) { this.city = city; }

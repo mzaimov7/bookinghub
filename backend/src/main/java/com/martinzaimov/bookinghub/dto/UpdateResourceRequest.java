@@ -3,6 +3,7 @@ package com.martinzaimov.bookinghub.dto;
 import java.util.List;
 
 public class UpdateResourceRequest {
+    public String type;
     public String name;
     public Boolean active;
     public String photoUrl;

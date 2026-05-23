@@ -21,6 +21,9 @@ export default function BusinessProfilePage() {
     email: "",
     providerType: "COMPANY",
     businessName: "",
+    companyLegalName: "",
+    companyEik: "",
+    companyRepresentative: "",
     city: "",
     address: "",
     phone: "",
@@ -49,6 +52,9 @@ export default function BusinessProfilePage() {
           email: profile.email,
           providerType: profile.providerType,
           businessName: profile.businessName,
+          companyLegalName: profile.companyLegalName || "",
+          companyEik: profile.companyEik || "",
+          companyRepresentative: profile.companyRepresentative || "",
           city: profile.city,
           address: profile.address || "",
           phone: profile.phone || "",
@@ -127,8 +133,11 @@ export default function BusinessProfilePage() {
         email: form.email,
         providerType: form.providerType,
         businessName: form.businessName,
+        companyLegalName: form.providerType === "COMPANY" ? form.companyLegalName : null,
+        companyEik: form.providerType === "COMPANY" ? form.companyEik : null,
+        companyRepresentative: form.providerType === "COMPANY" ? form.companyRepresentative : null,
         city: form.city,
-        address: form.address || null,
+        address: form.address,
         phone: form.phone || null,
       });
 
@@ -236,6 +245,13 @@ export default function BusinessProfilePage() {
                         <MaskedField label="Имейл" />
                         <MaskedField label="Тип профил" />
                         <MaskedField label="Име на бизнеса" />
+                        {form.providerType === "COMPANY" ? (
+                          <>
+                            <MaskedField label="Име на фирмата" />
+                            <MaskedField label="ЕИК" />
+                            <MaskedField label="МОЛ" />
+                          </>
+                        ) : null}
                         <MaskedField label="Град" />
                         <MaskedField label="Адрес" />
                         <MaskedField label="Телефон" />
@@ -280,12 +296,22 @@ export default function BusinessProfilePage() {
                           <Field label="Име на бизнеса" name="businessName" value={form.businessName} onChange={onChange} required />
                         </div>
 
+                        {form.providerType === "COMPANY" ? (
+                          <>
+                            <Field label="Име на фирмата" name="companyLegalName" value={form.companyLegalName} onChange={onChange} required />
+                            <div style={gridTwo}>
+                              <Field label="ЕИК" name="companyEik" value={form.companyEik} onChange={onChange} required />
+                              <Field label="МОЛ" name="companyRepresentative" value={form.companyRepresentative} onChange={onChange} required />
+                            </div>
+                          </>
+                        ) : null}
+
                         <div style={gridTwo}>
                           <Field label="Град" name="city" value={form.city} onChange={onChange} required />
                           <Field label="Телефон" name="phone" value={form.phone} onChange={onChange} />
                         </div>
 
-                        <Field label="Адрес" name="address" value={form.address} onChange={onChange} />
+                        <Field label="Адрес" name="address" value={form.address} onChange={onChange} required />
 
                         <button type="submit" style={saveButton} disabled={saving}>
                           {saving ? "Запазване..." : "Запази промените"}

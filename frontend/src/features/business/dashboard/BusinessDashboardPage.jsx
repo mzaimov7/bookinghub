@@ -5,12 +5,14 @@ import { getAuth } from "../../../lib/authStore";
 import { resolveBackendImage } from "../../../lib/assets";
 import { listBusinessBookings, listMyServices } from "../services/api";
 import { listResources } from "../resources/api";
+import { getMyBusinessProfile } from "../profile/api";
 
 export default function BusinessDashboardPage() {
   const auth = getAuth();
   const [services, setServices] = useState([]);
   const [resources, setResources] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -21,13 +23,14 @@ export default function BusinessDashboardPage() {
       listings: services.length,
       staff: activeResources.length,
       pending: pendingBookings.length,
-      confirmed: bookings.filter((item) => item.status === "CONFIRMED").length,
+      completed: bookings.filter((item) => item.status === "COMPLETED").length,
     };
   }, [bookings, resources, services]);
 
   const previewServices = services.slice(0, 3);
   const pendingPreview = bookings.filter((item) => item.status === "PENDING").slice(0, 3);
-  const resourcePreview = resources.slice(0, 4);
+  const staffPreview = resources.filter((item) => item.type !== "TEAM").slice(0, 4);
+  const teamPreview = resources.filter((item) => item.type === "TEAM").slice(0, 4);
 
   useEffect(() => {
     async function load() {
@@ -35,20 +38,23 @@ export default function BusinessDashboardPage() {
       setError("");
 
       try {
-        const [loadedServices, loadedResources, loadedBookings] = await Promise.all([
+        const [loadedServices, loadedResources, loadedBookings, loadedProfile] = await Promise.all([
           listMyServices(),
           listResources(),
           listBusinessBookings(),
+          getMyBusinessProfile(),
         ]);
 
         setServices(loadedServices);
         setResources(loadedResources);
         setBookings(loadedBookings);
+        setProfile(loadedProfile);
       } catch (loadError) {
         setError(loadError?.message || "Failed to load business workspace");
         setServices([]);
         setResources([]);
         setBookings([]);
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -69,13 +75,22 @@ export default function BusinessDashboardPage() {
         <section style={hero}>
         <div style={{ display: "grid", gap: 14 }}>
           <div style={heroEyebrow}>Бизнес команден център</div>
-          <div style={{ display: "grid", gap: 8 }}>
-            <h1 style={heroTitle}>
-              {auth?.username ? `${auth.username}, поддържай бизнес страната в движение.` : "Поддържай бизнес страната в движение."}
-            </h1>
-            <p style={heroText}>
-              Създавай обяви, разпределяй хора или екипи и отговаряй на клиентски заявки от едно фокусирано пространство, изградено около начина, по който работи реален booking бизнес.
-            </p>
+          <div style={heroIdentity}>
+            <div style={heroAvatarWrap}>
+              {profile?.photoUrl ? (
+                <img src={resolveBackendImage(profile.photoUrl)} alt={profile.businessName || auth?.username || "Бизнес профил"} style={heroAvatarImage} />
+              ) : (
+                <div style={heroAvatarFallback}>{initials(profile?.businessName || auth?.username)}</div>
+              )}
+            </div>
+            <div style={{ display: "grid", gap: 8 }}>
+              <h1 style={heroTitle}>
+                {auth?.username || "Бизнес профил"}
+              </h1>
+              <p style={heroText}>
+                Създавай обяви, разпределяй хора или екипи и отговаряй на клиентски заявки от едно фокусирано пространство, изградено около начина, по който работи реален booking бизнес.
+              </p>
+            </div>
           </div>
           <div style={heroActions}>
             <Link to="/business/services/new" style={primaryAction}>
@@ -91,7 +106,7 @@ export default function BusinessDashboardPage() {
           <StatCard label="Обяви" value={summary.listings} tone="blue" helper="Услуги, които в момента се управляват от този акаунт" />
           <StatCard label="Активен екип" value={summary.staff} tone="cyan" helper="Хора и екипи, налични за разпределение" />
           <StatCard label="Изчакващи" value={summary.pending} tone="amber" helper="Заявки, които чакат твоето решение" />
-          <StatCard label="Потвърдени" value={summary.confirmed} tone="green" helper="Резервации, които вече са одобрени" />
+          <StatCard label="Завършени" value={summary.completed} tone="green" helper="Резервации, които вече са приключени" />
         </div>
         </section>
 
@@ -181,7 +196,7 @@ export default function BusinessDashboardPage() {
                       </div>
                       <div style={{ display: "grid", gap: 6 }}>
                         <div style={{ fontWeight: 900, fontSize: 18, color: "#eff6ff" }}>{service.title}</div>
-                        <div style={{ color: "rgba(226,232,240,0.8)", lineHeight: 1.5 }}>{service.description || "Все още няма описание."}</div>
+                        <div style={previewDescription}>{service.description || "Все още няма описание."}</div>
                         <div style={miniMeta}>
                           <span>{service.city}</span>
                           <span>{service.durationMinutes} min</span>
@@ -202,27 +217,29 @@ export default function BusinessDashboardPage() {
               actionLabel="Редактирай хората"
               actionTo="/business/resources"
             >
-              {!resourcePreview.length ? (
-                <EmptyInline text="Все още няма персонал или екипи. Добави ги, за да могат обявите ти да бъдат свързвани с реални хора." compact />
+              {!staffPreview.length ? (
+                <EmptyInline text="Все още няма добавени служители. Добави ги, за да могат обявите ти да бъдат свързвани с реални хора." compact />
               ) : (
                 <div style={{ display: "grid", gap: 10 }}>
-                  {resourcePreview.map((resource) => (
-                    <div key={resource.id} style={resourceRow}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                        <div style={resourceAvatarWrap}>
-                          {resource.photoUrl ? (
-                            <img src={resolveBackendImage(resource.photoUrl)} alt={resource.name} style={resourceAvatar} />
-                          ) : (
-                            <div style={resourceFallback}>{resource.type === "TEAM" ? "T" : "S"}</div>
-                          )}
-                        </div>
-                        <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
-                          <div style={{ fontWeight: 800, color: "#eff6ff", overflow: "hidden", textOverflow: "ellipsis" }}>{resource.name}</div>
-                          <div style={{ color: "rgba(191,219,254,0.72)", fontSize: 14 }}>{resource.type === "TEAM" ? "Екип" : "Служител"}</div>
-                        </div>
-                      </div>
-                      <div style={resource.active ? activePill : inactivePill}>{resource.active ? "Активен" : "Неактивен"}</div>
-                    </div>
+                  {staffPreview.map((resource) => (
+                    <ResourceRow key={resource.id} resource={resource} />
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+
+            <SectionCard
+              eyebrow="Разпределение"
+              title="Налични екипи"
+              actionLabel="Редактирай екипите"
+              actionTo="/business/resources"
+            >
+              {!teamPreview.length ? (
+                <EmptyInline text="Все още няма добавени екипи. Добави екип, когато услугите се изпълняват от повече от един човек." compact />
+              ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {teamPreview.map((resource) => (
+                    <ResourceRow key={resource.id} resource={resource} />
                   ))}
                 </div>
               )}
@@ -314,12 +331,39 @@ function EmptyInline({ text, compact = false }) {
   );
 }
 
+function ResourceRow({ resource }) {
+  return (
+    <div style={resourceRow}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+        <div style={resourceAvatarWrap}>
+          {resource.photoUrl ? (
+            <img src={resolveBackendImage(resource.photoUrl)} alt={resource.name} style={resourceAvatar} />
+          ) : (
+            <div style={resourceFallback}>{resource.type === "TEAM" ? "T" : "S"}</div>
+          )}
+        </div>
+        <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
+          <div style={{ fontWeight: 800, color: "#eff6ff", overflow: "hidden", textOverflow: "ellipsis" }}>{resource.name}</div>
+          <div style={{ color: "rgba(191,219,254,0.72)", fontSize: 14 }}>{resource.type === "TEAM" ? "Екип" : "Служител"}</div>
+        </div>
+      </div>
+      <div style={resource.active ? activePill : inactivePill}>{resource.active ? "Активен" : "Неактивен"}</div>
+    </div>
+  );
+}
+
 function formatDate(value) {
   return new Date(value).toLocaleDateString();
 }
 
 function formatTime(value) {
   return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function initials(value) {
+  const text = String(value || "BH").trim();
+  const parts = text.split(/\s+/).filter(Boolean);
+  return (parts[0]?.[0] || "B").toUpperCase() + (parts[1]?.[0] || "").toUpperCase();
 }
 
 const pageBackground =
@@ -336,6 +380,28 @@ const hero = {
   border: "1px solid rgba(96,165,250,0.24)",
 };
 const heroEyebrow = { fontSize: 12, textTransform: "uppercase", letterSpacing: 1.8, color: "#1d4ed8", fontWeight: 900 };
+const heroIdentity = { display: "flex", alignItems: "flex-start", gap: 18 };
+const heroAvatarWrap = {
+  width: 82,
+  height: 82,
+  borderRadius: 24,
+  overflow: "hidden",
+  flexShrink: 0,
+  border: "1px solid rgba(96,165,250,0.28)",
+  background: "rgba(15,23,42,0.54)",
+  boxShadow: "0 18px 38px rgba(2,6,23,0.2)",
+};
+const heroAvatarImage = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
+const heroAvatarFallback = {
+  width: "100%",
+  height: "100%",
+  display: "grid",
+  placeItems: "center",
+  color: "#bfdbfe",
+  fontSize: 26,
+  fontWeight: 900,
+  background: "linear-gradient(135deg, rgba(37,99,235,0.52), rgba(8,47,73,0.78))",
+};
 const heroTitle = { margin: 0, fontSize: 42, lineHeight: 0.98, color: "#eff6ff", maxWidth: 700 };
 const heroText = { margin: 0, color: "rgba(226,232,240,0.8)", maxWidth: 700, lineHeight: 1.7, fontSize: 16 };
 const heroActions = { display: "flex", gap: 12, flexWrap: "wrap" };
@@ -429,6 +495,14 @@ const listingPreviewCard = {
 const listingPreviewMedia = { borderRadius: 18, overflow: "hidden", minHeight: 150, background: "linear-gradient(135deg, #dbeafe, #eff6ff)" };
 const listingPreviewImage = { width: "100%", height: 150, objectFit: "cover", display: "block" };
 const listingPreviewFallback = { minHeight: 150, display: "grid", placeItems: "center", color: "#1d4ed8", fontWeight: 900 };
+const previewDescription = {
+  color: "rgba(226,232,240,0.8)",
+  lineHeight: 1.5,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
 const miniMeta = { display: "flex", gap: 10, flexWrap: "wrap", color: "rgba(191,219,254,0.76)", fontSize: 14, fontWeight: 700 };
 const resourceRow = {
   display: "flex",

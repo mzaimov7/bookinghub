@@ -2,6 +2,8 @@ package com.martinzaimov.bookinghub.entity;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 public class User {
@@ -28,6 +30,15 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
     public User() {}
 
     public Long getId() { return id; }
@@ -36,6 +47,9 @@ public class User {
     public String getPasswordHash() { return passwordHash; }
     public Role getRole() { return role; }
     public boolean isActive() { return active; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public LocalDateTime getLastLoginAt() { return lastLoginAt; }
 
     public void setId(Long id) { this.id = id; }
     public void setUsername(String username) { this.username = username; }
@@ -43,4 +57,5 @@ public class User {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public void setRole(Role role) { this.role = role; }
     public void setActive(boolean active) { this.active = active; }
+    public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
 }

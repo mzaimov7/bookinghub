@@ -1,11 +1,14 @@
 package com.martinzaimov.bookinghub.controller;
 
 import com.martinzaimov.bookinghub.dto.CreateBookingRequest;
+import com.martinzaimov.bookinghub.dto.CancelBookingRequest;
 import com.martinzaimov.bookinghub.dto.ChangePasswordRequest;
 import com.martinzaimov.bookinghub.dto.RecentSearchRequest;
 import com.martinzaimov.bookinghub.dto.UpdateProfileRequest;
+import com.martinzaimov.bookinghub.dto.UpsertReviewRequest;
 import com.martinzaimov.bookinghub.dto.VerifyPasswordRequest;
 import com.martinzaimov.bookinghub.service.ClientProfileService;
+import com.martinzaimov.bookinghub.service.ReviewService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
@@ -17,9 +20,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class ClientProfileController {
 
     private final ClientProfileService clientProfileService;
+    private final ReviewService reviewService;
 
-    public ClientProfileController(ClientProfileService clientProfileService) {
+    public ClientProfileController(ClientProfileService clientProfileService, ReviewService reviewService) {
         this.clientProfileService = clientProfileService;
+        this.reviewService = reviewService;
     }
 
     @GetMapping("/profile")
@@ -108,5 +113,31 @@ public class ClientProfileController {
             @Valid @RequestBody CreateBookingRequest request
     ) {
         return ResponseEntity.ok(clientProfileService.createBooking(userId, request));
+    }
+
+    @PatchMapping("/bookings/{bookingId}/cancel")
+    public ResponseEntity<?> cancelBooking(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long bookingId,
+            @Valid @RequestBody CancelBookingRequest request
+    ) {
+        return ResponseEntity.ok(clientProfileService.cancelBooking(userId, bookingId, request));
+    }
+
+    @GetMapping("/bookings/{bookingId}/review")
+    public ResponseEntity<?> getBookingReview(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long bookingId
+    ) {
+        return ResponseEntity.ok(reviewService.getOwnReviewForBooking(userId, bookingId));
+    }
+
+    @PutMapping("/bookings/{bookingId}/review")
+    public ResponseEntity<?> upsertBookingReview(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long bookingId,
+            @Valid @RequestBody UpsertReviewRequest request
+    ) {
+        return ResponseEntity.ok(reviewService.upsertReviewForBooking(userId, bookingId, request));
     }
 }

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { getRole, isLoggedIn } from "../../lib/authStore";
+import { getRole, getUserId, isLoggedIn } from "../../lib/authStore";
 import { resolveBackendImage } from "../../lib/assets";
-import { createServiceComment, getServiceById, getServiceComments } from "./api";
+import { createReport, createServiceComment, deleteServiceComment, getServiceById, getServiceComments, getServiceReviews, updateServiceComment } from "./api";
 import { addFavorite, createBooking, getAvailableSlots, getFavoriteIds, removeFavorite } from "../client/api";
 
 export default function ServiceDetailsPage() {
@@ -21,19 +21,27 @@ export default function ServiceDetailsPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");
   const [comments, setComments] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [commentText, setCommentText] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingText, setEditingText] = useState("");
+  const [replyParentId, setReplyParentId] = useState(null);
+  const [replyReviewId, setReplyReviewId] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [replySubmitting, setReplySubmitting] = useState(false);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       setNotFound(false);
 
-      const [data, loadedSlots, loadedFavoriteIds, loadedComments] = await Promise.all([
+      const [data, loadedSlots, loadedFavoriteIds, loadedComments, loadedReviews] = await Promise.all([
         getServiceById(id),
         getAvailableSlots(id).catch(() => []),
         isLoggedIn() && getRole() === "CLIENT" ? getFavoriteIds().catch(() => []) : Promise.resolve([]),
         getServiceComments(id).catch(() => []),
+        getServiceReviews(id).catch(() => []),
       ]);
       if (!data) setNotFound(true);
 
@@ -41,6 +49,7 @@ export default function ServiceDetailsPage() {
       setSlots(loadedSlots);
       setFavoriteIds(loadedFavoriteIds);
       setComments(loadedComments);
+      setReviews(loadedReviews);
       setSelectedImageIndex(0);
 
       const firstResourceId = loadedSlots[0]?.resourceId ? String(loadedSlots[0].resourceId) : "";
@@ -133,13 +142,95 @@ export default function ServiceDetailsPage() {
 
     setCommentSubmitting(true);
     try {
-      const created = await createServiceComment(id, { text: commentText.trim() });
+      const created = await createServiceComment(id, { text: commentText.trim(), parentId: null });
       setComments((current) => [created, ...current]);
       setCommentText("");
     } catch (error) {
       alert(error.message);
     } finally {
       setCommentSubmitting(false);
+    }
+  }
+
+  async function onSaveEditedComment(commentId) {
+    if (!editingText.trim()) {
+      alert("Напиши текст на коментара.");
+      return;
+    }
+
+    try {
+      const updated = await updateServiceComment(id, commentId, { text: editingText.trim() });
+      setComments((current) => current.map((item) => (item.id === commentId ? updated : item)));
+      setEditingCommentId(null);
+      setEditingText("");
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  async function onDeleteOwnComment(commentId) {
+    const confirmed = window.confirm("Сигурен ли си, че искаш да изтриеш този коментар?");
+    if (!confirmed) return;
+
+    try {
+      await deleteServiceComment(id, commentId);
+      setComments((current) => current.filter((item) => item.id !== commentId && item.parentId !== commentId));
+      if (editingCommentId === commentId) {
+        setEditingCommentId(null);
+        setEditingText("");
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  async function onSubmitReply({ parentId = null, parentReviewId = null }) {
+    if (!replyText.trim()) {
+      alert("Напиши текст на отговора.");
+      return;
+    }
+
+    setReplySubmitting(true);
+    try {
+      const created = await createServiceComment(id, { text: replyText.trim(), parentId, parentReviewId });
+      setComments((current) => [...current, {
+        ...created,
+        parentId: created.parentId ?? parentId,
+        parentReviewId: created.parentReviewId ?? parentReviewId,
+      }]);
+      setReplyParentId(null);
+      setReplyReviewId(null);
+      setReplyText("");
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setReplySubmitting(false);
+    }
+  }
+
+  async function onReport(targetType, targetId, promptLabel) {
+    if (!isLoggedIn()) {
+      alert("Влез в профила си, за да подадеш сигнал.");
+      navigate("/login");
+      return;
+    }
+
+    const reason = window.prompt(promptLabel);
+    if (reason == null) return;
+    if (!reason.trim()) {
+      alert("Причината за сигнала е задължителна.");
+      return;
+    }
+
+    try {
+      await createReport({
+        targetType,
+        targetId,
+        reasonText: reason.trim(),
+      });
+      alert("Сигналът беше подаден успешно.");
+    } catch (error) {
+      alert(error.message);
     }
   }
 
@@ -189,9 +280,133 @@ export default function ServiceDetailsPage() {
   });
   const selectedSlot = dateFilteredSlots.find((slot) => slot.bookingKey === selectedSlotKey) || null;
   const canReserve = isLoggedIn() && getRole() === "CLIENT";
+  const currentUserId = getUserId();
+  const isBusinessOwner = isLoggedIn() && getRole() === "BUSINESS" && Number(service?.businessUserId) === Number(currentUserId);
+  const reviewSummary = useMemo(() => {
+    if (!reviews.length) return { average: 0, count: 0 };
+    const total = reviews.reduce((sum, item) => sum + Number(item.rating || 0), 0);
+    return { average: total / reviews.length, count: reviews.length };
+  }, [reviews]);
   const backTarget = typeof location.state?.from === "string" && location.state.from.trim()
     ? location.state.from
     : "/";
+  const legacyRepliesByReviewId = useMemo(() => {
+    return comments.reduce((acc, comment) => {
+      if (comment.parentId != null || comment.parentReviewId != null || comment.authorRole !== "BUSINESS") return acc;
+      const matchedReview = reviews.find((review) => {
+        const authorFirstName = firstNameOf(review.authorName);
+        return authorFirstName && normalizeFeedbackText(comment.text).includes(authorFirstName);
+      });
+      if (!matchedReview) return acc;
+      acc[matchedReview.id] = [...(acc[matchedReview.id] || []), comment];
+      return acc;
+    }, {});
+  }, [comments, reviews]);
+  const legacyReplyIds = useMemo(() => new Set(Object.values(legacyRepliesByReviewId).flat().map((reply) => reply.id)), [legacyRepliesByReviewId]);
+  const topLevelComments = comments.filter((comment) => comment.parentId == null && comment.parentReviewId == null && !legacyReplyIds.has(comment.id));
+  const repliesByParentId = comments.reduce((acc, comment) => {
+    if (comment.parentId == null) return acc;
+    acc[comment.parentId] = [...(acc[comment.parentId] || []), comment];
+    return acc;
+  }, {});
+  const repliesByReviewId = comments.reduce((acc, comment) => {
+    if (comment.parentReviewId == null) return acc;
+    acc[comment.parentReviewId] = [...(acc[comment.parentReviewId] || []), comment];
+    return acc;
+  }, {});
+  const feedbackItems = useMemo(() => {
+    const reviewItems = reviews.map((review) => ({
+      type: "review",
+      id: review.id,
+      createdAt: review.createdAt,
+      data: review,
+    }));
+    const commentItems = topLevelComments.map((comment) => ({
+      type: "comment",
+      id: comment.id,
+      createdAt: comment.createdAt,
+      data: comment,
+    }));
+
+    return [...reviewItems, ...commentItems].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [reviews, topLevelComments]);
+
+  function canReplyToFeedbackComment(comment) {
+    if (!isLoggedIn() || Number(comment.authorUserId) === Number(currentUserId)) return false;
+    if (isBusinessOwner) return true;
+    return getRole() === "CLIENT" && comment.authorRole === "BUSINESS";
+  }
+
+  function renderReply(reply, depth = 0) {
+    const childReplies = repliesByParentId[reply.id] || [];
+    const isOwnReply = Number(reply.authorUserId) === Number(currentUserId);
+
+    return (
+      <div key={reply.id} style={{ ...replyCard, marginLeft: Math.min(26 + depth * 18, 62) }}>
+        <div style={commentTopRow}>
+          <div style={commentTopIdentity}>
+            <div style={commentAuthorAvatarWrap}>
+              {reply.authorPhotoUrl ? (
+                <img src={resolveBackendImage(reply.authorPhotoUrl)} alt={reply.authorName} style={commentAuthorAvatarImage} />
+              ) : (
+                <div style={commentAuthorAvatar}>{reply.authorName.slice(0, 1).toUpperCase()}</div>
+              )}
+            </div>
+            <div style={{ display: "grid", gap: 2 }}>
+              <strong style={feedbackAuthor}>{reply.authorName}</strong>
+              <span style={commentDate}>{formatCommentDate(reply.createdAt)}</span>
+            </div>
+          </div>
+          <div style={commentActions}>
+            {canReplyToFeedbackComment(reply) ? (
+              <button type="button" onClick={() => { setReplyReviewId(null); setReplyParentId(reply.id); setReplyText(""); }} style={commentActionButton}>
+                Отговори
+              </button>
+            ) : null}
+            {isOwnReply ? (
+              <button type="button" onClick={() => onDeleteOwnComment(reply.id)} style={commentDangerAction}>
+                Изтрий
+              </button>
+            ) : isLoggedIn() ? (
+              <button
+                type="button"
+                onClick={() => onReport("COMMENT", reply.id, "Опиши защо докладваш този коментар")}
+                style={commentDangerAction}
+              >
+                Докладвай
+              </button>
+            ) : null}
+          </div>
+        </div>
+        <p style={commentBody}>{reply.text}</p>
+
+        {replyParentId === reply.id ? (
+          <div style={replyComposer}>
+            <textarea
+              value={replyText}
+              onChange={(event) => setReplyText(event.target.value)}
+              placeholder="Напиши отговор"
+              style={commentTextarea}
+            />
+            <div style={commentActions}>
+              <button type="button" onClick={() => onSubmitReply({ parentId: reply.id })} disabled={replySubmitting} style={commentSubmitButton}>
+                {replySubmitting ? "Публикуване..." : "Публикувай отговор"}
+              </button>
+              <button type="button" onClick={() => { setReplyParentId(null); setReplyText(""); }} style={commentSecondaryButton}>
+                Отказ
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {childReplies.length ? (
+          <div style={replyList}>
+            {childReplies.map((childReply) => renderReply(childReply, depth + 1))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (!futureSlots.length) {
@@ -235,7 +450,7 @@ export default function ServiceDetailsPage() {
 
       {imageUrl && (
         <div style={heroLayout}>
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={heroMediaColumn}>
             <div style={heroImageFrame}>
               <img src={imageUrl} alt={service.title} style={heroImage} />
             </div>
@@ -268,7 +483,14 @@ export default function ServiceDetailsPage() {
             </div>
 
             <div style={{ display: "grid", gap: 12 }}>
-              <h1 style={serviceTitle}>{service.title}</h1>
+              <div style={serviceTitleRow}>
+                <h1 style={serviceTitle}>{service.title}</h1>
+                <div style={titleRatingBadge}>
+                  <span style={titleRatingStar}>★</span>
+                  <span>{reviewSummary.count ? reviewSummary.average.toFixed(1) : "Няма оценка"}</span>
+                  {reviewSummary.count ? <span style={titleRatingCount}>({reviewSummary.count})</span> : null}
+                </div>
+              </div>
               <p style={serviceDescription}>{service.description}</p>
             </div>
 
@@ -299,6 +521,17 @@ export default function ServiceDetailsPage() {
                     : "Тази обява е видима за всички, но резервации могат да правят само клиентски профили."}
                 </span>
               </div>
+              {isLoggedIn() && service?.businessUserId && Number(service.businessUserId) !== Number(currentUserId) ? (
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={() => onReport("USER", service.businessUserId, "Опиши защо докладваш този бизнес профил")}
+                    style={reportActionButton}
+                  >
+                    Докладвай бизнес профила
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -503,7 +736,6 @@ export default function ServiceDetailsPage() {
             <div style={sectionLabel}>Коментари</div>
             <h2 style={commentsTitle}>Мнения от клиенти</h2>
           </div>
-          <div style={commentsCountBadge}>{comments.length}</div>
         </div>
 
         {isLoggedIn() && getRole() === "CLIENT" ? (
@@ -528,22 +760,190 @@ export default function ServiceDetailsPage() {
           </div>
         )}
 
-        {comments.length === 0 ? (
-          <div style={commentEmptyState}>Все още няма коментари. Бъди първият, който ще остави мнение.</div>
+        {comments.length === 0 && reviews.length === 0 ? (
+          <div style={commentEmptyState}>Все още няма мнения. Бъди първият, който ще остави впечатление.</div>
         ) : (
           <div style={commentsList}>
-            {comments.map((comment) => (
-              <article key={comment.id} style={commentCard}>
-                <div style={commentTopRow}>
-                  <div style={commentAuthorAvatar}>{comment.authorName.slice(0, 1).toUpperCase()}</div>
-                  <div style={{ display: "grid", gap: 2 }}>
-                    <strong style={{ color: "#0f172a" }}>{comment.authorName}</strong>
-                    <span style={commentDate}>{formatCommentDate(comment.createdAt)}</span>
+            {feedbackItems.map((item) => {
+              if (item.type === "review") {
+                const review = item.data;
+                const reviewReplies = [...(repliesByReviewId[review.id] || []), ...(legacyRepliesByReviewId[review.id] || [])]
+                  .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                return (
+                  <article key={`review-${review.id}`} style={commentCard}>
+                    <div style={commentTopRow}>
+                      <div style={commentTopIdentity}>
+                        <div style={commentAuthorAvatarWrap}>
+                          {review.authorPhotoUrl ? (
+                            <img src={resolveBackendImage(review.authorPhotoUrl)} alt={review.authorName} style={commentAuthorAvatarImage} />
+                          ) : (
+                            <div style={commentAuthorAvatar}>{review.authorName.slice(0, 1).toUpperCase()}</div>
+                          )}
+                        </div>
+                        <div style={{ display: "grid", gap: 4 }}>
+                          <strong style={feedbackAuthor}>{review.authorName}</strong>
+                          <span style={commentDate}>{formatCommentDate(review.createdAt)}</span>
+                        </div>
+                      </div>
+                      <div style={reviewStars}>
+                        {"★".repeat(review.rating)}{"☆".repeat(Math.max(0, 5 - review.rating))}
+                      </div>
+                    </div>
+                    {review.comment ? <p style={commentBody}>{review.comment}</p> : null}
+
+                    {reviewReplies.length ? (
+                      <div style={replyList}>
+                        {reviewReplies.map((reply) => renderReply(reply))}
+                      </div>
+                    ) : null}
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+                      {isBusinessOwner ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyParentId(null);
+                            setReplyReviewId(review.id);
+                            setReplyText("");
+                          }}
+                          style={commentActionButton}
+                        >
+                          Отговори
+                        </button>
+                      ) : null}
+                      {isLoggedIn() && Number(review.authorUserId) !== Number(currentUserId) ? (
+                        <button
+                          type="button"
+                          onClick={() => onReport("REVIEW", review.id, "Опиши защо докладваш този отзив")}
+                          style={commentDangerAction}
+                        >
+                          Докладвай
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {replyReviewId === review.id ? (
+                      <div style={replyComposer}>
+                        <textarea
+                          value={replyText}
+                          onChange={(event) => setReplyText(event.target.value)}
+                          placeholder="Напиши отговор към отзива"
+                          style={commentTextarea}
+                        />
+                        <div style={commentActions}>
+                          <button type="button" onClick={() => onSubmitReply({ parentReviewId: review.id })} disabled={replySubmitting} style={commentSubmitButton}>
+                            {replySubmitting ? "Публикуване..." : "Публикувай отговор"}
+                          </button>
+                          <button type="button" onClick={() => { setReplyReviewId(null); setReplyText(""); }} style={commentSecondaryButton}>
+                            Отказ
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                  </article>
+                );
+              }
+
+              const comment = item.data;
+              const replies = repliesByParentId[comment.id] || [];
+              const isOwnClientComment = getRole() === "CLIENT" && Number(comment.authorUserId) === Number(currentUserId);
+              const isOwnBusinessComment = getRole() === "BUSINESS" && Number(comment.authorUserId) === Number(currentUserId);
+              return (
+                <article key={comment.id} style={commentCard}>
+                  <div style={commentTopRow}>
+                    <div style={commentTopIdentity}>
+                      <div style={commentAuthorAvatarWrap}>
+                        {comment.authorPhotoUrl ? (
+                          <img src={resolveBackendImage(comment.authorPhotoUrl)} alt={comment.authorName} style={commentAuthorAvatarImage} />
+                        ) : (
+                          <div style={commentAuthorAvatar}>{comment.authorName.slice(0, 1).toUpperCase()}</div>
+                        )}
+                      </div>
+                      <div style={{ display: "grid", gap: 2 }}>
+                        <strong style={feedbackAuthor}>{comment.authorName}</strong>
+                        <span style={commentDate}>{formatCommentDate(comment.createdAt)}</span>
+                      </div>
+                    </div>
+                    <div style={commentActions}>
+                      {isBusinessOwner && !isOwnBusinessComment ? (
+                        <button type="button" onClick={() => { setReplyReviewId(null); setReplyParentId(comment.id); setReplyText(""); }} style={commentActionButton}>
+                          Отговори
+                        </button>
+                      ) : null}
+                      {isOwnClientComment ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCommentId(comment.id);
+                            setEditingText(comment.text);
+                          }}
+                          style={commentActionButton}
+                        >
+                          Редактирай
+                        </button>
+                      ) : null}
+                      {isOwnClientComment ? (
+                        <button type="button" onClick={() => onDeleteOwnComment(comment.id)} style={commentDangerAction}>
+                          Изтрий
+                        </button>
+                      ) : null}
+                      {isOwnBusinessComment ? (
+                        <button type="button" onClick={() => onDeleteOwnComment(comment.id)} style={commentDangerAction}>
+                          Изтрий
+                        </button>
+                      ) : null}
+                      {isLoggedIn() && Number(comment.authorUserId) !== Number(currentUserId) ? (
+                        <button
+                          type="button"
+                          onClick={() => onReport("COMMENT", comment.id, "Опиши защо докладваш този коментар")}
+                          style={commentDangerAction}
+                        >
+                          Докладвай
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                <p style={commentBody}>{comment.text}</p>
-              </article>
-            ))}
+
+                  {editingCommentId === comment.id ? (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} style={commentTextarea} />
+                      <div style={commentActions}>
+                        <button type="button" onClick={() => onSaveEditedComment(comment.id)} style={commentSubmitButton}>Запази</button>
+                        <button type="button" onClick={() => { setEditingCommentId(null); setEditingText(""); }} style={commentSecondaryButton}>Отказ</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p style={commentBody}>{comment.text}</p>
+                  )}
+
+                  {replyParentId === comment.id ? (
+                    <div style={replyComposer}>
+                      <textarea
+                        value={replyText}
+                        onChange={(event) => setReplyText(event.target.value)}
+                        placeholder="Напиши отговор към клиента"
+                        style={commentTextarea}
+                      />
+                      <div style={commentActions}>
+                        <button type="button" onClick={() => onSubmitReply({ parentId: comment.id })} disabled={replySubmitting} style={commentSubmitButton}>
+                          {replySubmitting ? "Публикуване..." : "Публикувай отговор"}
+                        </button>
+                        <button type="button" onClick={() => { setReplyParentId(null); setReplyText(""); }} style={commentSecondaryButton}>
+                          Отказ
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {replies.length ? (
+                    <div style={replyList}>
+                      {replies.map((reply) => renderReply(reply))}
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -563,9 +963,16 @@ const backLink = {
 
 const heroLayout = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: 24,
   alignItems: "stretch",
+};
+
+const heroMediaColumn = {
+  display: "grid",
+  gridTemplateRows: "minmax(0, 1fr) auto",
+  gap: 12,
+  minHeight: 0,
 };
 
 const heroImageFrame = {
@@ -574,13 +981,13 @@ const heroImageFrame = {
   border: "1px solid rgba(96,165,250,0.22)",
   boxShadow: "0 24px 60px rgba(2,6,23,0.22)",
   background: "rgba(15,23,42,0.42)",
-  minHeight: 420,
+  minHeight: 0,
+  height: "100%",
 };
 
 const heroImage = {
   width: "100%",
   height: "100%",
-  maxHeight: 520,
   objectFit: "cover",
   display: "block",
 };
@@ -611,6 +1018,38 @@ const serviceTitle = {
   color: "#eff6ff",
 };
 
+const serviceTitleRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap",
+};
+
+const titleRatingBadge = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  width: "fit-content",
+  padding: "9px 12px",
+  borderRadius: 999,
+  border: "1px solid rgba(250,204,21,0.36)",
+  background: "rgba(250,204,21,0.12)",
+  color: "#fde68a",
+  fontWeight: 900,
+  lineHeight: 1,
+  whiteSpace: "nowrap",
+};
+
+const titleRatingStar = {
+  color: "#facc15",
+  fontSize: 18,
+};
+
+const titleRatingCount = {
+  color: "rgba(254,240,138,0.72)",
+  fontWeight: 800,
+};
+
 const serviceDescription = {
   margin: 0,
   fontSize: 16,
@@ -621,7 +1060,7 @@ const serviceDescription = {
 
 const metaGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
   gap: 12,
 };
 
@@ -633,14 +1072,17 @@ const metaCard = {
   display: "grid",
   gap: 6,
   alignContent: "start",
+  minWidth: 0,
 };
 
 const metaLabel = {
   fontSize: 11,
   fontWeight: 900,
-  letterSpacing: "0.12em",
+  letterSpacing: "0.08em",
   textTransform: "uppercase",
   color: "#94a3b8",
+  overflowWrap: "anywhere",
+  lineHeight: 1.25,
 };
 
 const metaValue = {
@@ -648,12 +1090,14 @@ const metaValue = {
   lineHeight: 1.15,
   fontWeight: 900,
   color: "#eff6ff",
+  overflowWrap: "anywhere",
 };
 
 const metaSubtle = {
   fontSize: 13,
   lineHeight: 1.55,
   color: "#cbd5e1",
+  overflowWrap: "break-word",
 };
 
 const heroFooter = {
@@ -931,19 +1375,6 @@ const commentsTitle = {
   lineHeight: 1.1,
 };
 
-const commentsCountBadge = {
-  minWidth: 44,
-  height: 44,
-  padding: "0 14px",
-  borderRadius: 999,
-  background: "rgba(15,23,42,0.42)",
-  color: "#bfdbfe",
-  display: "grid",
-  placeItems: "center",
-  fontWeight: 900,
-  fontSize: 16,
-};
-
 const commentComposer = {
   padding: 16,
   borderRadius: 20,
@@ -1015,17 +1446,69 @@ const commentsList = {
 const commentCard = {
   padding: "16px 18px",
   borderRadius: 20,
-  border: "1px solid #dbe4f0",
-  background: "#fff",
-  boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
+  border: "1px solid rgba(96,165,250,0.20)",
+  background: "linear-gradient(180deg, rgba(15,23,42,0.52) 0%, rgba(20,43,84,0.54) 100%)",
+  boxShadow: "0 14px 34px rgba(2,6,23,0.18)",
   display: "grid",
   gap: 12,
+};
+
+const reviewCard = {
+  padding: "16px 18px",
+  borderRadius: 20,
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(15,23,42,0.42)",
+  display: "grid",
+  gap: 12,
+};
+
+const reviewStars = {
+  color: "#facc15",
+  fontWeight: 900,
+  letterSpacing: 1,
+  whiteSpace: "nowrap",
+};
+
+const reviewDate = {
+  fontSize: 12,
+  color: "#cbd5e1",
+};
+
+const reviewBody = {
+  margin: 0,
+  color: "rgba(226,232,240,0.82)",
+  lineHeight: 1.75,
+  whiteSpace: "pre-wrap",
 };
 
 const commentTopRow = {
   display: "flex",
   alignItems: "center",
+  justifyContent: "space-between",
   gap: 12,
+  flexWrap: "wrap",
+};
+
+const commentTopIdentity = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  minWidth: 0,
+};
+
+const commentAuthorAvatarWrap = {
+  width: 42,
+  height: 42,
+  borderRadius: 999,
+  overflow: "hidden",
+  flexShrink: 0,
+};
+
+const commentAuthorAvatarImage = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  display: "block",
 };
 
 const commentAuthorAvatar = {
@@ -1041,16 +1524,89 @@ const commentAuthorAvatar = {
   flexShrink: 0,
 };
 
+const commentActions = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  alignItems: "center",
+};
+
+const commentActionButton = {
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(37,99,235,0.20)",
+  color: "#bfdbfe",
+  borderRadius: 999,
+  padding: "8px 12px",
+  cursor: "pointer",
+  fontWeight: 800,
+};
+
+const commentDangerAction = {
+  border: "1px solid rgba(251,113,133,0.18)",
+  background: "rgba(255,241,242,0.98)",
+  color: "#be123c",
+  borderRadius: 999,
+  padding: "8px 12px",
+  cursor: "pointer",
+  fontWeight: 800,
+};
+
 const commentDate = {
   fontSize: 12,
-  color: "#64748b",
+  color: "#93c5fd",
 };
 
 const commentBody = {
   margin: 0,
-  color: "#334155",
+  color: "rgba(226,232,240,0.86)",
   lineHeight: 1.75,
   whiteSpace: "pre-wrap",
+};
+
+const feedbackAuthor = {
+  color: "#eff6ff",
+};
+
+const commentSecondaryButton = {
+  border: "1px solid rgba(96,165,250,0.20)",
+  background: "rgba(15,23,42,0.38)",
+  color: "#dbeafe",
+  borderRadius: 14,
+  padding: "12px 16px",
+  cursor: "pointer",
+  fontWeight: 800,
+};
+
+const replyComposer = {
+  display: "grid",
+  gap: 10,
+  paddingTop: 4,
+};
+
+const replyList = {
+  display: "grid",
+  gap: 10,
+  paddingTop: 6,
+};
+
+const replyCard = {
+  padding: "14px 14px 12px 16px",
+  borderRadius: 16,
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(8,18,36,0.52)",
+  marginLeft: 26,
+  display: "grid",
+  gap: 10,
+};
+
+const reportActionButton = {
+  border: "1px solid rgba(248,113,113,0.24)",
+  background: "rgba(255,241,242,0.9)",
+  color: "#be123c",
+  borderRadius: 14,
+  padding: "12px 16px",
+  cursor: "pointer",
+  fontWeight: 900,
 };
 
 function formatTime(value) {
@@ -1096,4 +1652,12 @@ function formatCommentDate(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function firstNameOf(value) {
+  return normalizeFeedbackText(value).split(" ").filter(Boolean)[0] || "";
+}
+
+function normalizeFeedbackText(value) {
+  return String(value || "").trim().toLocaleLowerCase("bg-BG");
 }

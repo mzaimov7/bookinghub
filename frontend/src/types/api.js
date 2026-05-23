@@ -26,9 +26,13 @@
  * @property {string} role
  * @property {string} providerType
  * @property {string} businessName
+ * @property {string | null} companyLegalName
+ * @property {string | null} companyEik
+ * @property {string | null} companyRepresentative
  * @property {string} city
  * @property {string | null} address
  * @property {string | null} phone
+ * @property {string | null} description
  * @property {string | null} photoUrl
  */
 /**
@@ -46,7 +50,23 @@
  * @property {number} serviceId
  * @property {number} authorUserId
  * @property {string} authorName
+ * @property {string} authorRole
+ * @property {string | null} authorPhotoUrl
+ * @property {number | null} parentId
+ * @property {number | null} parentReviewId
  * @property {string} text
+ * @property {string} createdAt
+ *
+ * @typedef {Object} ReviewResponse
+ * @property {number} id
+ * @property {number | null} bookingId
+ * @property {number} serviceId
+ * @property {number} authorUserId
+ * @property {string} authorName
+ * @property {string | null} authorPhotoUrl
+ * @property {number} rating
+ * @property {string | null} comment
+ * @property {string} status
  * @property {string} createdAt
  *
  * @typedef {Object} BookingResponse
@@ -93,6 +113,8 @@
  * @property {string} city
  * @property {string} address
  * @property {number | null} categoryId
+ * @property {string | null} categorySuggestion
+ * @property {number | null} businessUserId
  * @property {number} price
  * @property {number} durationMinutes
  * @property {string | null} opensAt
@@ -107,17 +129,6 @@
  * @property {string | null} approvalReviewedAt
  * @property {string | null} adminDeletionReason
  * @property {string | null} adminDeletedAt
- *
- * @typedef {Object} CategorySuggestionResponse
- * @property {number} id
- * @property {number} businessUserId
- * @property {string} businessName
- * @property {string} proposedName
- * @property {string} description
- * @property {string} status
- * @property {string | null} adminNote
- * @property {string | null} createdAt
- * @property {string | null} reviewedAt
  *
  * @typedef {Object} AdminCommentResponse
  * @property {number} id
@@ -137,6 +148,8 @@
  * @property {string} email
  * @property {string} role
  * @property {boolean} active
+ * @property {string | null} createdAt
+ * @property {string | null} lastLoginAt
  * @property {string} displayName
  * @property {string | null} city
  * @property {string | null} address

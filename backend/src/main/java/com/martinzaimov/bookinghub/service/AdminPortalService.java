@@ -4,7 +4,6 @@ import com.martinzaimov.bookinghub.dto.*;
 import com.martinzaimov.bookinghub.entity.Booking;
 import com.martinzaimov.bookinghub.entity.BusinessProfile;
 import com.martinzaimov.bookinghub.entity.Category;
-import com.martinzaimov.bookinghub.entity.CategorySuggestion;
 import com.martinzaimov.bookinghub.entity.ClientProfile;
 import com.martinzaimov.bookinghub.entity.Comment;
 import com.martinzaimov.bookinghub.entity.Report;
@@ -40,7 +39,7 @@ public class AdminPortalService {
     private final ResourceRepository resources;
     private final ResourceSlotRepository slots;
     private final CategoryRepository categories;
-    private final CategorySuggestionRepository categorySuggestions;
+    private final EmailService emailService;
 
     public AdminPortalService(
             UserRepository users,
@@ -56,7 +55,7 @@ public class AdminPortalService {
             ResourceRepository resources,
             ResourceSlotRepository slots,
             CategoryRepository categories,
-            CategorySuggestionRepository categorySuggestions
+            EmailService emailService
     ) {
         this.users = users;
         this.services = services;
@@ -71,7 +70,7 @@ public class AdminPortalService {
         this.resources = resources;
         this.slots = slots;
         this.categories = categories;
-        this.categorySuggestions = categorySuggestions;
+        this.emailService = emailService;
     }
 
     public List<ServiceOTD> getServices(Long adminUserId) {
@@ -211,14 +210,6 @@ public class AdminPortalService {
         return toServiceDto(service);
     }
 
-    public List<CategorySuggestionOTD> getCategorySuggestions(Long adminUserId) {
-        requireAdminUser(adminUserId);
-        return categorySuggestions.findAllByOrderByIdDesc()
-                .stream()
-                .map((item) -> toCategorySuggestionDto(item, businessProfiles.findById(item.getSuggestedByUserId()).orElse(null)))
-                .toList();
-    }
-
     public List<AdminCommentOTD> getComments(Long adminUserId) {
         requireAdminUser(adminUserId);
         return comments.findAllByOrderByCreatedAtDesc()
@@ -236,12 +227,23 @@ public class AdminPortalService {
     }
 
     @Transactional
-    public AdminReviewOTD hideReview(Long adminUserId, Long reviewId) {
+    public AdminReviewOTD hideReview(Long adminUserId, Long reviewId, AdminHideCommentRequest request) {
         requireAdminUser(adminUserId);
+        String reason = normalize(request.reason);
+        if (reason == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "A moderation reason is required");
+        }
         Review review = reviews.findById(reviewId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Review not found"));
         review.setStatus(Review.Status.HIDDEN);
         reviews.save(review);
+        users.findById(review.getAuthorUserId()).ifPresent(author ->
+                emailService.send(
+                        author.getEmail(),
+                        "Отзивът ти беше скрит",
+                        "Администратор скри твой отзив в BookingHub.\n\nПричина: " + reason
+                )
+        );
         return toAdminReviewDto(review);
     }
 
@@ -286,6 +288,13 @@ public class AdminPortalService {
         comment.setAdminModeratedByUserId(adminUserId);
         comment.setAdminModeratedAt(LocalDateTime.now());
         comments.save(comment);
+        users.findById(comment.getAuthorUserId()).ifPresent(author ->
+                emailService.send(
+                        author.getEmail(),
+                        "Коментарът ти беше скрит",
+                        "Администратор скри твой коментар в BookingHub.\n\nПричина: " + reason
+                )
+        );
 
         return toAdminCommentDto(comment);
     }
@@ -311,8 +320,20 @@ public class AdminPortalService {
         requireAdminUser(adminUserId);
         User user = users.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
+        boolean wasActive = user.isActive();
+        String reason = normalize(request.reason);
+        if (wasActive && !request.active && reason == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Deactivation reason is required");
+        }
         user.setActive(request.active);
         users.save(user);
+        if (wasActive && !request.active) {
+            emailService.send(
+                    user.getEmail(),
+                    "Профилът ти беше деактивиран",
+                    "Администратор деактивира профила ти в BookingHub.\n\nПричина: " + reason
+            );
+        }
 
         if (user.getRole() == User.Role.BUSINESS) {
             return toBusinessUserDto(user);
@@ -356,6 +377,7 @@ public class AdminPortalService {
                 serviceResourceDao.findResourceIdsByServiceId(service.getId())
         );
         dto.setActive(service.isActive());
+        dto.setCategorySuggestion(service.getCategorySuggestion());
         dto.setApprovalStatus(service.getApprovalStatus() == null ? null : service.getApprovalStatus().name());
         dto.setApprovalNote(service.getApprovalNote());
         dto.setApprovalReviewedAt(service.getApprovalReviewedAt() == null ? null : service.getApprovalReviewedAt().toString());
@@ -396,20 +418,6 @@ public class AdminPortalService {
                 slot != null ? slot.getStartAt() : null,
                 slot != null ? slot.getEndAt() : null,
                 service != null ? service.getPrice() : null
-        );
-    }
-
-    private CategorySuggestionOTD toCategorySuggestionDto(CategorySuggestion suggestion, BusinessProfile businessProfile) {
-        return new CategorySuggestionOTD(
-                suggestion.getId(),
-                suggestion.getSuggestedByUserId(),
-                businessProfile != null ? businessProfile.getBusinessName() : "Бизнес профил",
-                suggestion.getName(),
-                suggestion.getDescription(),
-                suggestion.getStatus().name(),
-                suggestion.getAdminNote(),
-                suggestion.getCreatedAt() == null ? null : suggestion.getCreatedAt().toString(),
-                suggestion.getUpdatedAt() == null ? null : suggestion.getUpdatedAt().toString()
         );
     }
 
@@ -506,6 +514,8 @@ public class AdminPortalService {
                 user.getEmail(),
                 user.getRole().name(),
                 user.isActive(),
+                user.getCreatedAt(),
+                user.getLastLoginAt(),
                 displayName,
                 null,
                 null,
@@ -525,6 +535,8 @@ public class AdminPortalService {
                 user.getEmail(),
                 user.getRole().name(),
                 user.isActive(),
+                user.getCreatedAt(),
+                user.getLastLoginAt(),
                 profile != null ? profile.getBusinessName() : user.getUsername(),
                 profile != null ? profile.getCity() : null,
                 profile != null ? profile.getAddress() : null,

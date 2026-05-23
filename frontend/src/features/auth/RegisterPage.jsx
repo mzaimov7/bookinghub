@@ -13,9 +13,13 @@ const initialForm = {
   phone: "",
   bio: "",
   businessName: "",
+  companyLegalName: "",
+  companyEik: "",
+  companyRepresentative: "",
   city: "",
   address: "",
   businessPhone: "",
+  businessDescription: "",
 };
 
 export default function RegisterPage() {
@@ -23,6 +27,7 @@ export default function RegisterPage() {
   const [role, setRole] = useState("CLIENT");
   const [providerType, setProviderType] = useState("COMPANY");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
@@ -39,42 +44,47 @@ export default function RegisterPage() {
 
   async function onSubmit(event) {
     event.preventDefault();
-
-    let uploadedPhotoUrl = null;
-    if (photoFile) {
-      uploadedPhotoUrl = await uploadRegistrationPhoto(photoFile);
-    }
-
-    const payload = {
-      username: form.username.trim(),
-      email: form.email.trim(),
-      password: form.password,
-      role,
-    };
-
-    if (role === "CLIENT") {
-      payload.firstName = form.firstName.trim();
-      payload.lastName = form.lastName.trim();
-      payload.phone = form.phone.trim() || null;
-      payload.photoUrl = uploadedPhotoUrl;
-      payload.bio = form.bio.trim() || null;
-    } else {
-      payload.providerType = providerType;
-      payload.businessName = form.businessName.trim();
-      payload.city = form.city.trim();
-      payload.address = form.address.trim() || null;
-      payload.businessPhone = form.businessPhone.trim() || null;
-      payload.businessPhotoUrl = uploadedPhotoUrl;
-    }
+    setError("");
 
     setLoading(true);
 
     try {
+      let uploadedPhotoUrl = null;
+      if (photoFile) {
+        uploadedPhotoUrl = await uploadRegistrationPhoto(photoFile);
+      }
+
+      const payload = {
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        role,
+      };
+
+      if (role === "CLIENT") {
+        payload.firstName = form.firstName.trim();
+        payload.lastName = form.lastName.trim();
+        payload.phone = form.phone.trim() || null;
+        payload.photoUrl = uploadedPhotoUrl;
+        payload.bio = form.bio.trim() || null;
+      } else {
+        payload.providerType = providerType;
+        payload.businessName = form.businessName.trim();
+        payload.companyLegalName = providerType === "COMPANY" ? form.companyLegalName.trim() : null;
+        payload.companyEik = providerType === "COMPANY" ? form.companyEik.trim() : null;
+        payload.companyRepresentative = providerType === "COMPANY" ? form.companyRepresentative.trim() : null;
+        payload.city = form.city.trim();
+        payload.address = form.address.trim();
+        payload.businessPhone = form.businessPhone.trim() || null;
+        payload.businessPhotoUrl = uploadedPhotoUrl;
+        payload.businessDescription = form.businessDescription.trim() || null;
+      }
+
       await register(payload);
       alert("Профилът беше създаден успешно. Вече можеш да влезеш.");
       navigate("/login");
     } catch (error) {
-      alert(error.message);
+      setError(error.message || "Неуспешна регистрация");
     } finally {
       setLoading(false);
     }
@@ -110,6 +120,8 @@ export default function RegisterPage() {
               />
             </div>
 
+            {error ? <div style={errorBox}>{error}</div> : null}
+
             <form onSubmit={onSubmit} style={formStyle}>
               <div style={gridTwo}>
                 <Field
@@ -143,6 +155,7 @@ export default function RegisterPage() {
                 disabled={loading}
                 required
               />
+              <div style={passwordHint}>Поне 8 символа, с главна буква, малка буква и цифра.</div>
 
               {role === "CLIENT" ? (
                 <>
@@ -217,6 +230,40 @@ export default function RegisterPage() {
                     required
                   />
 
+                  {providerType === "COMPANY" ? (
+                    <>
+                      <Field
+                        label="Име на фирмата"
+                        name="companyLegalName"
+                        value={form.companyLegalName}
+                        onChange={onChange}
+                        placeholder="Юридическо име на фирмата"
+                        disabled={loading}
+                        required
+                      />
+                      <div style={gridTwo}>
+                      <Field
+                        label="ЕИК"
+                        name="companyEik"
+                        value={form.companyEik}
+                        onChange={onChange}
+                        placeholder="ЕИК на фирмата"
+                        disabled={loading}
+                        required
+                      />
+                      <Field
+                        label="МОЛ"
+                        name="companyRepresentative"
+                        value={form.companyRepresentative}
+                        onChange={onChange}
+                        placeholder="Материално отговорно лице"
+                        disabled={loading}
+                        required
+                      />
+                      </div>
+                    </>
+                  ) : null}
+
                   <div style={gridTwo}>
                     <Field
                       label="Град"
@@ -232,8 +279,9 @@ export default function RegisterPage() {
                       name="businessPhone"
                       value={form.businessPhone}
                       onChange={onChange}
-                      placeholder="По желание"
+                      placeholder="Телефон за контакт"
                       disabled={loading}
+                      required
                     />
                   </div>
 
@@ -242,8 +290,18 @@ export default function RegisterPage() {
                     name="address"
                     value={form.address}
                     onChange={onChange}
-                    placeholder="По желание"
+                    placeholder="Адрес на бизнеса"
                     disabled={loading}
+                    required
+                  />
+                  <TextAreaField
+                    label="Кратко описание"
+                    name="businessDescription"
+                    value={form.businessDescription}
+                    onChange={onChange}
+                    placeholder="Разкажи накратко какви услуги предлага бизнесът ти"
+                    disabled={loading}
+                    required
                   />
                   <PhotoUploadCard
                     role={role}
@@ -338,7 +396,8 @@ const shell = {
   minHeight: "100vh",
   position: "relative",
   overflow: "hidden",
-  background: "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 22%), radial-gradient(circle at top right, rgba(30,64,175,0.18) 0%, rgba(30,64,175,0) 26%), linear-gradient(180deg, #081224 0%, #0d2b63 12%, #edf4ff 34%, #f7faff 100%)",
+  background:
+    "radial-gradient(circle at 18% 12%, rgba(37,99,235,0.22) 0%, rgba(37,99,235,0) 30%), linear-gradient(145deg, #020617 0%, #061225 44%, #08245a 100%)",
 };
 
 const backdropGlowOne = {
@@ -348,8 +407,8 @@ const backdropGlowOne = {
   width: 420,
   height: 420,
   borderRadius: "50%",
-  background: "rgba(59, 130, 246, 0.18)",
-  filter: "blur(40px)",
+  background: "rgba(37,99,235,0.12)",
+  filter: "blur(72px)",
 };
 
 const backdropGlowTwo = {
@@ -359,8 +418,8 @@ const backdropGlowTwo = {
   width: 360,
   height: 360,
   borderRadius: "50%",
-  background: "rgba(59, 130, 246, 0.14)",
-  filter: "blur(44px)",
+  background: "rgba(14,116,184,0.10)",
+  filter: "blur(76px)",
 };
 
 const layout = {
@@ -378,8 +437,10 @@ const layout = {
 
 const logoStyle = {
   display: "block",
-  height: 60,
-  marginBottom: 6,
+  height: 72,
+  marginBottom: 8,
+  borderRadius: 18,
+  boxShadow: "0 18px 45px rgba(2,6,23,0.28)",
 };
 
 const formPanel = {
@@ -391,10 +452,10 @@ const formPanel = {
 const card = {
   width: "min(620px, 100%)",
   padding: 28,
-  borderRadius: 30,
-  background: "linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(239,246,255,0.8) 100%)",
-  border: "1px solid rgba(255,255,255,0.74)",
-  boxShadow: "0 28px 90px rgba(15, 23, 42, 0.16)",
+  borderRadius: 26,
+  background: "linear-gradient(180deg, rgba(5,13,28,0.96) 0%, rgba(9,25,55,0.94) 100%)",
+  border: "1px solid rgba(147,197,253,0.24)",
+  boxShadow: "0 28px 90px rgba(2,6,23,0.34)",
   backdropFilter: "blur(18px)",
 };
 
@@ -408,12 +469,12 @@ const eyebrow = {
   fontWeight: 800,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  color: "#2563eb",
+  color: "#93c5fd",
 };
 
 const title = {
   margin: "10px 0 4px",
-  color: "#0f172a",
+  color: "#eff6ff",
   fontSize: 34,
   lineHeight: 1.05,
   textAlign: "center",
@@ -431,28 +492,28 @@ const roleCard = {
   gap: 6,
   padding: "16px 18px",
   borderRadius: 20,
-  border: "1px solid #dbeafe",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(244,249,255,0.96) 100%)",
+  border: "1px solid rgba(147,197,253,0.22)",
+  background: "rgba(15,23,42,0.36)",
   textAlign: "left",
   cursor: "pointer",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
 };
 
 const roleCardActive = {
-  border: "1px solid #2563eb",
-  background: "linear-gradient(135deg, rgba(219,234,254,0.98) 0%, rgba(239,246,255,1) 100%)",
-  boxShadow: "0 14px 30px rgba(37, 99, 235, 0.14)",
+  border: "1px solid #60a5fa",
+  background: "linear-gradient(135deg, rgba(37,99,235,0.34) 0%, rgba(15,23,42,0.5) 100%)",
+  boxShadow: "0 14px 30px rgba(37,99,235,0.18)",
 };
 
 const roleCardTitle = {
   fontSize: 16,
   fontWeight: 900,
-  color: "#0f172a",
+  color: "#eff6ff",
 };
 
 const roleCardSubtitle = {
   fontSize: 13,
-  color: "#64748b",
+  color: "#cbd5e1",
 };
 
 const formStyle = {
@@ -471,8 +532,19 @@ const fieldWrap = {
   gap: 6,
 };
 
+const errorBox = {
+  marginTop: 14,
+  padding: "12px 14px",
+  borderRadius: 16,
+  border: "1px solid rgba(248,113,113,0.28)",
+  background: "linear-gradient(180deg, rgba(255,241,242,0.98) 0%, rgba(255,247,248,0.98) 100%)",
+  color: "#9f1239",
+  fontWeight: 700,
+  lineHeight: 1.55,
+};
+
 const labelStyle = {
-  color: "#0f172a",
+  color: "#dbeafe",
   fontSize: 13,
   fontWeight: 800,
 };
@@ -481,18 +553,25 @@ const input = {
   width: "100%",
   padding: "14px 15px",
   borderRadius: 16,
-  border: "1px solid rgba(148,163,184,0.34)",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,251,255,0.94) 100%)",
-  color: "#0f172a",
+  border: "1px solid rgba(147,197,253,0.28)",
+  background: "rgba(15,23,42,0.46)",
+  color: "#eff6ff",
   outline: "none",
   fontSize: 15,
   boxSizing: "border-box",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.82)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+};
+
+const passwordHint = {
+  marginTop: -4,
+  color: "#cbd5e1",
+  fontSize: 13,
+  lineHeight: 1.55,
 };
 
 const sectionLabel = {
   marginTop: 6,
-  color: "#2563eb",
+  color: "#93c5fd",
   fontSize: 12,
   fontWeight: 900,
   letterSpacing: "0.08em",
@@ -510,8 +589,8 @@ const photoUploadCard = {
   padding: 18,
   borderRadius: 22,
   border: "1px solid rgba(96,165,250,0.26)",
-  background: "linear-gradient(135deg, rgba(223,235,255,0.92) 0%, rgba(245,249,255,0.98) 58%, rgba(255,255,255,0.98) 100%)",
-  boxShadow: "0 16px 34px rgba(37,99,235,0.08), inset 0 1px 0 rgba(255,255,255,0.82)",
+  background: "rgba(15,23,42,0.36)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
 };
 const photoUploadTop = {
   display: "flex",
@@ -522,7 +601,7 @@ const photoUploadTop = {
 };
 const photoUploadHint = {
   marginTop: 6,
-  color: "#64748b",
+  color: "#cbd5e1",
   lineHeight: 1.65,
   fontSize: 14,
   maxWidth: 380,
@@ -532,9 +611,9 @@ const registerPhotoPreviewWrap = {
   height: 72,
   borderRadius: 999,
   overflow: "hidden",
-  border: "1px solid #bfdbfe",
-  background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
-  boxShadow: "0 14px 28px rgba(37,99,235,0.12)",
+  border: "1px solid rgba(147,197,253,0.34)",
+  background: "linear-gradient(135deg, rgba(15,23,42,0.82), rgba(30,64,175,0.34))",
+  boxShadow: "0 14px 28px rgba(2,6,23,0.22)",
   flexShrink: 0,
 };
 const registerPhotoPreview = {
@@ -549,7 +628,7 @@ const registerPhotoFallback = {
   display: "grid",
   placeItems: "center",
   fontSize: 28,
-  color: "#1d4ed8",
+  color: "#bfdbfe",
 };
 const photoUploadButton = {
   display: "inline-flex",
@@ -566,18 +645,18 @@ const photoUploadButton = {
 const providerCard = {
   padding: "12px 14px",
   borderRadius: 16,
-  border: "1px solid #dbeafe",
-  background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(244,249,255,0.96) 100%)",
-  color: "#0f172a",
+  border: "1px solid rgba(147,197,253,0.22)",
+  background: "rgba(15,23,42,0.36)",
+  color: "#eff6ff",
   fontWeight: 800,
   cursor: "pointer",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
 };
 
 const providerCardActive = {
-  background: "linear-gradient(135deg, rgba(219,234,254,0.98) 0%, rgba(239,246,255,1) 100%)",
-  border: "1px solid #2563eb",
-  boxShadow: "0 12px 24px rgba(37,99,235,0.12)",
+  background: "linear-gradient(135deg, rgba(37,99,235,0.34) 0%, rgba(15,23,42,0.5) 100%)",
+  border: "1px solid #60a5fa",
+  boxShadow: "0 12px 24px rgba(37,99,235,0.18)",
 };
 
 const primaryButton = {
@@ -585,7 +664,7 @@ const primaryButton = {
   padding: "15px 16px",
   borderRadius: 16,
   border: "none",
-  background: "linear-gradient(135deg, #0f172a 0%, #2563eb 100%)",
+  background: "linear-gradient(135deg, #2563eb 0%, #0f172a 100%)",
   color: "#fff",
   fontWeight: 900,
   cursor: "pointer",
@@ -595,13 +674,13 @@ const primaryButton = {
 const registerText = {
   marginTop: 18,
   marginBottom: 0,
-  color: "#475569",
+  color: "#cbd5e1",
   fontSize: 14,
   textAlign: "center",
 };
 
 const registerLink = {
-  color: "#2563eb",
+  color: "#93c5fd",
   fontWeight: 800,
   textDecoration: "none",
 };

@@ -82,7 +82,7 @@ export default function BusinessServicesPage() {
                   <div style={{ display: "grid", gap: 10 }}>
                     <div style={{ display: "grid", gap: 4 }}>
                       <div style={{ fontSize: 22, fontWeight: 900, color: "#eff6ff" }}>{service.title}</div>
-                      <div style={{ color: "rgba(226,232,240,0.8)", lineHeight: 1.55 }}>{service.description || "Все още няма описание."}</div>
+                      <div style={previewDescription}>{service.description || "Все още няма описание."}</div>
                     </div>
 
                     <div style={metaRow}>
@@ -139,6 +139,14 @@ const errorBox = { marginBottom: 16, padding: 14, borderRadius: 16, border: "1px
 const emptyState = { minHeight: 280, display: "grid", gap: 8, placeContent: "center", padding: 24, borderRadius: 28, border: "1px dashed rgba(96,165,250,0.24)", background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)" };
 const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 18 };
 const card = { display: "grid", gap: 16, padding: 18, borderRadius: 26, border: "1px solid rgba(96,165,250,0.22)", background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)", boxShadow: "0 22px 45px rgba(15, 23, 42, 0.18)" };
+const previewDescription = {
+  color: "rgba(226,232,240,0.8)",
+  lineHeight: 1.55,
+  display: "-webkit-box",
+  WebkitLineClamp: 3,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
 const imageWrap = { position: "relative", borderRadius: 22, overflow: "hidden", minHeight: 210, background: "linear-gradient(135deg, #dbeafe, #eff6ff)" };
 const image = { width: "100%", height: 210, objectFit: "cover", display: "block" };
 const imagePlaceholder = { minHeight: 210, display: "grid", placeItems: "center", color: "#1d4ed8", fontWeight: 900, letterSpacing: 1.4 };

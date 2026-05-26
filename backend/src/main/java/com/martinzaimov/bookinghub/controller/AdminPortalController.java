@@ -115,6 +115,14 @@ public class AdminPortalController {
         return adminPortalService.hideReview(adminUserId, reviewId, request);
     }
 
+    @PatchMapping("/reviews/{reviewId}/restore")
+    public AdminReviewOTD restoreReview(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long reviewId
+    ) {
+        return adminPortalService.restoreReview(adminUserId, reviewId);
+    }
+
     @GetMapping("/reports")
     public List<AdminReportOTD> getReports(@RequestHeader("X-Admin-User-Id") Long adminUserId) {
         return adminPortalService.getReports(adminUserId);
@@ -136,6 +144,14 @@ public class AdminPortalController {
             @Valid @RequestBody AdminHideCommentRequest request
     ) {
         return adminPortalService.hideComment(adminUserId, commentId, request);
+    }
+
+    @PatchMapping("/comments/{commentId}/restore")
+    public AdminCommentOTD restoreComment(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long commentId
+    ) {
+        return adminPortalService.restoreComment(adminUserId, commentId);
     }
 
     @GetMapping("/users/clients")

@@ -18,7 +18,7 @@ export default function HomePage() {
 
   useEffect(() => {
     async function load() {
-      const [loadedCategories, loadedServices] = await Promise.all([getCategories(), searchServices()]);
+      const [loadedCategories, loadedServices] = await Promise.all([getCategories(), searchServices({ sort: "popular" })]);
       setCategories(loadedCategories);
       setServices(loadedServices);
 

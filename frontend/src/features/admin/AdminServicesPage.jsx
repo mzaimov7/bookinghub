@@ -17,6 +17,8 @@ import {
   listAdminReviews,
   listAdminServices,
   rejectServiceAsAdmin,
+  restoreCommentAsAdmin,
+  restoreReviewAsAdmin,
   updateAdminCategory,
   updateAdminReport,
   updateAdminUserStatus,
@@ -29,7 +31,7 @@ const tabs = [
   { id: "reports", label: "Докладвания" },
   { id: "moderation", label: "Коментари и отзиви" },
   { id: "businesses", label: "Бизнес профили" },
-  { id: "clients", label: "Клиенти" },
+  { id: "clients", label: "Клиентски профили" },
 ];
 
 const emptyCategoryDraft = { name: "", description: "", active: true };
@@ -48,6 +50,7 @@ export default function AdminServicesPage() {
   const [comments, setComments] = useState([]);
   const [clients, setClients] = useState([]);
   const [businesses, setBusinesses] = useState([]);
+  const [focusedProfileId, setFocusedProfileId] = useState(null);
 
   const [serviceNotes, setServiceNotes] = useState({});
   const [commentReasons, setCommentReasons] = useState({});
@@ -238,8 +241,8 @@ export default function AdminServicesPage() {
     if (!reason) return alert("Добави причина за скриването.");
     try {
       setBusyKey(`comment-${comment.id}`);
-      await hideCommentAsAdmin(comment.id, { reason });
-      setComments((current) => current.filter((item) => item.id !== comment.id));
+      const next = await hideCommentAsAdmin(comment.id, { reason });
+      setComments((current) => current.map((item) => (item.id === comment.id ? next : item)));
     } catch (actionError) {
       alert(actionError.message);
     } finally {
@@ -252,8 +255,34 @@ export default function AdminServicesPage() {
     if (!reason) return alert("Добави причина за скриването.");
     try {
       setBusyKey(`review-${review.id}`);
-      await hideReviewAsAdmin(review.id, { reason });
-      setReviews((current) => current.filter((item) => item.id !== review.id));
+      const next = await hideReviewAsAdmin(review.id, { reason });
+      setReviews((current) => current.map((item) => (item.id === review.id ? next : item)));
+    } catch (actionError) {
+      alert(actionError.message);
+    } finally {
+      setBusyKey("");
+    }
+  }
+
+  async function onRestoreComment(comment) {
+    try {
+      setBusyKey(`comment-${comment.id}`);
+      const next = await restoreCommentAsAdmin(comment.id);
+      setComments((current) => current.map((item) => (item.id === comment.id ? next : item)));
+      setCommentReasons((current) => ({ ...current, [comment.moderationKey ?? `comment-${comment.id}`]: "" }));
+    } catch (actionError) {
+      alert(actionError.message);
+    } finally {
+      setBusyKey("");
+    }
+  }
+
+  async function onRestoreReview(review) {
+    try {
+      setBusyKey(`review-${review.id}`);
+      const next = await restoreReviewAsAdmin(review.id);
+      setReviews((current) => current.map((item) => (item.id === review.id ? next : item)));
+      setCommentReasons((current) => ({ ...current, [review.moderationKey ?? `review-${review.id}`]: "" }));
     } catch (actionError) {
       alert(actionError.message);
     } finally {
@@ -265,7 +294,11 @@ export default function AdminServicesPage() {
     try {
       setBusyKey(`report-${report.id}-${status}`);
       const next = await updateAdminReport(report.id, { status, resolutionNote: reportNotes[report.id] ?? "" });
-      setReports((current) => current.map((item) => (item.id === report.id ? next : item)));
+      setReports((current) => (
+        status === "RESOLVED"
+          ? current.filter((item) => item.id !== report.id)
+          : current.map((item) => (item.id === report.id ? next : item))
+      ));
     } catch (actionError) {
       alert(actionError.message);
     } finally {
@@ -301,6 +334,15 @@ export default function AdminServicesPage() {
     } finally {
       setBusyKey("");
     }
+  }
+
+  function openProfileFromReport(userId, role) {
+    if (!userId) return;
+    setFocusedProfileId(Number(userId));
+    setActiveTab(role === "BUSINESS" ? "businesses" : "clients");
+    window.setTimeout(() => {
+      document.getElementById(`admin-profile-${userId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
   }
 
   return (
@@ -441,34 +483,77 @@ export default function AdminServicesPage() {
 
             {activeTab === "reports" && (
               <div style={moderationList}>
-                {reports.map((report) => (
-                  <article key={report.id} style={reportCard}>
-                    <div style={reportContent}>
-                      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                        <div style={statusChip(report.status)}>{labelForReportStatus(report.status)}</div>
-                        <div style={reportTypePill}>{labelForTargetType(report.targetType)}</div>
+                {reports.map((report) => {
+                  const primaryDetail = detailForReportTarget(report);
+                  const reviewServiceId = report.targetType === "REVIEW" ? findReviewServiceId(report, reviews) : null;
+                  const linkedServiceId = report.serviceId || reviewServiceId;
+                  const reportedProfileServiceId = report.targetType === "USER" ? findFirstServiceIdForBusiness(report.targetId, services) : null;
+                  const reportServiceLabel = report.serviceLabel || (report.targetType === "REVIEW" ? findReviewServiceLabel(report, reviews) : null);
+                  const listingProfile = [report.serviceLabel, report.businessLabel].filter(Boolean).join(" / ");
+
+                  return (
+                    <article key={report.id} style={reportCard}>
+                      <div style={reportContent}>
+                        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                          <div style={statusChip(report.status)}>{labelForReportStatus(report.status)}</div>
+                          <div style={reportTypePill}>{labelForTargetType(report.targetType)}</div>
+                        </div>
+                        <div style={cardTitle}>{primaryDetail.title}</div>
+                        <div style={reportInfoGrid}>
+                          <ReportField label={primaryDetail.label} value={reportServiceLabel || primaryDetail.value} boxed={primaryDetail.boxed} />
+                          {report.targetType === "REVIEW" && report.targetText ? (
+                            <ReportField label="Текст на отзива" value={`„${report.targetText}“`} boxed />
+                          ) : null}
+                          {listingProfile ? <ReportField label="Профил на обявата" value={listingProfile} /> : null}
+                          <ReportField label="Докладвано от" value={report.reporterName} />
+                          <ReportField label="Причина за докладване" value={report.reasonText || "—"} boxed />
+                          <ReportField label="Дата на докладване" value={formatDate(report.createdAt)} />
+                          <div style={reportLinkRow}>
+                            {report.targetType === "USER" ? (
+                              <button type="button" style={miniActionButton} onClick={() => openProfileFromReport(report.targetId, report.targetUserRole)}>
+                                Виж докладвания профил
+                              </button>
+                            ) : null}
+                            <button type="button" style={miniActionButton} onClick={() => openProfileFromReport(report.reporterUserId, report.reporterRole)}>
+                              Виж подателя
+                            </button>
+                            {report.targetType === "REVIEW" && linkedServiceId ? (
+                              <a href={`/services/${linkedServiceId}#reviews`} target="_blank" rel="noreferrer" style={miniActionLink}>
+                                Виж отзива
+                              </a>
+                            ) : null}
+                            {report.businessUserId ? (
+                              <button type="button" style={miniActionButton} onClick={() => openProfileFromReport(report.businessUserId, "BUSINESS")}>
+                                Виж бизнес профила
+                              </button>
+                            ) : null}
+                            {linkedServiceId ? (
+                              <a href={`/services/${linkedServiceId}`} target="_blank" rel="noreferrer" style={miniActionLink}>
+                                Отвори обявата
+                              </a>
+                            ) : null}
+                            {!linkedServiceId && reportedProfileServiceId ? (
+                              <a href={`/services/${reportedProfileServiceId}`} target="_blank" rel="noreferrer" style={miniActionLink}>
+                                Отвори обявата
+                              </a>
+                            ) : null}
+                          </div>
+                        </div>
+                        <textarea
+                          value={reportNotes[report.id] ?? report.resolutionNote ?? ""}
+                          onChange={(event) => setReportNotes((current) => ({ ...current, [report.id]: event.target.value }))}
+                          placeholder="Бележка по сигнала"
+                          style={textarea}
+                        />
                       </div>
-                      <div style={cardTitle}>{report.targetLabel}</div>
-                      <div style={reportTextBox}>
-                        <strong style={{ color: "#dbeafe" }}>Причина за докладване:</strong>
-                        <div style={bodyText}>{report.reasonText}</div>
+                      <div style={reportActions}>
+                        <button type="button" onClick={() => onUpdateReport(report, "IN_REVIEW")} style={secondaryButton} disabled={busyKey === `report-${report.id}-IN_REVIEW`}>В преглед</button>
+                        <button type="button" onClick={() => onUpdateReport(report, "RESOLVED")} style={primaryButton} disabled={busyKey === `report-${report.id}-RESOLVED`}>Решен</button>
+                        <button type="button" onClick={() => onUpdateReport(report, "REJECTED")} style={dangerButton} disabled={busyKey === `report-${report.id}-REJECTED`}>Отхвърли</button>
                       </div>
-                      <div style={mutedText}>Докладвано от: {report.reporterName}</div>
-                      <div style={mutedText}>Дата: {formatDateTime(report.createdAt)}</div>
-                      <textarea
-                        value={reportNotes[report.id] ?? report.resolutionNote ?? ""}
-                        onChange={(event) => setReportNotes((current) => ({ ...current, [report.id]: event.target.value }))}
-                        placeholder="Бележка по сигнала"
-                        style={textarea}
-                      />
-                    </div>
-                    <div style={reportActions}>
-                      <button type="button" onClick={() => onUpdateReport(report, "IN_REVIEW")} style={secondaryButton} disabled={busyKey === `report-${report.id}-IN_REVIEW`}>В преглед</button>
-                      <button type="button" onClick={() => onUpdateReport(report, "RESOLVED")} style={primaryButton} disabled={busyKey === `report-${report.id}-RESOLVED`}>Решен</button>
-                      <button type="button" onClick={() => onUpdateReport(report, "REJECTED")} style={dangerButton} disabled={busyKey === `report-${report.id}-REJECTED`}>Отхвърли</button>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             )}
 
@@ -493,14 +578,25 @@ export default function AdminServicesPage() {
                       />
                     </div>
                     <div style={reportActions}>
-                      <button
-                        type="button"
-                        onClick={() => (item.moderationType === "review" ? onHideReview(item) : onHideComment(item))}
-                        style={dangerButton}
-                        disabled={busyKey === `${item.moderationType}-${item.id}` || item.status === "HIDDEN"}
-                      >
-                        Изтрий
-                      </button>
+                      {item.status === "HIDDEN" ? (
+                        <button
+                          type="button"
+                          onClick={() => (item.moderationType === "review" ? onRestoreReview(item) : onRestoreComment(item))}
+                          style={primaryButton}
+                          disabled={busyKey === `${item.moderationType}-${item.id}`}
+                        >
+                          Възстанови
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => (item.moderationType === "review" ? onHideReview(item) : onHideComment(item))}
+                          style={dangerButton}
+                          disabled={busyKey === `${item.moderationType}-${item.id}`}
+                        >
+                          Скрий
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -510,7 +606,14 @@ export default function AdminServicesPage() {
             {activeTab === "businesses" && (
               <div style={profileGrid}>
                 {businesses.map((profile) => (
-                  <article key={profile.userId} style={profileCard}>
+                  <article
+                    key={profile.userId}
+                    id={`admin-profile-${profile.userId}`}
+                    style={{
+                      ...profileCard,
+                      ...(focusedProfileId === Number(profile.userId) ? focusedProfileCard : {}),
+                    }}
+                  >
                     <ProfileHeader profile={profile} />
                     <div style={profileMeta}>Потребител: {profile.username}</div>
                     <div style={profileMeta}>Град: {profile.city || "—"}</div>
@@ -520,7 +623,7 @@ export default function AdminServicesPage() {
                     <div style={profileMeta}>Регистриран: {formatDateTime(profile.createdAt)}</div>
                     <div style={profileMeta}>Последно влизане: {formatDateTime(profile.lastLoginAt)}</div>
                     <button type="button" onClick={() => onToggleUser(profile)} style={profile.active ? dangerButton : primaryButton} disabled={busyKey === `user-${profile.userId}`}>
-                      {profile.active ? "Изтрий" : "Активирай профила"}
+                      {profile.active ? "Деактивирай" : "Активирай"}
                     </button>
                   </article>
                 ))}
@@ -530,7 +633,14 @@ export default function AdminServicesPage() {
             {activeTab === "clients" && (
               <div style={profileGrid}>
                 {clients.map((profile) => (
-                  <article key={profile.userId} style={profileCard}>
+                  <article
+                    key={profile.userId}
+                    id={`admin-profile-${profile.userId}`}
+                    style={{
+                      ...profileCard,
+                      ...(focusedProfileId === Number(profile.userId) ? focusedProfileCard : {}),
+                    }}
+                  >
                     <ProfileHeader profile={profile} />
                     <div style={profileMeta}>Потребител: {profile.username}</div>
                     <div style={profileMeta}>Телефон: {profile.phone || "—"}</div>
@@ -538,7 +648,7 @@ export default function AdminServicesPage() {
                     <div style={profileMeta}>Последно влизане: {formatDateTime(profile.lastLoginAt)}</div>
                     <div style={profileMeta}>Биография: {profile.bio || "Няма добавена биография."}</div>
                     <button type="button" onClick={() => onToggleUser(profile)} style={profile.active ? dangerButton : primaryButton} disabled={busyKey === `user-${profile.userId}`}>
-                      {profile.active ? "Изтрий" : "Активирай профила"}
+                      {profile.active ? "Деактивирай" : "Активирай"}
                     </button>
                   </article>
                 ))}
@@ -568,6 +678,62 @@ function ProfileHeader({ profile }) {
   );
 }
 
+function ReportField({ label, value, boxed = false }) {
+  return (
+    <div style={boxed ? reportTextBox : reportField}>
+      <div style={reportFieldLabel}>{label}:</div>
+      <div style={boxed ? bodyText : reportFieldValue}>{value || "—"}</div>
+    </div>
+  );
+}
+
+function detailForReportTarget(report) {
+  if (report.targetType === "REVIEW") {
+    return {
+      title: "Докладван отзив",
+      label: "Докладван отзив за обява",
+      value: report.serviceLabel || report.targetLabel,
+      boxed: false,
+    };
+  }
+  if (report.targetType === "COMMENT") {
+    return {
+      title: "Докладван коментар",
+      label: "Докладван коментар",
+      value: report.targetText ? `„${report.targetText}“` : report.targetLabel,
+      boxed: true,
+    };
+  }
+  if (report.targetType === "SERVICE") {
+    return {
+      title: "Докладвана обява",
+      label: "Докладвана обява",
+      value: report.targetLabel,
+      boxed: false,
+    };
+  }
+  return {
+    title: "Докладван профил",
+    label: "Докладван профил",
+    value: report.targetLabel,
+    boxed: false,
+  };
+}
+
+function findFirstServiceIdForBusiness(userId, services) {
+  return services.find((service) => Number(service.businessUserId) === Number(userId))?.id || null;
+}
+
+function findReviewServiceLabel(report, reviews) {
+  const review = reviews.find((item) => Number(item.id) === Number(report.targetId));
+  return review?.serviceTitle || null;
+}
+
+function findReviewServiceId(report, reviews) {
+  const review = reviews.find((item) => Number(item.id) === Number(report.targetId));
+  return review?.serviceId || null;
+}
+
 function labelForServiceStatus(status, active) {
   if (!active && status === "REJECTED") return "Свалена или върната обява";
   if (status === "APPROVED") return "Одобрена обява";
@@ -591,8 +757,8 @@ function labelForReportStatus(status) {
 }
 
 function labelForTargetType(type) {
-  if (type === "BUSINESS_PROFILE") return "Бизнес профил";
-  if (type === "CLIENT_PROFILE") return "Клиентски профил";
+  if (type === "USER") return "Профил";
+  if (type === "SERVICE") return "Обява";
   if (type === "REVIEW") return "Отзив";
   if (type === "COMMENT") return "Коментар";
   return "Сигнал";
@@ -615,6 +781,17 @@ function formatDateTime(value) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+  });
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("bg-BG", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   });
 }
 
@@ -650,6 +827,37 @@ const reportCard = {
 };
 const reportContent = { display: "grid", gap: 10, minWidth: 0 };
 const reportActions = { display: "flex", flexDirection: "column", gap: 10, alignSelf: "start" };
+const reportInfoGrid = { display: "grid", gap: 10 };
+const reportField = {
+  display: "grid",
+  gridTemplateColumns: "220px minmax(0, 1fr)",
+  gap: 16,
+  alignItems: "start",
+  minHeight: 28,
+  color: "rgba(226,232,240,0.82)",
+};
+const reportFieldLabel = { color: "rgba(191,219,254,0.82)", fontWeight: 600, lineHeight: 1.55 };
+const reportFieldValue = { color: "#eff6ff", lineHeight: 1.55, fontWeight: 900 };
+const reportLinkRow = { display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" };
+const miniActionButton = {
+  border: "1px solid rgba(96,165,250,0.22)",
+  borderRadius: 12,
+  padding: "9px 12px",
+  color: "#dbeafe",
+  background: "rgba(37,99,235,0.16)",
+  cursor: "pointer",
+  fontWeight: 800,
+  fontFamily: "inherit",
+  fontSize: 14,
+  lineHeight: 1.2,
+};
+const miniActionLink = {
+  ...miniActionButton,
+  display: "inline-flex",
+  textDecoration: "none",
+  alignItems: "center",
+  boxSizing: "border-box",
+};
 const reportTextBox = {
   display: "grid",
   gap: 6,
@@ -693,6 +901,7 @@ const checkboxRow = { display: "flex", gap: 10, alignItems: "center", color: "#d
 const subtlePanel = { padding: 14, borderRadius: 16, background: "rgba(15,23,42,0.66)", border: "1px solid rgba(96,165,250,0.12)" };
 const profileGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 };
 const profileCard = { padding: 18, borderRadius: 22, background: "linear-gradient(180deg, rgba(10,20,40,0.92), rgba(15,23,42,0.86))", border: "1px solid rgba(96,165,250,0.16)", display: "grid", gap: 10 };
+const focusedProfileCard = { border: "1px solid rgba(250,204,21,0.75)", boxShadow: "0 0 0 4px rgba(250,204,21,0.14), 0 20px 52px rgba(2,6,23,0.28)" };
 const profileHeader = { display: "grid", gridTemplateColumns: "72px minmax(0,1fr)", gap: 12, alignItems: "center" };
 const avatar = { width: 72, height: 72, borderRadius: 999, objectFit: "cover", border: "2px solid rgba(96,165,250,0.22)" };
 const avatarFallback = { width: 72, height: 72, borderRadius: 999, display: "grid", placeItems: "center", background: "linear-gradient(135deg, rgba(37,99,235,0.86), rgba(29,78,216,0.64))", color: "#eff6ff", fontWeight: 900, fontSize: 22 };

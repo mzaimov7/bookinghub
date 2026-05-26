@@ -247,6 +247,16 @@ public class AdminPortalService {
         return toAdminReviewDto(review);
     }
 
+    @Transactional
+    public AdminReviewOTD restoreReview(Long adminUserId, Long reviewId) {
+        requireAdminUser(adminUserId);
+        Review review = reviews.findById(reviewId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Review not found"));
+        review.setStatus(Review.Status.VISIBLE);
+        reviews.save(review);
+        return toAdminReviewDto(review);
+    }
+
     public List<AdminReportOTD> getReports(Long adminUserId) {
         requireAdminUser(adminUserId);
         return reports.findAllByOrderByCreatedAtDesc()
@@ -296,6 +306,20 @@ public class AdminPortalService {
                 )
         );
 
+        return toAdminCommentDto(comment);
+    }
+
+    @Transactional
+    public AdminCommentOTD restoreComment(Long adminUserId, Long commentId) {
+        requireAdminUser(adminUserId);
+        Comment comment = comments.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Comment not found"));
+
+        comment.setStatus(Comment.Status.VISIBLE);
+        comment.setAdminModerationReason(null);
+        comment.setAdminModeratedByUserId(null);
+        comment.setAdminModeratedAt(null);
+        comments.save(comment);
         return toAdminCommentDto(comment);
     }
 
@@ -484,6 +508,15 @@ public class AdminPortalService {
                 report.getTargetType().name(),
                 report.getTargetId(),
                 resolveReportTargetLabel(report),
+                resolveReportTargetText(report),
+                resolveReportServiceLabel(report),
+                resolveReportBusinessLabel(report),
+                resolveReportServiceCoverImageUrl(report),
+                resolveReportServiceId(report),
+                resolveReportBusinessUserId(report),
+                reporter != null ? reporter.getRole().name() : null,
+                resolveReportTargetUserRole(report),
+                resolveReportTargetUserListings(report),
                 report.getReasonText(),
                 report.getStatus().name(),
                 report.getResolutionNote(),
@@ -494,10 +527,140 @@ public class AdminPortalService {
     private String resolveReportTargetLabel(Report report) {
         return switch (report.getTargetType()) {
             case SERVICE -> services.findById(report.getTargetId()).map(Service::getTitle).orElse("Обява");
-            case USER -> users.findById(report.getTargetId()).map(User::getUsername).orElse("Потребител");
-            case REVIEW -> reviews.findById(report.getTargetId()).map((item) -> "Отзив #" + item.getId()).orElse("Отзив");
+            case USER -> resolveUserDisplayName(report.getTargetId());
+            case REVIEW -> reviews.findById(report.getTargetId())
+                    .flatMap((review) -> services.findById(review.getServiceId()))
+                    .map(Service::getTitle)
+                    .orElse("Отзив");
             case COMMENT -> comments.findById(report.getTargetId()).map((item) -> "Коментар #" + item.getId()).orElse("Коментар");
         };
+    }
+
+    private String resolveReportTargetText(Report report) {
+        return switch (report.getTargetType()) {
+            case REVIEW -> reviews.findById(report.getTargetId())
+                    .map((item) -> safe(item.getComment()).isBlank() ? "Отзив без текст" : item.getComment())
+                    .orElse(null);
+            case COMMENT -> comments.findById(report.getTargetId())
+                    .map(Comment::getText)
+                    .orElse(null);
+            default -> null;
+        };
+    }
+
+    private String resolveReportServiceLabel(Report report) {
+        Long serviceId = resolveReportServiceId(report);
+        if (serviceId == null) {
+            return null;
+        }
+        return services.findById(serviceId).map(Service::getTitle).orElse("Обява");
+    }
+
+    private String resolveReportBusinessLabel(Report report) {
+        Long serviceId = resolveReportServiceId(report);
+        if (serviceId == null) {
+            return null;
+        }
+        Service service = services.findById(serviceId).orElse(null);
+        if (service == null) {
+            return null;
+        }
+        return businessProfiles.findById(service.getBusinessUserId())
+                .map(BusinessProfile::getBusinessName)
+                .filter((name) -> !safe(name).isBlank())
+                .orElseGet(() -> users.findById(service.getBusinessUserId()).map(User::getUsername).orElse("Бизнес профил"));
+    }
+
+    private String resolveReportServiceCoverImageUrl(Report report) {
+        Long serviceId = resolveReportServiceId(report);
+        if (serviceId == null) {
+            return null;
+        }
+        return resolveServiceCoverImageUrl(serviceId);
+    }
+
+    private Long resolveReportBusinessUserId(Report report) {
+        Long serviceId = resolveReportServiceId(report);
+        if (serviceId == null) {
+            return null;
+        }
+        return services.findById(serviceId).map(Service::getBusinessUserId).orElse(null);
+    }
+
+    private Long resolveReportServiceId(Report report) {
+        return switch (report.getTargetType()) {
+            case SERVICE -> report.getTargetId();
+            case REVIEW -> reviews.findById(report.getTargetId()).map(Review::getServiceId).orElse(null);
+            case COMMENT -> comments.findById(report.getTargetId()).map(this::resolveCommentServiceId).orElse(null);
+            case USER -> null;
+        };
+    }
+
+    private Long resolveCommentServiceId(Comment comment) {
+        if (comment.getParentReviewId() != null) {
+            Long reviewServiceId = reviews.findById(comment.getParentReviewId())
+                    .map(Review::getServiceId)
+                    .orElse(null);
+            if (reviewServiceId != null) {
+                return reviewServiceId;
+            }
+        }
+        return comment.getServiceId();
+    }
+
+    private String resolveReportTargetUserRole(Report report) {
+        if (report.getTargetType() != Report.TargetType.USER) {
+            return null;
+        }
+        return users.findById(report.getTargetId()).map((user) -> user.getRole().name()).orElse(null);
+    }
+
+    private List<AdminReportListingOTD> resolveReportTargetUserListings(Report report) {
+        if (report.getTargetType() != Report.TargetType.USER) {
+            return List.of();
+        }
+        User targetUser = users.findById(report.getTargetId()).orElse(null);
+        if (targetUser == null || targetUser.getRole() != User.Role.BUSINESS) {
+            return List.of();
+        }
+        String businessLabel = businessProfiles.findById(targetUser.getId())
+                .map(BusinessProfile::getBusinessName)
+                .filter((name) -> !safe(name).isBlank())
+                .orElse(targetUser.getUsername());
+        return services.findAllByBusinessUserIdOrderByIdDesc(targetUser.getId())
+                .stream()
+                .limit(4)
+                .map((service) -> new AdminReportListingOTD(
+                        service.getId(),
+                        service.getTitle(),
+                        resolveServiceCoverImageUrl(service.getId()),
+                        businessLabel
+                ))
+                .toList();
+    }
+
+    private String resolveServiceCoverImageUrl(Long serviceId) {
+        List<ServiceImage> images = serviceImages.findByServiceIdOrderBySortOrderAsc(serviceId);
+        return images.stream()
+                .filter(ServiceImage::isCover)
+                .map(ServiceImage::getImageUrl)
+                .findFirst()
+                .orElse(images.stream().findFirst().map(ServiceImage::getImageUrl).orElse(null));
+    }
+
+    private String resolveUserDisplayName(Long userId) {
+        ClientProfile clientProfile = clientProfiles.findById(userId).orElse(null);
+        if (clientProfile != null) {
+            String fullName = (safe(clientProfile.getFirstName()) + " " + safe(clientProfile.getLastName())).trim();
+            if (!fullName.isBlank()) {
+                return fullName;
+            }
+        }
+        BusinessProfile businessProfile = businessProfiles.findById(userId).orElse(null);
+        if (businessProfile != null && !safe(businessProfile.getBusinessName()).isBlank()) {
+            return businessProfile.getBusinessName();
+        }
+        return users.findById(userId).map(User::getUsername).orElse("Потребител");
     }
 
     private AdminUserProfileOTD toClientUserDto(User user) {

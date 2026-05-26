@@ -35,9 +35,10 @@ public class ServiceController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) String sort
     ) {
-        return serviceService.search(query, categoryId, city, minPrice, maxPrice);
+        return serviceService.search(query, categoryId, city, minPrice, maxPrice, sort);
     }
 
     @GetMapping("/{id}")

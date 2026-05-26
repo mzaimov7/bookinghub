@@ -15,6 +15,46 @@ const weekdayOptions = [
   { value: 7, label: "Нед" },
 ];
 
+function normalizeDateList(values = []) {
+  return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+}
+
+function formatDayOffDate(value) {
+  if (!value) return "";
+  return new Date(`${value}T00:00:00`).toLocaleDateString("bg-BG", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function toDateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function expandDateRange(fromValue, toValue) {
+  if (!fromValue) return [];
+
+  let start = new Date(`${fromValue}T00:00:00`);
+  let end = new Date(`${(toValue || fromValue)}T00:00:00`);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+  if (end < start) {
+    [start, end] = [end, start];
+  }
+
+  const dates = [];
+  const current = new Date(start);
+  while (current <= end) {
+    dates.push(toDateInputValue(current));
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
+
 export default function BusinessResourcesPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -142,6 +182,9 @@ export default function BusinessResourcesPage() {
         photoFile: null,
         previewUrl: "",
         weeklyOffDays: resource.weeklyOffDays || [],
+        dayOffDates: resource.dayOffDates || [],
+        dayOffFrom: "",
+        dayOffTo: "",
       },
     }));
   }
@@ -204,6 +247,7 @@ export default function BusinessResourcesPage() {
         name: form.name.trim(),
         photoUrl: uploadedPhotoUrl,
         weeklyOffDays: form.weeklyOffDays || [],
+        dayOffDates: form.dayOffDates || [],
       });
 
       cancelEdit(resource.id);
@@ -229,6 +273,36 @@ export default function BusinessResourcesPage() {
         ? current.weeklyOffDays.filter((item) => item !== dayValue)
         : [...current.weeklyOffDays, dayValue].sort((a, b) => a - b),
     }));
+  }
+
+  function addEditDayOffDate(resourceId) {
+    setEditForms((current) => {
+      const form = current[resourceId] || { dayOffDates: [], dayOffFrom: "", dayOffTo: "" };
+      const rangeDates = expandDateRange(form.dayOffFrom, form.dayOffTo);
+      if (!rangeDates.length) return current;
+      return {
+        ...current,
+        [resourceId]: {
+          ...form,
+          dayOffDates: normalizeDateList([...(form.dayOffDates || []), ...rangeDates]),
+          dayOffFrom: "",
+          dayOffTo: "",
+        },
+      };
+    });
+  }
+
+  function removeEditDayOffDate(resourceId, dateValue) {
+    setEditForms((current) => {
+      const form = current[resourceId] || { dayOffDates: [] };
+      return {
+        ...current,
+        [resourceId]: {
+          ...form,
+          dayOffDates: (form.dayOffDates || []).filter((item) => item !== dateValue),
+        },
+      };
+    });
   }
 
   async function toggleWeeklyOffDay(resource, dayValue) {
@@ -273,7 +347,7 @@ export default function BusinessResourcesPage() {
         </label>
 
         <div style={{ display: "grid", gap: 8 }}>
-          <div style={{ fontWeight: 800, color: "#eff6ff" }}>Седмични почивни дни</div>
+          <div style={{ fontWeight: 800, color: "#eff6ff" }}>Редовен график: седмични почивни дни</div>
           <div style={dayChipWrap}>
             {weekdayOptions.map((day) => {
               const active = create.weeklyOffDays.includes(day.value);
@@ -372,7 +446,7 @@ export default function BusinessResourcesPage() {
 
         <div style={{ display: "grid", gap: 10 }}>
           {items.map((resource) => (
-            <div key={resource.id} style={{ padding: 14, border: "1px solid rgba(96,165,250,0.22)", borderRadius: 14, background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 18px 34px rgba(15,23,42,0.16)" }}>
+            <div key={resource.id} style={resourceCard}>
               {editingId === resource.id ? (
                 <EditResourceCard
                   form={editForms[resource.id]}
@@ -380,26 +454,29 @@ export default function BusinessResourcesPage() {
                   onChange={(updates) => updateEditForm(resource.id, updates)}
                   onFileChange={(event) => onEditFileChange(resource.id, event)}
                   onToggleDay={(dayValue) => toggleEditWeeklyOffDay(resource.id, dayValue)}
+                  onAddDayOffDate={() => addEditDayOffDate(resource.id)}
+                  onRemoveDayOffDate={(dateValue) => removeEditDayOffDate(resource.id, dateValue)}
                   onSave={() => saveEdit(resource)}
                   onCancel={() => cancelEdit(resource.id)}
                 />
               ) : (
               <>
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <div style={resourceDetails}>
                 <img
                   src={resolveBackendImage(resource.photoUrl) || "https://via.placeholder.com/48?text=%F0%9F%91%A4"}
                   alt=""
-                  style={{ width: 48, height: 48, borderRadius: 999, objectFit: "cover", border: "1px solid rgba(96,165,250,0.22)" }}
+                  style={resourceAvatar}
                 />
 
-                <div>
-                            <div style={{ fontWeight: 900, color: "#eff6ff" }}>
+                <div style={resourceBody}>
+                  <div style={{ fontWeight: 900, color: "#eff6ff" }}>
                     {resource.name} <span style={{ opacity: 0.6, fontWeight: 700 }}>({resource.type})</span>
                   </div>
                   <div style={{ fontSize: 13, opacity: 0.75, color: "rgba(191,219,254,0.76)" }}>
                     Статус: {resource.active ? "Активен" : "Неактивен"}
                   </div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                    <span style={scheduleLabel}>Редовен график</span>
                     {weekdayOptions.map((day) => {
                       const active = resource.weeklyOffDays.includes(day.value);
                       return (
@@ -421,10 +498,18 @@ export default function BusinessResourcesPage() {
                       );
                     })}
                   </div>
+                  <div style={summaryLine}>
+                    <span style={scheduleLabel}>Почивен ден / отпуск</span>
+                    {(resource.dayOffDates || []).length ? (
+                      <span>{resource.dayOffDates.map(formatDayOffDate).join(", ")}</span>
+                    ) : (
+                      <span>Няма</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <div style={resourceActions}>
                 <button onClick={() => startEdit(resource)} style={smallBtn}>
                   Редактирай
                 </button>
@@ -442,13 +527,16 @@ export default function BusinessResourcesPage() {
   );
 }
 
-function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay, onSave, onCancel }) {
+function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay, onAddDayOffDate, onRemoveDayOffDate, onSave, onCancel }) {
   const current = form || {
     type: resource.type,
     name: resource.name,
     photoUrl: resource.photoUrl || "",
     previewUrl: "",
     weeklyOffDays: resource.weeklyOffDays || [],
+    dayOffDates: resource.dayOffDates || [],
+    dayOffFrom: "",
+    dayOffTo: "",
   };
   const imageUrl = current.previewUrl || resolveBackendImage(current.photoUrl);
 
@@ -481,7 +569,7 @@ function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay,
       ) : null}
 
       <div style={{ display: "grid", gap: 8 }}>
-        <div style={{ fontWeight: 800, color: "#eff6ff" }}>Седмични почивни дни</div>
+        <div style={{ fontWeight: 800, color: "#eff6ff" }}>Редовен график: седмични почивни дни</div>
         <div style={dayChipWrap}>
           {weekdayOptions.map((day) => {
             const active = current.weeklyOffDays.includes(day.value);
@@ -504,6 +592,36 @@ function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay,
         </div>
       </div>
 
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ fontWeight: 800, color: "#eff6ff" }}>Конкретни почивни дати</div>
+        <div style={datePickerRow}>
+          <label style={dateField}>
+            <span style={dateFieldLabel}>От</span>
+            <input
+              type="date"
+              value={current.dayOffFrom || ""}
+              onChange={(event) => onChange({ dayOffFrom: event.target.value })}
+              onInput={(event) => onChange({ dayOffFrom: event.target.value })}
+              style={{ ...input, ...dateInput }}
+            />
+          </label>
+          <label style={dateField}>
+            <span style={dateFieldLabel}>До</span>
+            <input
+              type="date"
+              value={current.dayOffTo || ""}
+              onChange={(event) => onChange({ dayOffTo: event.target.value })}
+              onInput={(event) => onChange({ dayOffTo: event.target.value })}
+              style={{ ...input, ...dateInput }}
+            />
+          </label>
+          <button type="button" onClick={onAddDayOffDate} style={{ ...smallBtn, ...dateAddButton }}>
+            Добави период
+          </button>
+        </div>
+        <DayOffDateList dates={current.dayOffDates || []} onRemove={onRemoveDayOffDate} emptyText="Няма добавени конкретни почивни дати." />
+      </div>
+
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
         <button type="button" onClick={onCancel} style={smallBtn}>Откажи</button>
         <button type="button" onClick={onSave} style={btn}>Запази</button>
@@ -512,13 +630,60 @@ function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay,
   );
 }
 
+function DayOffDateList({ dates, onRemove, emptyText }) {
+  const normalizedDates = normalizeDateList(dates || []);
+
+  if (!normalizedDates.length) {
+    return <div style={emptyDatesText}>{emptyText}</div>;
+  }
+
+  return (
+    <div style={dateChipWrap}>
+      {normalizedDates.map((dateValue) => (
+        <span key={dateValue} style={dateChip}>
+          <span>{formatDayOffDate(dateValue)}</span>
+          <button type="button" onClick={() => onRemove(dateValue)} style={dateRemoveButton} aria-label="Премахни дата">
+            x
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const pageBackground = "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 16%, #eaf2ff 44%, #f6f9ff 100%)";
-const input = { width: "100%", padding: "10px 12px", border: "1px solid rgba(96,165,250,0.22)", borderRadius: 12, background: "rgba(15,23,42,0.3)", color: "#eff6ff" };
+const input = { width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid rgba(96,165,250,0.22)", borderRadius: 12, background: "rgba(15,23,42,0.3)", color: "#eff6ff" };
 const btn = { padding: "12px 14px", borderRadius: 12, border: "none", background: "#2563eb", color: "#fff", fontWeight: 900, cursor: "pointer" };
-const smallBtn = { border: "1px solid rgba(96,165,250,0.22)", background: "rgba(15,23,42,0.34)", color: "#eff6ff", borderRadius: 12, padding: "8px 10px", cursor: "pointer", fontWeight: 800 };
+const smallBtn = { boxSizing: "border-box", border: "1px solid rgba(96,165,250,0.22)", background: "rgba(15,23,42,0.34)", color: "#eff6ff", borderRadius: 12, padding: "8px 10px", cursor: "pointer", fontWeight: 800 };
 const uploadWrap = { display: "grid", padding: 12, border: "1px dashed rgba(96,165,250,0.24)", borderRadius: 14, background: "rgba(15,23,42,0.26)" };
 const dayChipWrap = { display: "flex", gap: 8, flexWrap: "wrap" };
 const dayChip = { border: "1px solid rgba(96,165,250,0.22)", borderRadius: 999, padding: "8px 12px", fontWeight: 800, cursor: "pointer", background: "rgba(15,23,42,0.3)" };
+const resourceCard = {
+  padding: 14,
+  border: "1px solid rgba(96,165,250,0.22)",
+  borderRadius: 14,
+  background: "linear-gradient(180deg, rgba(8,18,36,0.92) 0%, rgba(17,36,71,0.96) 100%)",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: 14,
+  alignItems: "stretch",
+  boxShadow: "0 18px 34px rgba(15,23,42,0.16)",
+};
+const resourceDetails = { display: "flex", gap: 12, alignItems: "flex-start", minWidth: 0 };
+const resourceAvatar = { width: 48, height: 48, borderRadius: 999, objectFit: "cover", border: "1px solid rgba(96,165,250,0.22)", flex: "0 0 auto" };
+const resourceBody = { display: "grid", gap: 0, minWidth: 0, width: "100%" };
+const resourceActions = { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", alignSelf: "end" };
+const datePickerRow = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10, alignItems: "end" };
+const dateField = { display: "grid", gap: 5, minWidth: 0 };
+const dateFieldLabel = { color: "#93c5fd", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1 };
+const dateInput = { minWidth: 0, height: 40 };
+const dateAddButton = { width: "100%", minHeight: 40, whiteSpace: "normal", textAlign: "center", lineHeight: 1.2 };
+const dateChipWrap = { display: "flex", gap: 8, flexWrap: "wrap" };
+const dateChip = { display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 8px 7px 11px", borderRadius: 999, border: "1px solid rgba(96,165,250,0.22)", background: "rgba(37,99,235,0.14)", color: "#dbeafe", fontWeight: 800, fontSize: 13 };
+const dateRemoveButton = { width: 22, height: 22, borderRadius: 999, border: "1px solid rgba(191,219,254,0.28)", background: "rgba(15,23,42,0.34)", color: "#eff6ff", cursor: "pointer", fontWeight: 900, lineHeight: 1 };
+const emptyDatesText = { color: "rgba(191,219,254,0.68)", fontSize: 13 };
+const scheduleLabel = { color: "#93c5fd", fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1, marginRight: 2 };
+const summaryLine = { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, color: "rgba(191,219,254,0.76)", fontSize: 13 };
 const editCard = { width: "100%", display: "grid", gap: 12 };
 const editHeader = { display: "grid", gridTemplateColumns: "72px minmax(0, 1fr)", gap: 12, alignItems: "center" };
 const assignedWrap = {

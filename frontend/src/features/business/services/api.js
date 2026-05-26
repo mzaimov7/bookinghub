@@ -197,6 +197,14 @@ export async function hideReviewAsAdmin(reviewId, payload) {
   return mapAdminReview(data);
 }
 
+export async function restoreReviewAsAdmin(reviewId) {
+  const data = await apiSend(`/api/admin/reviews/${reviewId}/restore`, {
+    method: "PATCH",
+    headers: adminHeaders(),
+  });
+  return mapAdminReview(data);
+}
+
 export async function listAdminReports() {
   const data = await apiGet("/api/admin/reports", { headers: adminHeaders() });
   return mapCollection(data, mapAdminReport);
@@ -216,6 +224,15 @@ export async function hideCommentAsAdmin(commentId, payload) {
     method: "PATCH",
     headers: { ...adminHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+  });
+
+  return mapAdminComment(data);
+}
+
+export async function restoreCommentAsAdmin(commentId) {
+  const data = await apiSend(`/api/admin/comments/${commentId}/restore`, {
+    method: "PATCH",
+    headers: adminHeaders(),
   });
 
   return mapAdminComment(data);

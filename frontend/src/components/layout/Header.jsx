@@ -96,6 +96,14 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
     navigate(path);
   }
 
+  function handleLogout() {
+    logoutLocal();
+    setLoadedProfilePhotoUrl(null);
+    setLoadedRecentSearches([]);
+    setOpenProfile(false);
+    go("/");
+  }
+
   function requireLogin(actionName) {
     if (!isLoggedIn()) {
       alert(`За "${actionName}" трябва първо да влезеш в профила си.`);
@@ -138,7 +146,7 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
     return [...parts, categoryName, priceRange].filter(Boolean).join(" • ") || "Последно търсене";
   }
 
-  const profilePhotoUrl = resolveBackendImage(auth?.profilePhotoUrl || loadedProfilePhotoUrl);
+  const profilePhotoUrl = isLoggedIn() ? resolveBackendImage(auth?.profilePhotoUrl || loadedProfilePhotoUrl) : null;
 
   return (
     <div
@@ -240,7 +248,7 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
                 <span style={iconGlyph}>▦</span>
               </button>
             </>
-          ) : role !== "BUSINESS" && (
+          ) : role === "CLIENT" ? (
             <>
               <button onClick={() => requireLogin("Любими") || go("/favorites")} title="Любими" style={iconBtn}>
                 <span style={heartGlyph}>♥</span>
@@ -249,7 +257,16 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
                 <span style={iconGlyph}>📘</span>
               </button>
             </>
-          )}
+          ) : !isLoggedIn() ? (
+            <>
+              <button onClick={() => go("/login")} style={authBtn}>
+                Вход
+              </button>
+              <button onClick={() => go("/register")} style={authPrimaryBtn}>
+                Регистрация
+              </button>
+            </>
+          ) : null}
 
           {role === "BUSINESS" && (
             <>
@@ -262,7 +279,7 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
             </>
           )}
 
-          <div style={{ position: "relative" }}>
+          {isLoggedIn() && <div style={{ position: "relative" }}>
             <button onClick={() => setOpenProfile((current) => !current)} title="Профил" style={iconBtn}>
               {profilePhotoUrl ? (
                 <img src={profilePhotoUrl} alt="Профил" style={headerProfileImage} />
@@ -317,21 +334,25 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
                     <MenuItem
                       label="Изход"
                       danger
-                      onClick={() => {
-                        logoutLocal();
-                        go("/");
-                      }}
+                      onClick={handleLogout}
                     />
                   </>
                 )}
               </div>
             )}
-          </div>
+          </div>}
         </div>
       </div>
 
       <div style={{ background: "linear-gradient(90deg, #0B1220 0%, #0B2A6F 45%, #2B6CB0 100%)", color: "#fff" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", padding: "10px 16px", display: "flex", alignItems: "center", gap: 16 }}>
+          <button
+            onClick={() => go("/")}
+            style={navPillButton}
+          >
+            Начало
+          </button>
+
           <div style={{ position: "relative" }}>
             <button
               onClick={() => setOpenCats((current) => !current)}
@@ -435,6 +456,39 @@ const adminPreviewBtn = {
   color: "#1d4ed8",
   fontWeight: 900,
   boxShadow: "0 8px 18px rgba(37, 99, 235, 0.08)",
+};
+
+const authBtn = {
+  border: "1px solid rgba(147,197,253,0.45)",
+  background: "rgba(255,255,255,0.08)",
+  borderRadius: 14,
+  height: 44,
+  padding: "0 16px",
+  cursor: "pointer",
+  color: "#eff6ff",
+  fontWeight: 900,
+};
+
+const authPrimaryBtn = {
+  border: "1px solid #dbeafe",
+  background: "linear-gradient(180deg, #ffffff 0%, #eff6ff 100%)",
+  borderRadius: 14,
+  height: 44,
+  padding: "0 16px",
+  cursor: "pointer",
+  color: "#1d4ed8",
+  fontWeight: 900,
+  boxShadow: "0 8px 18px rgba(37, 99, 235, 0.10)",
+};
+
+const navPillButton = {
+  background: "rgba(255,255,255,0.10)",
+  color: "#fff",
+  border: "1px solid rgba(255,255,255,0.18)",
+  padding: "10px 14px",
+  borderRadius: 12,
+  cursor: "pointer",
+  fontWeight: 900,
 };
 
 const headerProfileImage = {

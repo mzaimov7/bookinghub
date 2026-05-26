@@ -203,21 +203,28 @@ public class BusinessResourceService {
     }
 
     private void replaceDayOffDates(Long resourceId, List<String> values) {
-        dayOffs.deleteAll(dayOffs.findByResourceIdOrderByOffDateAsc(resourceId));
+        Set<LocalDate> requestedDates = (values == null ? List.<String>of() : values).stream()
+                .filter(raw -> raw != null && !raw.isBlank())
+                .map(raw -> LocalDate.parse(raw.trim()))
+                .collect(Collectors.toSet());
 
-        if (values == null) {
-            return;
-        }
+        List<ResourceDayOff> existingDates = dayOffs.findByResourceIdOrderByOffDateAsc(resourceId);
+        Set<LocalDate> existingDateValues = existingDates.stream()
+                .map(ResourceDayOff::getOffDate)
+                .collect(Collectors.toSet());
 
-        for (String raw : values) {
-            if (raw == null || raw.isBlank()) {
-                continue;
-            }
+        dayOffs.deleteAll(existingDates.stream()
+                .filter(item -> !requestedDates.contains(item.getOffDate()))
+                .toList());
 
-            ResourceDayOff item = new ResourceDayOff();
-            item.setResourceId(resourceId);
-            item.setOffDate(LocalDate.parse(raw.trim()));
-            dayOffs.save(item);
-        }
+        requestedDates.stream()
+                .filter(date -> !existingDateValues.contains(date))
+                .sorted()
+                .forEach(date -> {
+                    ResourceDayOff item = new ResourceDayOff();
+                    item.setResourceId(resourceId);
+                    item.setOffDate(date);
+                    dayOffs.save(item);
+                });
     }
 }

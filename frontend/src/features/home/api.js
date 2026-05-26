@@ -6,13 +6,14 @@ export async function getCategories() {
   return mapCollection(data, mapCategory);
 }
 
-export async function searchServices({ query, city, categoryId, minPrice, maxPrice } = {}) {
+export async function searchServices({ query, city, categoryId, minPrice, maxPrice, sort } = {}) {
   const params = new URLSearchParams();
   if (query) params.set("query", query);
   if (city) params.set("city", city);
   if (categoryId && /^\d+$/.test(String(categoryId))) params.set("categoryId", categoryId);
   if (minPrice != null && minPrice !== "") params.set("minPrice", minPrice);
   if (maxPrice != null && maxPrice !== "") params.set("maxPrice", maxPrice);
+  if (sort) params.set("sort", sort);
 
   const url = params.toString() ? `/api/services?${params.toString()}` : "/api/services";
   const data = await apiGet(url);

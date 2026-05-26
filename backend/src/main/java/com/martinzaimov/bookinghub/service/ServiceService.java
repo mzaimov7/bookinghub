@@ -23,11 +23,12 @@ public class ServiceService {
         this.images = images;
     }
 
-    public List<ServiceOTD> search(String query, Long categoryId, String city, BigDecimal minPrice, BigDecimal maxPrice) {
+    public List<ServiceOTD> search(String query, Long categoryId, String city, BigDecimal minPrice, BigDecimal maxPrice, String sort) {
         String q = normalize(query);
         String c = normalize(city);
+        boolean popularFirst = "popular".equalsIgnoreCase(normalize(sort));
 
-        return repo.search(q, categoryId, c, minPrice, maxPrice)
+        return (popularFirst ? repo.searchPopular(q, categoryId, c, minPrice, maxPrice) : repo.search(q, categoryId, c, minPrice, maxPrice))
                 .stream()
                 .map(this::toDto)
                 .toList();

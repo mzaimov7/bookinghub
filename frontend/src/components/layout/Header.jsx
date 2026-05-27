@@ -262,7 +262,7 @@ export default function Header({ categories, recentSearches, onCategoryPick, onS
               <button onClick={() => go("/login")} style={authBtn}>
                 Вход
               </button>
-              <button onClick={() => go("/register")} style={authPrimaryBtn}>
+              <button onClick={() => go("/register")} style={authBtn}>
                 Регистрация
               </button>
             </>
@@ -467,18 +467,6 @@ const authBtn = {
   cursor: "pointer",
   color: "#eff6ff",
   fontWeight: 900,
-};
-
-const authPrimaryBtn = {
-  border: "1px solid #dbeafe",
-  background: "linear-gradient(180deg, #ffffff 0%, #eff6ff 100%)",
-  borderRadius: 14,
-  height: 44,
-  padding: "0 16px",
-  cursor: "pointer",
-  color: "#1d4ed8",
-  fontWeight: 900,
-  boxShadow: "0 8px 18px rgba(37, 99, 235, 0.10)",
 };
 
 const navPillButton = {

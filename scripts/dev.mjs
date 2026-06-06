@@ -1,11 +1,20 @@
 import { spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const children = [];
+const rootCwd = process.cwd();
+const localEnv = loadLocalEnv(join(rootCwd, ".env.local"));
 
 function run(name, command, args, options = {}) {
   const child = spawn(command, args, {
     stdio: "inherit",
     shell: false,
+    env: {
+      ...process.env,
+      ...localEnv,
+      ...(options.env || {}),
+    },
     ...options,
   });
 
@@ -28,6 +37,27 @@ function sleep(ms) {
   });
 }
 
+function loadLocalEnv(path) {
+  if (!existsSync(path)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    readFileSync(path, "utf8")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith("#") && line.includes("="))
+      .map((line) => {
+        const index = line.indexOf("=");
+        const key = line.slice(0, index).trim();
+        const rawValue = line.slice(index + 1).trim();
+        const value = rawValue.replace(/^["']|["']$/g, "");
+        return [key, value];
+      })
+      .filter(([, value]) => value !== "PASTE_GOOGLE_APP_PASSWORD_HERE")
+  );
+}
+
 let shuttingDown = false;
 
 async function shutdown(exitCode = 0) {
@@ -48,14 +78,14 @@ process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
 async function main() {
-  const backendCwd = `${process.cwd()}/backend`;
+  const backendCwd = `${rootCwd}/backend`;
 
   console.log("[dev] Starting Spring Boot backend...");
   run("backend", "./mvnw", ["spring-boot:run"], { cwd: backendCwd });
   await sleep(4000);
 
   console.log("[dev] Starting frontend...");
-  run("frontend", "npm", ["run", "dev"], { cwd: `${process.cwd()}/frontend` });
+  run("frontend", "npm", ["run", "dev"], { cwd: `${rootCwd}/frontend` });
 }
 
 main().catch((error) => {

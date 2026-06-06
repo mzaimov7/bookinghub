@@ -52,6 +52,38 @@ APP_SEED_ADMIN_PASSWORD=Admin12345
 
 Flyway runs automatically when the backend starts. It checks the `flyway_schema_history` table and applies any pending migrations from `backend/src/main/resources/db/migration`.
 
+## Email Setup
+
+BookingHub sends emails for password reset links, reports, bans and service restrictions. In local development, email sending is disabled until SMTP credentials are provided.
+
+For Gmail, create or use a dedicated Gmail account, enable 2-Step Verification, then create an App Password for the application. Use the generated app password, not the normal Gmail password.
+
+Useful environment variables:
+
+```bash
+SPRING_MAIL_HOST=smtp.gmail.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=bookinghub.support@gmail.com
+SPRING_MAIL_PASSWORD=your_gmail_app_password
+APP_EMAIL_FROM=bookinghub.support@gmail.com
+APP_SUPPORT_EMAIL=bookinghub.support@gmail.com
+APP_FRONTEND_BASE_URL=http://localhost:3000
+```
+
+Do not commit real SMTP passwords to Git. Keep them in local environment variables or in your IDE run configuration.
+
+For local development with `npm run dev`, you can also create a root `.env.local` file. It is ignored by Git and loaded automatically by `scripts/dev.mjs`.
+
+```bash
+SPRING_MAIL_HOST=smtp.gmail.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=bookinghub.support@gmail.com
+SPRING_MAIL_PASSWORD=your_gmail_app_password
+APP_EMAIL_FROM=bookinghub.support@gmail.com
+APP_SUPPORT_EMAIL=bookinghub.support@gmail.com
+APP_FRONTEND_BASE_URL=http://localhost:3000
+```
+
 ## Running Locally
 
 Install frontend dependencies:

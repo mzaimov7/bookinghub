@@ -56,9 +56,13 @@ public class ClientProfileService {
     private final ResourceWeeklyOffDayRepository resourceWeeklyOffDays;
     private final ResourceDayOffRepository resourceDayOffs;
     private final ReviewRepository reviews;
+    private final ServiceUserRestrictionRepository serviceUserRestrictions;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final BookingStatusSyncService bookingStatusSync;
+    private final ActionLimitService actionLimitService;
     private final Path uploadDir;
+    private final String supportEmail;
 
     public ClientProfileService(
             UserRepository users,
@@ -74,9 +78,13 @@ public class ClientProfileService {
             ResourceWeeklyOffDayRepository resourceWeeklyOffDays,
             ResourceDayOffRepository resourceDayOffs,
             ReviewRepository reviews,
+            ServiceUserRestrictionRepository serviceUserRestrictions,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
-            @Value("${app.upload.dir:uploads}") String uploadDir
+            BookingStatusSyncService bookingStatusSync,
+            ActionLimitService actionLimitService,
+            @Value("${app.upload.dir:uploads}") String uploadDir,
+            @Value("${app.support.email:bookinghub.support@gmail.com}") String supportEmail
     ) {
         this.users = users;
         this.clientProfiles = clientProfiles;
@@ -91,9 +99,13 @@ public class ClientProfileService {
         this.resourceWeeklyOffDays = resourceWeeklyOffDays;
         this.resourceDayOffs = resourceDayOffs;
         this.reviews = reviews;
+        this.serviceUserRestrictions = serviceUserRestrictions;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.bookingStatusSync = bookingStatusSync;
+        this.actionLimitService = actionLimitService;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
+        this.supportEmail = supportEmail;
     }
 
     public List<ServiceOTD> getFavorites(Long userId) {
@@ -366,6 +378,15 @@ public class ClientProfileService {
         Service service = services.findByIdAndActiveTrueAndApprovalStatus(request.serviceId, Service.ApprovalStatus.APPROVED)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
 
+        serviceUserRestrictions.findByServiceIdAndUserIdAndActiveTrue(service.getId(), userId)
+                .ifPresent(restriction -> {
+                    String reason = normalize(restriction.getReason());
+                    throw new ResponseStatusException(BAD_REQUEST,
+                            "Резервациите за тази обява са ограничени за Вашия профил. "
+                                    + (reason == null ? "" : "Причина: " + reason + " ")
+                                    + "Ако смятате, че това е грешка, свържете се с " + supportEmail + ".");
+                });
+
         if (request.resourceId == null || request.startAt == null || request.endAt == null) {
             throw new ResponseStatusException(BAD_REQUEST, "resourceId, startAt and endAt are required");
         }
@@ -412,6 +433,8 @@ public class ClientProfileService {
             throw new ResponseStatusException(BAD_REQUEST, "This time is no longer available");
         }
 
+        actionLimitService.checkAndRecord(userId, ActionLimitService.BOOKING_CREATE, 5);
+
         slot.setStatus(ResourceSlot.Status.BOOKED);
         slot = slots.save(slot);
 
@@ -439,6 +462,7 @@ public class ClientProfileService {
 
     public List<BookingItemDTO> getBookings(Long userId) {
         requireClientUser(userId);
+        bookingStatusSync.syncBookingStatuses();
 
         return bookings.findByClientUserIdOrderByCreatedAtDesc(userId)
                 .stream()

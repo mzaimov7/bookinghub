@@ -124,6 +124,7 @@ export function mapComment(item) {
     authorRole: item?.authorRole ?? "CLIENT",
     authorPhotoUrl: item?.authorPhotoUrl ?? null,
     parentId: item?.parentId == null ? null : Number(item.parentId),
+    parentReviewId: item?.parentReviewId == null ? null : Number(item.parentReviewId),
     text: item?.text ?? "",
     createdAt: item?.createdAt ?? "",
   };
@@ -188,6 +189,8 @@ export function mapAdminUserProfile(item) {
     photoUrl: item?.photoUrl ?? null,
     bio: item?.bio ?? "",
     listingCount: Number(item?.listingCount ?? 0),
+    banReason: item?.banReason ?? "",
+    bannedAt: item?.bannedAt ?? null,
   };
 }
 
@@ -243,10 +246,42 @@ export function mapAdminReport(item) {
     targetType: item?.targetType ?? "COMMENT",
     targetId: Number(item?.targetId ?? 0),
     targetLabel: item?.targetLabel ?? "",
+    targetText: item?.targetText ?? "",
+    serviceLabel: item?.serviceLabel ?? "",
+    businessLabel: item?.businessLabel ?? "",
+    serviceCoverImageUrl: item?.serviceCoverImageUrl ?? null,
+    serviceId: item?.serviceId == null ? null : Number(item.serviceId),
+    businessUserId: item?.businessUserId == null ? null : Number(item.businessUserId),
+    reporterRole: item?.reporterRole ?? null,
+    targetUserRole: item?.targetUserRole ?? null,
+    targetUserListings: Array.isArray(item?.targetUserListings)
+      ? item.targetUserListings.map((listing) => ({
+          serviceId: Number(listing?.id ?? 0),
+          serviceTitle: listing?.title ?? "",
+          coverImageUrl: listing?.coverImageUrl ?? null,
+          businessLabel: listing?.businessLabel ?? "",
+        }))
+      : [],
     reasonText: item?.reasonText ?? "",
     status: item?.status ?? "OPEN",
     resolutionNote: item?.resolutionNote ?? "",
     createdAt: item?.createdAt ?? null,
+  };
+}
+
+export function mapAdminRestriction(item) {
+  return {
+    id: Number(item?.id ?? 0),
+    serviceId: Number(item?.serviceId ?? 0),
+    serviceTitle: item?.serviceTitle ?? "",
+    clientUserId: Number(item?.clientUserId ?? 0),
+    clientName: item?.clientName ?? "",
+    clientEmail: item?.clientEmail ?? "",
+    reason: item?.reason ?? "",
+    active: Boolean(item?.active),
+    createdByUserId: item?.createdByUserId == null ? null : Number(item.createdByUserId),
+    createdAt: item?.createdAt ?? null,
+    updatedAt: item?.updatedAt ?? null,
   };
 }
 

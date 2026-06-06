@@ -12,12 +12,15 @@ import com.martinzaimov.bookinghub.entity.ResourceSlot;
 import com.martinzaimov.bookinghub.entity.Review;
 import com.martinzaimov.bookinghub.entity.Service;
 import com.martinzaimov.bookinghub.entity.ServiceImage;
+import com.martinzaimov.bookinghub.entity.ServiceUserRestriction;
 import com.martinzaimov.bookinghub.entity.User;
 import com.martinzaimov.bookinghub.repo.*;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -39,7 +42,10 @@ public class AdminPortalService {
     private final ResourceRepository resources;
     private final ResourceSlotRepository slots;
     private final CategoryRepository categories;
+    private final ServiceUserRestrictionRepository serviceUserRestrictions;
     private final EmailService emailService;
+    private final BookingStatusSyncService bookingStatusSync;
+    private final String supportEmail;
 
     public AdminPortalService(
             UserRepository users,
@@ -55,7 +61,10 @@ public class AdminPortalService {
             ResourceRepository resources,
             ResourceSlotRepository slots,
             CategoryRepository categories,
-            EmailService emailService
+            ServiceUserRestrictionRepository serviceUserRestrictions,
+            EmailService emailService,
+            BookingStatusSyncService bookingStatusSync,
+            @Value("${app.support.email:bookinghub.support@gmail.com}") String supportEmail
     ) {
         this.users = users;
         this.services = services;
@@ -70,7 +79,10 @@ public class AdminPortalService {
         this.resources = resources;
         this.slots = slots;
         this.categories = categories;
+        this.serviceUserRestrictions = serviceUserRestrictions;
         this.emailService = emailService;
+        this.bookingStatusSync = bookingStatusSync;
+        this.supportEmail = supportEmail;
     }
 
     public List<ServiceOTD> getServices(Long adminUserId) {
@@ -83,10 +95,51 @@ public class AdminPortalService {
 
     public List<AdminBookingOTD> getBookings(Long adminUserId) {
         requireAdminUser(adminUserId);
+        bookingStatusSync.syncBookingStatuses();
         return bookings.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(this::toAdminBookingDto)
                 .toList();
+    }
+
+    @Transactional
+    public AdminBookingOTD updateBooking(Long adminUserId, Long bookingId, AdminUpdateBookingRequest request) {
+        requireAdminUser(adminUserId);
+        Booking booking = bookings.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Booking not found"));
+        ResourceSlot slot = slots.findById(booking.getSlotId())
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Slot not found"));
+
+        if (request.status != null) {
+            try {
+                booking.setStatus(Booking.Status.valueOf(request.status.trim().toUpperCase()));
+            } catch (Exception ex) {
+                throw new ResponseStatusException(BAD_REQUEST, "Unsupported booking status");
+            }
+        }
+
+        booking.setStatusReason(normalize(request.statusReason));
+        booking.setClientNote(normalize(request.clientNote));
+
+        if (request.startAt != null) {
+            slot.setStartAt(parseDateTime(request.startAt, "startAt"));
+        }
+        if (request.endAt != null) {
+            slot.setEndAt(parseDateTime(request.endAt, "endAt"));
+        }
+        if (!slot.getEndAt().isAfter(slot.getStartAt())) {
+            throw new ResponseStatusException(BAD_REQUEST, "End time must be after start time");
+        }
+
+        if (booking.getStatus() == Booking.Status.REJECTED || booking.getStatus() == Booking.Status.CANCELED) {
+            slot.setStatus(ResourceSlot.Status.AVAILABLE);
+        } else {
+            slot.setStatus(ResourceSlot.Status.BOOKED);
+        }
+
+        slots.save(slot);
+        Booking saved = bookings.save(booking);
+        return toAdminBookingDto(saved);
     }
 
     public List<AdminCategoryOTD> getCategories(Long adminUserId) {
@@ -210,6 +263,53 @@ public class AdminPortalService {
         return toServiceDto(service);
     }
 
+    @Transactional
+    public ServiceOTD updateService(Long adminUserId, Long serviceId, AdminUpdateServiceRequest request) {
+        requireAdminUser(adminUserId);
+        Service service = services.findById(serviceId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
+        Category category = categories.findById(request.categoryId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Category not found"));
+
+        service.setCategory(category);
+        service.setCategorySuggestion(normalize(request.categorySuggestion));
+        service.setTitle(required(request.title, "Title is required"));
+        service.setDescription(normalize(request.description));
+        service.setCity(required(request.city, "City is required"));
+        service.setAddress(required(request.address, "Address is required"));
+        service.setPrice(request.price);
+        service.setDurationMinutes(request.durationMinutes);
+        if (request.opensAt != null) {
+            service.setOpensAt(parseTime(request.opensAt, "opensAt"));
+        }
+        if (request.closesAt != null) {
+            service.setClosesAt(parseTime(request.closesAt, "closesAt"));
+        }
+        if (request.slotIntervalMinutes != null && request.slotIntervalMinutes > 0) {
+            service.setSlotIntervalMinutes(request.slotIntervalMinutes);
+        }
+        if (request.bookingHorizonDays != null && request.bookingHorizonDays > 0) {
+            service.setBookingHorizonDays(request.bookingHorizonDays);
+        }
+        if (request.active != null) {
+            service.setActive(request.active);
+        }
+        if (request.approvalStatus != null) {
+            try {
+                service.setApprovalStatus(Service.ApprovalStatus.valueOf(request.approvalStatus.trim().toUpperCase()));
+            } catch (Exception ex) {
+                throw new ResponseStatusException(BAD_REQUEST, "Unsupported approval status");
+            }
+            service.setApprovalReviewedByUserId(adminUserId);
+            service.setApprovalReviewedAt(LocalDateTime.now());
+        }
+        service.setApprovalNote(normalize(request.approvalNote));
+
+        Service saved = services.save(service);
+        bookingStatusSync.syncBookingStatuses();
+        return toServiceDto(saved);
+    }
+
     public List<AdminCommentOTD> getComments(Long adminUserId) {
         requireAdminUser(adminUserId);
         return comments.findAllByOrderByCreatedAtDesc()
@@ -257,12 +357,86 @@ public class AdminPortalService {
         return toAdminReviewDto(review);
     }
 
+    @Transactional
+    public AdminReviewOTD updateReview(Long adminUserId, Long reviewId, AdminUpdateReviewRequest request) {
+        requireAdminUser(adminUserId);
+        Review review = reviews.findById(reviewId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Review not found"));
+
+        review.setRating(request.rating);
+        review.setComment(normalize(request.comment));
+        if (request.status != null) {
+            try {
+                review.setStatus(Review.Status.valueOf(request.status.trim().toUpperCase()));
+            } catch (Exception ex) {
+                throw new ResponseStatusException(BAD_REQUEST, "Unsupported review status");
+            }
+        }
+        reviews.save(review);
+        return toAdminReviewDto(review);
+    }
+
     public List<AdminReportOTD> getReports(Long adminUserId) {
         requireAdminUser(adminUserId);
         return reports.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(this::toAdminReportDto)
                 .toList();
+    }
+
+    public List<AdminServiceRestrictionOTD> getServiceRestrictions(Long adminUserId) {
+        requireAdminUser(adminUserId);
+        return serviceUserRestrictions.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toRestrictionDto)
+                .toList();
+    }
+
+    @Transactional
+    public AdminServiceRestrictionOTD upsertServiceRestriction(Long adminUserId, AdminServiceRestrictionRequest request) {
+        requireAdminUser(adminUserId);
+        Service service = services.findById(request.serviceId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
+        User client = users.findById(request.clientUserId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Client user not found"));
+        if (client.getRole() != User.Role.CLIENT) {
+            throw new ResponseStatusException(BAD_REQUEST, "Restriction can be applied only to CLIENT accounts");
+        }
+
+        String reason = required(request.reason, "Restriction reason is required");
+        ServiceUserRestriction restriction = serviceUserRestrictions.findByServiceIdAndUserId(service.getId(), client.getId())
+                .orElseGet(ServiceUserRestriction::new);
+        restriction.setServiceId(service.getId());
+        restriction.setUserId(client.getId());
+        restriction.setReason(reason);
+        restriction.setActive(request.active == null || request.active);
+        restriction.setCreatedByUserId(adminUserId);
+        ServiceUserRestriction saved = serviceUserRestrictions.save(restriction);
+        notifyClientForRestriction(saved, service, client);
+        return toRestrictionDto(saved);
+    }
+
+    @Transactional
+    public AdminServiceRestrictionOTD updateServiceRestriction(Long adminUserId, Long restrictionId, AdminServiceRestrictionRequest request) {
+        requireAdminUser(adminUserId);
+        ServiceUserRestriction restriction = serviceUserRestrictions.findById(restrictionId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Restriction not found"));
+        Service service = services.findById(request.serviceId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
+        User client = users.findById(request.clientUserId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Client user not found"));
+        if (client.getRole() != User.Role.CLIENT) {
+            throw new ResponseStatusException(BAD_REQUEST, "Restriction can be applied only to CLIENT accounts");
+        }
+
+        restriction.setServiceId(service.getId());
+        restriction.setUserId(client.getId());
+        restriction.setReason(required(request.reason, "Restriction reason is required"));
+        restriction.setActive(request.active == null || request.active);
+        restriction.setCreatedByUserId(adminUserId);
+        ServiceUserRestriction saved = serviceUserRestrictions.save(restriction);
+        notifyClientForRestriction(saved, service, client);
+        return toRestrictionDto(saved);
     }
 
     @Transactional
@@ -310,6 +484,27 @@ public class AdminPortalService {
     }
 
     @Transactional
+    public AdminCommentOTD updateComment(Long adminUserId, Long commentId, AdminUpdateCommentRequest request) {
+        requireAdminUser(adminUserId);
+        Comment comment = comments.findById(commentId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Comment not found"));
+
+        comment.setText(required(request.text, "Comment text is required"));
+        if (request.status != null) {
+            try {
+                comment.setStatus(Comment.Status.valueOf(request.status.trim().toUpperCase()));
+            } catch (Exception ex) {
+                throw new ResponseStatusException(BAD_REQUEST, "Unsupported comment status");
+            }
+        }
+        comment.setAdminModerationReason(normalize(request.adminModerationReason));
+        comment.setAdminModeratedByUserId(adminUserId);
+        comment.setAdminModeratedAt(LocalDateTime.now());
+        comments.save(comment);
+        return toAdminCommentDto(comment);
+    }
+
+    @Transactional
     public AdminCommentOTD restoreComment(Long adminUserId, Long commentId) {
         requireAdminUser(adminUserId);
         Comment comment = comments.findById(commentId)
@@ -350,8 +545,25 @@ public class AdminPortalService {
             throw new ResponseStatusException(BAD_REQUEST, "Deactivation reason is required");
         }
         user.setActive(request.active);
+        if (!request.active) {
+            user.setBanReason(reason);
+            user.setBannedByUserId(adminUserId);
+            user.setBannedAt(LocalDateTime.now());
+        } else {
+            user.setBanReason(null);
+            user.setBannedByUserId(null);
+            user.setBannedAt(null);
+        }
         users.save(user);
         if (wasActive && !request.active) {
+            if (user.getRole() == User.Role.BUSINESS) {
+                services.findAllByBusinessUserIdOrderByIdDesc(user.getId())
+                        .forEach(service -> {
+                            service.setActive(false);
+                            services.save(service);
+                        });
+                bookingStatusSync.syncBookingStatuses();
+            }
             emailService.send(
                     user.getEmail(),
                     "Профилът ти беше деактивиран",
@@ -360,6 +572,85 @@ public class AdminPortalService {
         }
 
         if (user.getRole() == User.Role.BUSINESS) {
+            return toBusinessUserDto(user);
+        }
+        return toClientUserDto(user);
+    }
+
+    @Transactional
+    public AdminUserProfileOTD updateUser(Long adminUserId, Long userId, AdminUpdateUserRequest request) {
+        requireAdminUser(adminUserId);
+        User user = users.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
+        boolean wasActive = user.isActive();
+
+        String username = required(request.username, "Username is required");
+        String email = required(request.email, "Email is required").toLowerCase();
+        users.findByUsernameIgnoreCase(username)
+                .filter(existing -> !existing.getId().equals(userId))
+                .ifPresent(existing -> {
+                    throw new ResponseStatusException(BAD_REQUEST, "Потребителското име вече е заето");
+                });
+        users.findByEmailIgnoreCase(email)
+                .filter(existing -> !existing.getId().equals(userId))
+                .ifPresent(existing -> {
+                    throw new ResponseStatusException(BAD_REQUEST, "Имейлът вече се използва");
+                });
+
+        User.Role nextRole;
+        try {
+            nextRole = User.Role.valueOf(required(request.role, "Role is required").toUpperCase());
+        } catch (Exception ex) {
+            throw new ResponseStatusException(BAD_REQUEST, "Unsupported role");
+        }
+
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setRole(nextRole);
+        if (request.active != null) {
+            user.setActive(request.active);
+            if (!request.active) {
+                String reason = normalize(request.banReason);
+                if (reason == null) {
+                    throw new ResponseStatusException(BAD_REQUEST, "Ban reason is required");
+                }
+                user.setBanReason(reason);
+                user.setBannedByUserId(adminUserId);
+                user.setBannedAt(LocalDateTime.now());
+            } else {
+                user.setBanReason(null);
+                user.setBannedByUserId(null);
+                user.setBannedAt(null);
+            }
+        }
+        users.save(user);
+
+        if (wasActive && !user.isActive()) {
+            if (user.getRole() == User.Role.BUSINESS) {
+                services.findAllByBusinessUserIdOrderByIdDesc(user.getId())
+                        .forEach(service -> {
+                            service.setActive(false);
+                            services.save(service);
+                        });
+                bookingStatusSync.syncBookingStatuses();
+            }
+            emailService.send(
+                    user.getEmail(),
+                    "Профилът Ви беше ограничен",
+                    "Здравейте,\n\n" +
+                            "Администратор ограничи профила Ви в BookingHub.\n\n" +
+                            "Причина: " + user.getBanReason() + "\n\n" +
+                            "Ако смятате, че това е грешка, свържете се с " + supportEmail + "."
+            );
+        }
+
+        if (nextRole == User.Role.CLIENT) {
+            upsertClientProfile(user, request);
+            return toClientUserDto(user);
+        }
+        if (nextRole == User.Role.BUSINESS) {
+            upsertBusinessProfile(user, request);
+            bookingStatusSync.syncBookingStatuses();
             return toBusinessUserDto(user);
         }
         return toClientUserDto(user);
@@ -498,6 +789,45 @@ public class AdminPortalService {
         );
     }
 
+    private AdminServiceRestrictionOTD toRestrictionDto(ServiceUserRestriction restriction) {
+        Service service = services.findById(restriction.getServiceId()).orElse(null);
+        User client = users.findById(restriction.getUserId()).orElse(null);
+        ClientProfile profile = clientProfiles.findById(restriction.getUserId()).orElse(null);
+        String clientName = profile == null
+                ? (client == null ? "Клиент" : client.getUsername())
+                : (safe(profile.getFirstName()) + " " + safe(profile.getLastName())).trim();
+        if (clientName.isBlank()) {
+            clientName = client == null ? "Клиент" : client.getUsername();
+        }
+        return new AdminServiceRestrictionOTD(
+                restriction.getId(),
+                restriction.getServiceId(),
+                service == null ? "Обява" : service.getTitle(),
+                restriction.getUserId(),
+                clientName,
+                client == null ? "" : client.getEmail(),
+                restriction.getReason(),
+                restriction.isActive(),
+                restriction.getCreatedByUserId(),
+                restriction.getCreatedAt(),
+                restriction.getUpdatedAt()
+        );
+    }
+
+    private void notifyClientForRestriction(ServiceUserRestriction restriction, Service service, User client) {
+        if (!restriction.isActive()) {
+            return;
+        }
+        emailService.send(
+                client.getEmail(),
+                "Ограничение за резервации в BookingHub",
+                "Здравейте,\n\n" +
+                        "Резервациите Ви за обявата \"" + service.getTitle() + "\" са ограничени от администратор.\n" +
+                        "Причина: " + restriction.getReason() + "\n\n" +
+                        "Ако смятате, че това е грешка, свържете се с " + supportEmail + "."
+        );
+    }
+
     private AdminReportOTD toAdminReportDto(Report report) {
         User reporter = users.findById(report.getReporterUserId()).orElse(null);
         String reporterName = reporter != null ? safe(reporter.getUsername()) : "Потребител";
@@ -609,10 +939,21 @@ public class AdminPortalService {
     }
 
     private String resolveReportTargetUserRole(Report report) {
-        if (report.getTargetType() != Report.TargetType.USER) {
-            return null;
-        }
-        return users.findById(report.getTargetId()).map((user) -> user.getRole().name()).orElse(null);
+        return switch (report.getTargetType()) {
+            case USER -> users.findById(report.getTargetId()).map((user) -> user.getRole().name()).orElse(null);
+            case COMMENT -> comments.findById(report.getTargetId())
+                    .flatMap((comment) -> users.findById(comment.getAuthorUserId()))
+                    .map((user) -> user.getRole().name())
+                    .orElse(null);
+            case REVIEW -> reviews.findById(report.getTargetId())
+                    .flatMap((review) -> users.findById(review.getAuthorUserId()))
+                    .map((user) -> user.getRole().name())
+                    .orElse(null);
+            case SERVICE -> services.findById(report.getTargetId())
+                    .flatMap((service) -> users.findById(service.getBusinessUserId()))
+                    .map((user) -> user.getRole().name())
+                    .orElse(null);
+        };
     }
 
     private List<AdminReportListingOTD> resolveReportTargetUserListings(Report report) {
@@ -685,7 +1026,9 @@ public class AdminPortalService {
                 profile != null ? profile.getPhone() : null,
                 profile != null ? profile.getPhotoUrl() : null,
                 profile != null ? profile.getBio() : null,
-                0
+                0,
+                user.getBanReason(),
+                user.getBannedAt()
         );
     }
 
@@ -706,8 +1049,47 @@ public class AdminPortalService {
                 profile != null ? profile.getPhone() : null,
                 profile != null ? profile.getPhotoUrl() : null,
                 null,
-                listingCount
+                listingCount,
+                user.getBanReason(),
+                user.getBannedAt()
         );
+    }
+
+    private void upsertClientProfile(User user, AdminUpdateUserRequest request) {
+        ClientProfile profile = clientProfiles.findById(user.getId()).orElseGet(ClientProfile::new);
+        if (profile.getUser() == null) {
+            profile.setUser(user);
+        }
+        profile.setFirstName(required(request.firstName, "First name is required"));
+        profile.setLastName(required(request.lastName, "Last name is required"));
+        profile.setPhone(normalize(request.phone));
+        profile.setPhotoUrl(normalize(request.photoUrl));
+        profile.setBio(normalize(request.bio));
+        clientProfiles.save(profile);
+    }
+
+    private void upsertBusinessProfile(User user, AdminUpdateUserRequest request) {
+        BusinessProfile profile = businessProfiles.findById(user.getId()).orElseGet(BusinessProfile::new);
+        if (profile.getUser() == null) {
+            profile.setUser(user);
+        }
+        try {
+            profile.setProviderType(BusinessProfile.ProviderType.valueOf(
+                    (request.providerType == null ? "INDIVIDUAL" : request.providerType.trim().toUpperCase())
+            ));
+        } catch (Exception ex) {
+            throw new ResponseStatusException(BAD_REQUEST, "Unsupported provider type");
+        }
+        profile.setBusinessName(required(request.businessName, "Business name is required"));
+        profile.setCompanyLegalName(normalize(request.companyLegalName));
+        profile.setCompanyEik(normalize(request.companyEik));
+        profile.setCompanyRepresentative(normalize(request.companyRepresentative));
+        profile.setCity(required(request.city, "City is required"));
+        profile.setAddress(required(request.address, "Address is required"));
+        profile.setPhone(normalize(request.phone));
+        profile.setPhotoUrl(normalize(request.photoUrl));
+        profile.setDescription(normalize(request.description));
+        businessProfiles.save(profile);
     }
 
     private void cancelFutureBookingsForDeletedService(Long serviceId, String reason) {
@@ -728,6 +1110,32 @@ public class AdminPortalService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isBlank() ? null : trimmed;
+    }
+
+    private String required(String value, String message) {
+        String normalized = normalize(value);
+        if (normalized == null) {
+            throw new ResponseStatusException(BAD_REQUEST, message);
+        }
+        return normalized;
+    }
+
+    private LocalTime parseTime(String value, String fieldName) {
+        String normalized = required(value, fieldName + " is required");
+        try {
+            return LocalTime.parse(normalized);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(BAD_REQUEST, fieldName + " must be in HH:mm format");
+        }
+    }
+
+    private LocalDateTime parseDateTime(String value, String fieldName) {
+        String normalized = required(value, fieldName + " is required");
+        try {
+            return LocalDateTime.parse(normalized);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(BAD_REQUEST, fieldName + " must be in ISO date-time format");
+        }
     }
 
     private String safe(String value) {

@@ -22,7 +22,7 @@ export default function FavoritesPage() {
   const [showPrice, setShowPrice] = useState(true);
   const [openCategoryPicker, setOpenCategoryPicker] = useState(false);
   const [openSortPicker, setOpenSortPicker] = useState(false);
-  const [sortBy, setSortBy] = useState("saved");
+  const [sortBy, setSortBy] = useState("price-asc");
   const [viewMode, setViewMode] = useState("list");
   const [form, setForm] = useState({
     categoryId: "",
@@ -75,7 +75,7 @@ export default function FavoritesPage() {
     if (sortBy === "price-asc") return "Цена: възходящо";
     if (sortBy === "price-desc") return "Цена: низходящо";
     if (sortBy === "duration-asc") return "Продължителност: най-кратки първо";
-    return "Последно запазени";
+    return "Цена: възходящо";
   }, [sortBy]);
 
   const visibleServices = useMemo(() => {
@@ -300,6 +300,11 @@ export default function FavoritesPage() {
             <section style={resultsShell}>
               <section style={toolbar}>
                 <div style={toolbarLeft}>
+                  {hasActiveFilters ? (
+                    <button type="button" onClick={clearFilters} style={toolbarClearButton}>
+                      Изчисти филтрите
+                    </button>
+                  ) : null}
                   <div style={toolbarCount}>{visibleServices.length} запазени обяви</div>
                   {activeCategory ? <ActiveChip label={`Категория: ${activeCategory.name}`} /> : null}
                   {appliedFilters.city ? <ActiveChip label={`Град: ${appliedFilters.city}`} /> : null}
@@ -329,7 +334,6 @@ export default function FavoritesPage() {
                               transform: openSortPicker ? "translateY(0)" : "translateY(-8px)",
                             }}
                           >
-                            <button type="button" onClick={() => { setSortBy("saved"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Последно запазени</button>
                             <button type="button" onClick={() => { setSortBy("price-asc"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Цена: възходящо</button>
                             <button type="button" onClick={() => { setSortBy("price-desc"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Цена: низходящо</button>
                             <button type="button" onClick={() => { setSortBy("duration-asc"); setOpenSortPicker(false); }} style={toolbarPickerItem}>Продължителност: най-кратки първо</button>
@@ -570,6 +574,16 @@ const activeChip = {
   border: "1px solid rgba(96,165,250,0.24)",
   color: "#bfdbfe",
   fontWeight: 800,
+  fontSize: 13,
+};
+const toolbarClearButton = {
+  border: "1px solid rgba(96,165,250,0.28)",
+  background: "rgba(15,23,42,0.42)",
+  color: "#bfdbfe",
+  borderRadius: 999,
+  padding: "9px 12px",
+  cursor: "pointer",
+  fontWeight: 900,
   fontSize: 13,
 };
 const emptyCard = {

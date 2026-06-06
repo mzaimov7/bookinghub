@@ -10,8 +10,15 @@ import com.martinzaimov.bookinghub.dto.AdminReportActionRequest;
 import com.martinzaimov.bookinghub.dto.AdminReportOTD;
 import com.martinzaimov.bookinghub.dto.AdminReviewServiceRequest;
 import com.martinzaimov.bookinghub.dto.AdminReviewOTD;
+import com.martinzaimov.bookinghub.dto.AdminServiceRestrictionOTD;
+import com.martinzaimov.bookinghub.dto.AdminServiceRestrictionRequest;
 import com.martinzaimov.bookinghub.dto.AdminUserStatusRequest;
 import com.martinzaimov.bookinghub.dto.AdminUserProfileOTD;
+import com.martinzaimov.bookinghub.dto.AdminUpdateServiceRequest;
+import com.martinzaimov.bookinghub.dto.AdminUpdateUserRequest;
+import com.martinzaimov.bookinghub.dto.AdminUpdateBookingRequest;
+import com.martinzaimov.bookinghub.dto.AdminUpdateCommentRequest;
+import com.martinzaimov.bookinghub.dto.AdminUpdateReviewRequest;
 import com.martinzaimov.bookinghub.dto.ServiceOTD;
 import com.martinzaimov.bookinghub.service.AdminPortalService;
 import jakarta.validation.Valid;
@@ -37,6 +44,15 @@ public class AdminPortalController {
     @GetMapping("/bookings")
     public List<AdminBookingOTD> getBookings(@RequestHeader("X-Admin-User-Id") Long adminUserId) {
         return adminPortalService.getBookings(adminUserId);
+    }
+
+    @PutMapping("/bookings/{bookingId}")
+    public AdminBookingOTD updateBooking(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long bookingId,
+            @Valid @RequestBody AdminUpdateBookingRequest request
+    ) {
+        return adminPortalService.updateBooking(adminUserId, bookingId, request);
     }
 
     @GetMapping("/categories")
@@ -96,6 +112,15 @@ public class AdminPortalController {
         return adminPortalService.deleteService(adminUserId, serviceId, request);
     }
 
+    @PutMapping("/services/{serviceId}")
+    public ServiceOTD updateService(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long serviceId,
+            @Valid @RequestBody AdminUpdateServiceRequest request
+    ) {
+        return adminPortalService.updateService(adminUserId, serviceId, request);
+    }
+
     @GetMapping("/comments")
     public List<AdminCommentOTD> getComments(@RequestHeader("X-Admin-User-Id") Long adminUserId) {
         return adminPortalService.getComments(adminUserId);
@@ -115,6 +140,15 @@ public class AdminPortalController {
         return adminPortalService.hideReview(adminUserId, reviewId, request);
     }
 
+    @PutMapping("/reviews/{reviewId}")
+    public AdminReviewOTD updateReview(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long reviewId,
+            @Valid @RequestBody AdminUpdateReviewRequest request
+    ) {
+        return adminPortalService.updateReview(adminUserId, reviewId, request);
+    }
+
     @PatchMapping("/reviews/{reviewId}/restore")
     public AdminReviewOTD restoreReview(
             @RequestHeader("X-Admin-User-Id") Long adminUserId,
@@ -126,6 +160,28 @@ public class AdminPortalController {
     @GetMapping("/reports")
     public List<AdminReportOTD> getReports(@RequestHeader("X-Admin-User-Id") Long adminUserId) {
         return adminPortalService.getReports(adminUserId);
+    }
+
+    @GetMapping("/restrictions")
+    public List<AdminServiceRestrictionOTD> getServiceRestrictions(@RequestHeader("X-Admin-User-Id") Long adminUserId) {
+        return adminPortalService.getServiceRestrictions(adminUserId);
+    }
+
+    @PostMapping("/restrictions")
+    public AdminServiceRestrictionOTD upsertServiceRestriction(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @Valid @RequestBody AdminServiceRestrictionRequest request
+    ) {
+        return adminPortalService.upsertServiceRestriction(adminUserId, request);
+    }
+
+    @PutMapping("/restrictions/{restrictionId}")
+    public AdminServiceRestrictionOTD updateServiceRestriction(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long restrictionId,
+            @Valid @RequestBody AdminServiceRestrictionRequest request
+    ) {
+        return adminPortalService.updateServiceRestriction(adminUserId, restrictionId, request);
     }
 
     @PatchMapping("/reports/{reportId}")
@@ -144,6 +200,15 @@ public class AdminPortalController {
             @Valid @RequestBody AdminHideCommentRequest request
     ) {
         return adminPortalService.hideComment(adminUserId, commentId, request);
+    }
+
+    @PutMapping("/comments/{commentId}")
+    public AdminCommentOTD updateComment(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long commentId,
+            @Valid @RequestBody AdminUpdateCommentRequest request
+    ) {
+        return adminPortalService.updateComment(adminUserId, commentId, request);
     }
 
     @PatchMapping("/comments/{commentId}/restore")
@@ -171,5 +236,14 @@ public class AdminPortalController {
             @Valid @RequestBody AdminUserStatusRequest request
     ) {
         return adminPortalService.updateUserStatus(adminUserId, userId, request);
+    }
+
+    @PutMapping("/users/{userId}")
+    public AdminUserProfileOTD updateUser(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long userId,
+            @Valid @RequestBody AdminUpdateUserRequest request
+    ) {
+        return adminPortalService.updateUser(adminUserId, userId, request);
     }
 }

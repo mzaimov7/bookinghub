@@ -16,6 +16,8 @@ public record AdminUserProfileOTD(
         String phone,
         String photoUrl,
         String bio,
-        Integer listingCount
+        Integer listingCount,
+        String banReason,
+        LocalDateTime bannedAt
 ) {
 }

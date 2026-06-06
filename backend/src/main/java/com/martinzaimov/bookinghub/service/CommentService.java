@@ -12,9 +12,11 @@ import com.martinzaimov.bookinghub.repo.BusinessProfileRepository;
 import com.martinzaimov.bookinghub.repo.ClientProfileRepository;
 import com.martinzaimov.bookinghub.repo.CommentRepository;
 import com.martinzaimov.bookinghub.repo.ReviewRepository;
+import com.martinzaimov.bookinghub.repo.ServiceUserRestrictionRepository;
 import com.martinzaimov.bookinghub.repo.ServiceRepository;
 import com.martinzaimov.bookinghub.repo.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -31,6 +33,9 @@ public class CommentService {
     private final UserRepository users;
     private final ClientProfileRepository clientProfiles;
     private final BusinessProfileRepository businessProfiles;
+    private final ActionLimitService actionLimitService;
+    private final ServiceUserRestrictionRepository serviceUserRestrictions;
+    private final String supportEmail;
 
     public CommentService(
             CommentRepository comments,
@@ -38,7 +43,10 @@ public class CommentService {
             ReviewRepository reviews,
             UserRepository users,
             ClientProfileRepository clientProfiles,
-            BusinessProfileRepository businessProfiles
+            BusinessProfileRepository businessProfiles,
+            ActionLimitService actionLimitService,
+            ServiceUserRestrictionRepository serviceUserRestrictions,
+            @Value("${app.support.email:bookingsupport@bookinghub.local}") String supportEmail
     ) {
         this.comments = comments;
         this.services = services;
@@ -46,6 +54,9 @@ public class CommentService {
         this.users = users;
         this.clientProfiles = clientProfiles;
         this.businessProfiles = businessProfiles;
+        this.actionLimitService = actionLimitService;
+        this.serviceUserRestrictions = serviceUserRestrictions;
+        this.supportEmail = supportEmail;
     }
 
     public List<CommentDTO> getVisibleComments(Long serviceId) {
@@ -96,12 +107,21 @@ public class CommentService {
         }
 
         if (user.getRole() == User.Role.CLIENT) {
+            serviceUserRestrictions.findByServiceIdAndUserIdAndActiveTrue(service.getId(), userId)
+                    .ifPresent(restriction -> {
+                        String reason = normalize(restriction.getReason());
+                        throw new ResponseStatusException(BAD_REQUEST,
+                                "Коментарите за тази обява са ограничени за Вашия профил. "
+                                        + (reason == null ? "" : "Причина: " + reason + " ")
+                                        + "Ако смятате, че това е грешка, свържете се с " + supportEmail + ".");
+                    });
             if (parentReview != null) {
                 throw new ResponseStatusException(BAD_REQUEST, "Клиентските профили могат да публикуват основен коментар или да отговорят на бизнеса");
             }
             if (parent != null && (parentAuthor == null || parentAuthor.getRole() != User.Role.BUSINESS)) {
                 throw new ResponseStatusException(BAD_REQUEST, "Клиентските профили могат да отговарят само на отговори от бизнеса");
             }
+            actionLimitService.checkAndRecord(userId, ActionLimitService.COMMENT_CREATE, 10);
         } else if (user.getRole() == User.Role.BUSINESS) {
             if (!service.getBusinessUserId().equals(userId)) {
                 throw new ResponseStatusException(BAD_REQUEST, "Можеш да отговаряш само на коментарите към своите обяви");

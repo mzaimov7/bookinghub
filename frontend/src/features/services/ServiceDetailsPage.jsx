@@ -30,6 +30,7 @@ export default function ServiceDetailsPage() {
   const [replyReviewId, setReplyReviewId] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     async function load() {
@@ -78,9 +79,10 @@ export default function ServiceDetailsPage() {
     }
     const selectedSlot = slots.find((slot) => slot.bookingKey === selectedSlotKey);
     if (!selectedSlot) {
-      alert("Първо избери свободен час.");
+      setFieldErrors((current) => ({ ...current, slot: "Първо избери свободен час." }));
       return;
     }
+    setFieldErrors((current) => ({ ...current, slot: "", reserve: "" }));
 
     setSubmitting(true);
 
@@ -95,7 +97,7 @@ export default function ServiceDetailsPage() {
       alert("Заявката за резервация беше създадена успешно.");
       navigate("/my-bookings");
     } catch (error) {
-      alert(error.message);
+      setFieldErrors((current) => ({ ...current, reserve: error.message }));
     } finally {
       setSubmitting(false);
     }
@@ -136,9 +138,10 @@ export default function ServiceDetailsPage() {
       return;
     }
     if (!commentText.trim()) {
-      alert("Напиши текст на коментара.");
+      setFieldErrors((current) => ({ ...current, commentText: "Напиши текст на коментара." }));
       return;
     }
+    setFieldErrors((current) => ({ ...current, commentText: "" }));
 
     setCommentSubmitting(true);
     try {
@@ -146,7 +149,7 @@ export default function ServiceDetailsPage() {
       setComments((current) => [created, ...current]);
       setCommentText("");
     } catch (error) {
-      alert(error.message);
+      setFieldErrors((current) => ({ ...current, commentText: error.message }));
     } finally {
       setCommentSubmitting(false);
     }
@@ -154,9 +157,10 @@ export default function ServiceDetailsPage() {
 
   async function onSaveEditedComment(commentId) {
     if (!editingText.trim()) {
-      alert("Напиши текст на коментара.");
+      setFieldErrors((current) => ({ ...current, editingText: "Напиши текст на коментара." }));
       return;
     }
+    setFieldErrors((current) => ({ ...current, editingText: "" }));
 
     try {
       const updated = await updateServiceComment(id, commentId, { text: editingText.trim() });
@@ -164,7 +168,7 @@ export default function ServiceDetailsPage() {
       setEditingCommentId(null);
       setEditingText("");
     } catch (error) {
-      alert(error.message);
+      setFieldErrors((current) => ({ ...current, editingText: error.message }));
     }
   }
 
@@ -186,9 +190,10 @@ export default function ServiceDetailsPage() {
 
   async function onSubmitReply({ parentId = null, parentReviewId = null }) {
     if (!replyText.trim()) {
-      alert("Напиши текст на отговора.");
+      setFieldErrors((current) => ({ ...current, replyText: "Напиши текст на отговора." }));
       return;
     }
+    setFieldErrors((current) => ({ ...current, replyText: "" }));
 
     setReplySubmitting(true);
     try {
@@ -202,7 +207,7 @@ export default function ServiceDetailsPage() {
       setReplyReviewId(null);
       setReplyText("");
     } catch (error) {
-      alert(error.message);
+      setFieldErrors((current) => ({ ...current, replyText: error.message }));
     } finally {
       setReplySubmitting(false);
     }
@@ -683,7 +688,10 @@ export default function ServiceDetailsPage() {
                       <button
                         key={slot.bookingKey}
                         type="button"
-                        onClick={() => setSelectedSlotKey(slot.bookingKey)}
+                        onClick={() => {
+                          setSelectedSlotKey(slot.bookingKey);
+                          setFieldErrors((current) => ({ ...current, slot: "", reserve: "" }));
+                        }}
                         style={{
                           ...timeChip,
                           borderColor: isActive ? "#93c5fd" : "rgba(96,165,250,0.18)",
@@ -698,6 +706,7 @@ export default function ServiceDetailsPage() {
                   })}
                 </div>
               )}
+              {fieldErrors.slot ? <div style={fieldErrorText}>{fieldErrors.slot}</div> : null}
             </div>
 
             {canReserve ? (
@@ -708,6 +717,7 @@ export default function ServiceDetailsPage() {
                   placeholder="Бележка към бизнеса по желание"
                   style={noteInput}
                 />
+                {fieldErrors.reserve ? <div style={fieldErrorText}>{fieldErrors.reserve}</div> : null}
 
                 <button onClick={onReserve} style={reserveButton} disabled={submitting}>
                   {submitting ? "Запазване..." : "Резервирай"}
@@ -742,10 +752,14 @@ export default function ServiceDetailsPage() {
           <div style={commentComposer}>
             <textarea
               value={commentText}
-              onChange={(event) => setCommentText(event.target.value)}
+              onChange={(event) => {
+                setCommentText(event.target.value);
+                setFieldErrors((current) => ({ ...current, commentText: "" }));
+              }}
               placeholder="Сподели впечатление за услугата"
-              style={commentTextarea}
+              style={{ ...commentTextarea, ...(fieldErrors.commentText ? inputError : null) }}
             />
+            {fieldErrors.commentText ? <div style={fieldErrorText}>{fieldErrors.commentText}</div> : null}
             <div style={commentComposerFooter}>
               <button type="button" onClick={onSubmitComment} disabled={commentSubmitting} style={commentSubmitButton}>
                 {commentSubmitting ? "Публикуване..." : "Публикувай коментар"}
@@ -826,10 +840,14 @@ export default function ServiceDetailsPage() {
                       <div style={replyComposer}>
                         <textarea
                           value={replyText}
-                          onChange={(event) => setReplyText(event.target.value)}
+                          onChange={(event) => {
+                            setReplyText(event.target.value);
+                            setFieldErrors((current) => ({ ...current, replyText: "" }));
+                          }}
                           placeholder="Напиши отговор към отзива"
-                          style={commentTextarea}
+                          style={{ ...commentTextarea, ...(fieldErrors.replyText ? inputError : null) }}
                         />
+                        {fieldErrors.replyText ? <div style={fieldErrorText}>{fieldErrors.replyText}</div> : null}
                         <div style={commentActions}>
                           <button type="button" onClick={() => onSubmitReply({ parentReviewId: review.id })} disabled={replySubmitting} style={commentSubmitButton}>
                             {replySubmitting ? "Публикуване..." : "Публикувай отговор"}
@@ -907,7 +925,15 @@ export default function ServiceDetailsPage() {
 
                   {editingCommentId === comment.id ? (
                     <div style={{ display: "grid", gap: 10 }}>
-                      <textarea value={editingText} onChange={(event) => setEditingText(event.target.value)} style={commentTextarea} />
+                      <textarea
+                        value={editingText}
+                        onChange={(event) => {
+                          setEditingText(event.target.value);
+                          setFieldErrors((current) => ({ ...current, editingText: "" }));
+                        }}
+                        style={{ ...commentTextarea, ...(fieldErrors.editingText ? inputError : null) }}
+                      />
+                      {fieldErrors.editingText ? <div style={fieldErrorText}>{fieldErrors.editingText}</div> : null}
                       <div style={commentActions}>
                         <button type="button" onClick={() => onSaveEditedComment(comment.id)} style={commentSubmitButton}>Запази</button>
                         <button type="button" onClick={() => { setEditingCommentId(null); setEditingText(""); }} style={commentSecondaryButton}>Отказ</button>
@@ -921,10 +947,14 @@ export default function ServiceDetailsPage() {
                     <div style={replyComposer}>
                       <textarea
                         value={replyText}
-                        onChange={(event) => setReplyText(event.target.value)}
+                        onChange={(event) => {
+                          setReplyText(event.target.value);
+                          setFieldErrors((current) => ({ ...current, replyText: "" }));
+                        }}
                         placeholder="Напиши отговор към клиента"
-                        style={commentTextarea}
+                        style={{ ...commentTextarea, ...(fieldErrors.replyText ? inputError : null) }}
                       />
+                      {fieldErrors.replyText ? <div style={fieldErrorText}>{fieldErrors.replyText}</div> : null}
                       <div style={commentActions}>
                         <button type="button" onClick={() => onSubmitReply({ parentId: comment.id })} disabled={replySubmitting} style={commentSubmitButton}>
                           {replySubmitting ? "Публикуване..." : "Публикувай отговор"}
@@ -1395,6 +1425,18 @@ const commentTextarea = {
   resize: "vertical",
   boxSizing: "border-box",
   font: "inherit",
+};
+
+const inputError = {
+  border: "1px solid rgba(248,113,113,0.72)",
+  boxShadow: "0 0 0 3px rgba(248,113,113,0.12)",
+};
+
+const fieldErrorText = {
+  color: "#fca5a5",
+  fontSize: 12,
+  fontWeight: 800,
+  lineHeight: 1.35,
 };
 
 const commentComposerFooter = {

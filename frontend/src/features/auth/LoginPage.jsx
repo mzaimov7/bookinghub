@@ -8,16 +8,25 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(event) {
     event.preventDefault();
+    const nextErrors = {};
 
-    if (!identifier.trim() || !password.trim()) {
-      alert("Въведи потребителско име или имейл и парола.");
+    if (!identifier.trim()) {
+      nextErrors.identifier = "Въведи потребителско име или имейл.";
+    }
+    if (!password.trim()) {
+      nextErrors.password = "Въведи парола.";
+    }
+    if (Object.keys(nextErrors).length) {
+      setFieldErrors(nextErrors);
       return;
     }
 
+    setFieldErrors({});
     setLoading(true);
 
     try {
@@ -28,7 +37,7 @@ export default function LoginPage() {
       saveAuth(auth);
       navigate("/", { replace: true });
     } catch (error) {
-      alert(error.message);
+      setFieldErrors(fieldErrorsForLogin(error));
     } finally {
       setLoading(false);
     }
@@ -42,7 +51,7 @@ export default function LoginPage() {
       saveAuth(auth);
       navigate("/", { replace: true });
     } catch (error) {
-      alert(error.message);
+      setFieldErrors({ password: error.message || "Неуспешен вход" });
     } finally {
       setLoading(false);
     }
@@ -67,21 +76,33 @@ export default function LoginPage() {
               <label style={label}>Потребителско име или имейл</label>
               <input
                 value={identifier}
-                onChange={(event) => setIdentifier(event.target.value)}
+                onChange={(event) => {
+                  setIdentifier(event.target.value);
+                  setFieldErrors((current) => ({ ...current, identifier: "" }));
+                }}
                 placeholder="martin или martin@email.com"
-                style={input}
+                style={{ ...input, ...(fieldErrors.identifier ? inputError : null) }}
                 disabled={loading}
               />
+              {fieldErrors.identifier ? <div style={errorText}>{fieldErrors.identifier}</div> : null}
 
               <label style={label}>Парола</label>
               <input
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setFieldErrors((current) => ({ ...current, password: "" }));
+                }}
                 type="password"
                 placeholder="Въведи паролата си"
-                style={input}
+                style={{ ...input, ...(fieldErrors.password ? inputError : null) }}
                 disabled={loading}
               />
+              {fieldErrors.password ? <div style={errorText}>{fieldErrors.password}</div> : null}
+
+              <div style={forgotRow}>
+                <Link to="/forgot-password" style={registerLink}>Забравена парола?</Link>
+              </div>
 
               <button type="submit" style={primaryButton} disabled={loading}>
                 {loading ? "Влизане..." : "Вход"}
@@ -105,6 +126,21 @@ export default function LoginPage() {
       </div>
     </div>
   );
+}
+
+function fieldErrorsForLogin(error) {
+  if (error?.errors) {
+    return {
+      identifier: error.errors.identifier || "",
+      password: error.errors.password || "",
+    };
+  }
+
+  const message = error?.message || "Неуспешен вход";
+  if (message.toLowerCase().includes("username") || message.toLowerCase().includes("email")) {
+    return { identifier: message };
+  }
+  return { password: message };
 }
 
 const shell = {
@@ -217,6 +253,19 @@ const input = {
   fontSize: 15,
 };
 
+const inputError = {
+  border: "1px solid rgba(248,113,113,0.72)",
+  boxShadow: "0 0 0 3px rgba(248,113,113,0.12)",
+};
+
+const errorText = {
+  marginTop: -6,
+  color: "#fca5a5",
+  fontSize: 12,
+  fontWeight: 800,
+  lineHeight: 1.35,
+};
+
 const primaryButton = {
   marginTop: 6,
   padding: "15px 16px",
@@ -240,6 +289,12 @@ const registerLink = {
   color: "#93c5fd",
   fontWeight: 800,
   textDecoration: "none",
+};
+
+const forgotRow = {
+  marginTop: -4,
+  textAlign: "right",
+  fontSize: 13,
 };
 
 const devBox = {

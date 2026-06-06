@@ -3,6 +3,7 @@ package com.martinzaimov.bookinghub.service;
 import com.martinzaimov.bookinghub.dto.BusinessBookingDTO;
 import com.martinzaimov.bookinghub.dto.CreateServiceRequest;
 import com.martinzaimov.bookinghub.dto.ServiceOTD;
+import com.martinzaimov.bookinghub.dto.BusinessServiceStatsDTO;
 import com.martinzaimov.bookinghub.dto.UpdateServiceRequest;
 import com.martinzaimov.bookinghub.dto.UpdateBusinessBookingRequest;
 import com.martinzaimov.bookinghub.entity.Booking;
@@ -46,7 +47,10 @@ public class BusinessServiceService {
     private final BookingRepository bookings;
     private final ClientProfileRepository clientProfiles;
     private final ResourceSlotRepository slots;
+    private final ReviewRepository reviews;
+    private final CommentRepository comments;
     private final EmailService emailService;
+    private final BookingStatusSyncService bookingStatusSync;
     private final Path uploadDir;
 
     public BusinessServiceService(
@@ -59,7 +63,10 @@ public class BusinessServiceService {
             BookingRepository bookings,
             ClientProfileRepository clientProfiles,
             ResourceSlotRepository slots,
+            ReviewRepository reviews,
+            CommentRepository comments,
             EmailService emailService,
+            BookingStatusSyncService bookingStatusSync,
             @Value("${app.upload.dir:uploads}") String uploadDir
     ) {
         this.services = services;
@@ -71,7 +78,10 @@ public class BusinessServiceService {
         this.bookings = bookings;
         this.clientProfiles = clientProfiles;
         this.slots = slots;
+        this.reviews = reviews;
+        this.comments = comments;
         this.emailService = emailService;
+        this.bookingStatusSync = bookingStatusSync;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -156,6 +166,41 @@ public class BusinessServiceService {
                 .toList();
     }
 
+    public List<BusinessServiceStatsDTO> getMyServiceStats(Long businessUserId) {
+        requireBusinessUser(businessUserId);
+        List<Service> ownedServices = services.findAllByBusinessUserIdOrderByIdDesc(businessUserId);
+        if (ownedServices.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> serviceIds = ownedServices.stream().map(Service::getId).toList();
+        var visibleReviews = reviews.findAllByServiceIdInAndStatus(serviceIds, com.martinzaimov.bookinghub.entity.Review.Status.VISIBLE);
+        var visibleComments = comments.findAllByServiceIdInAndStatus(serviceIds, com.martinzaimov.bookinghub.entity.Comment.Status.VISIBLE);
+
+        return ownedServices.stream()
+                .map(service -> {
+                    List<com.martinzaimov.bookinghub.entity.Review> serviceReviews = visibleReviews.stream()
+                            .filter(review -> review.getServiceId().equals(service.getId()))
+                            .toList();
+                    double averageRating = serviceReviews.stream()
+                            .mapToInt(review -> review.getRating() == null ? 0 : review.getRating())
+                            .average()
+                            .orElse(0);
+                    long commentCount = visibleComments.stream()
+                            .filter(comment -> comment.getServiceId().equals(service.getId()))
+                            .count();
+                    return new BusinessServiceStatsDTO(
+                            service.getId(),
+                            service.getTitle(),
+                            averageRating,
+                            bookings.countByServiceId(service.getId()),
+                            commentCount,
+                            (long) serviceReviews.size()
+                    );
+                })
+                .toList();
+    }
+
     public ServiceOTD getMyService(Long businessUserId, Long serviceId) {
         requireBusinessUser(businessUserId);
         Service service = services.findById(serviceId)
@@ -225,6 +270,7 @@ public class BusinessServiceService {
 
     public List<BusinessBookingDTO> getBookings(Long businessUserId) {
         requireBusinessUser(businessUserId);
+        bookingStatusSync.syncBookingStatuses();
 
         List<Service> ownedServices = services.findAllByBusinessUserIdOrderByIdDesc(businessUserId);
         if (ownedServices.isEmpty()) {
@@ -345,6 +391,9 @@ public class BusinessServiceService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Business user not found"));
         if (user.getRole() != User.Role.BUSINESS) {
             throw new ResponseStatusException(BAD_REQUEST, "Only BUSINESS accounts can use this endpoint");
+        }
+        if (!user.isActive()) {
+            throw new ResponseStatusException(BAD_REQUEST, "This business account is disabled");
         }
         return user;
     }

@@ -176,6 +176,8 @@ export default function SearchResultsPage() {
     writeFilters(next);
   }
 
+  const hasActiveSidebarFilters = Boolean(filters.city || filters.categoryId || filters.minPrice || filters.maxPrice);
+
   async function onToggleFavorite(serviceId) {
     const isFavorite = favoriteIds.includes(serviceId);
 
@@ -404,6 +406,11 @@ export default function SearchResultsPage() {
 
           <section style={toolbar}>
             <div style={toolbarLeft}>
+              {hasActiveSidebarFilters ? (
+                <button type="button" onClick={clearFilters} style={toolbarClearButton}>
+                  Изчисти филтрите
+                </button>
+              ) : null}
               <div style={toolbarCount}>{visibleServices.length} обяви</div>
               {favoritesOnly ? <ActiveChip label="Само любими" /> : null}
             </div>
@@ -552,6 +559,16 @@ const clearButton = {
   color: "#93c5fd",
   cursor: "pointer",
   fontWeight: 800,
+};
+const toolbarClearButton = {
+  border: "1px solid rgba(96,165,250,0.28)",
+  background: "rgba(15,23,42,0.42)",
+  color: "#bfdbfe",
+  borderRadius: 999,
+  padding: "9px 12px",
+  cursor: "pointer",
+  fontWeight: 900,
+  fontSize: 13,
 };
 const eyebrow = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#93c5fd" };
 const filterSection = { paddingTop: 12, borderTop: "1px solid rgba(96,165,250,0.18)" };

@@ -35,6 +35,7 @@ export default function BookingsPage() {
   const [reviewOpenId, setReviewOpenId] = useState(null);
   const [reviewDraftById, setReviewDraftById] = useState({});
   const [reviewSavingId, setReviewSavingId] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     if (!isLoggedIn()) {
@@ -55,7 +56,7 @@ export default function BookingsPage() {
       (acc, item) => {
         acc.total += 1;
         const startAt = new Date(item.startAt);
-        if (startAt >= now && (item.status === "PENDING" || item.status === "CONFIRMED")) {
+        if (startAt >= now && item.status === "CONFIRMED") {
           acc.upcoming += 1;
         }
         if (item.status === "PENDING") acc.pending += 1;
@@ -72,7 +73,7 @@ export default function BookingsPage() {
     const now = new Date();
 
     if (activeFilter === "upcoming") {
-      return bookings.filter((item) => new Date(item.startAt) >= now && (item.status === "PENDING" || item.status === "CONFIRMED"));
+      return bookings.filter((item) => new Date(item.startAt) >= now && item.status === "CONFIRMED");
     }
     if (activeFilter === "pending") {
       return bookings.filter((item) => item.status === "PENDING");
@@ -92,9 +93,10 @@ export default function BookingsPage() {
   async function onCancelBooking(bookingId) {
     const reason = (cancelReasonById[bookingId] || "").trim();
     if (!reason) {
-      alert("Въведи причина за отказа от услугата.");
+      setFieldErrors((current) => ({ ...current, [`cancel-${bookingId}`]: "Въведи причина за отказа от услугата." }));
       return;
     }
+    setFieldErrors((current) => ({ ...current, [`cancel-${bookingId}`]: "" }));
 
     setCancelSavingId(bookingId);
     try {
@@ -103,7 +105,7 @@ export default function BookingsPage() {
       setCancelReasonById((current) => ({ ...current, [bookingId]: "" }));
       setCancelOpenId(null);
     } catch (error) {
-      alert(error.message);
+      setFieldErrors((current) => ({ ...current, [`cancel-${bookingId}`]: error.message }));
     } finally {
       setCancelSavingId(null);
     }
@@ -115,9 +117,10 @@ export default function BookingsPage() {
     const comment = (draft.comment ?? item.reviewComment ?? "").trim();
 
     if (!rating || rating < 1 || rating > 5) {
-      alert("Избери оценка от 1 до 5.");
+      setFieldErrors((current) => ({ ...current, [`review-${item.id}`]: "Избери оценка от 1 до 5." }));
       return;
     }
+    setFieldErrors((current) => ({ ...current, [`review-${item.id}`]: "" }));
 
     setReviewSavingId(item.id);
     try {
@@ -130,7 +133,7 @@ export default function BookingsPage() {
       setReviewOpenId(null);
       setReviewDraftById((current) => ({ ...current, [item.id]: { rating: saved.rating, comment: saved.comment } }));
     } catch (error) {
-      alert(error.message);
+      setFieldErrors((current) => ({ ...current, [`review-${item.id}`]: error.message }));
     } finally {
       setReviewSavingId(null);
     }
@@ -242,8 +245,10 @@ export default function BookingsPage() {
 
                               {item.statusReason ? (
                                 <div style={statusReasonBox(item.status)}>
-                                  <div style={noteLabel}>Промяна по статуса</div>
-                                  <div style={noteText}>{item.statusReason}</div>
+                                  <div style={statusReasonLabel}>
+                                    {item.status === "CANCELED" ? "Причина за отмяна" : item.status === "REJECTED" ? "Причина за отказ" : "Промяна по статуса"}
+                                  </div>
+                                  <div style={statusReasonText}>{displayStatusReason(item.statusReason)}</div>
                                 </div>
                               ) : null}
 
@@ -282,10 +287,14 @@ export default function BookingsPage() {
                                   <div style={noteLabel}>Причина за отказ</div>
                                   <textarea
                                     value={cancelReasonById[item.id] || ""}
-                                    onChange={(event) => setCancelReasonById((current) => ({ ...current, [item.id]: event.target.value }))}
+                                    onChange={(event) => {
+                                      setCancelReasonById((current) => ({ ...current, [item.id]: event.target.value }));
+                                      setFieldErrors((current) => ({ ...current, [`cancel-${item.id}`]: "" }));
+                                    }}
                                     placeholder="Напиши защо отказваш тази услуга"
-                                    style={cancelTextarea}
+                                    style={{ ...cancelTextarea, ...(fieldErrors[`cancel-${item.id}`] ? inputError : null) }}
                                   />
+                                  {fieldErrors[`cancel-${item.id}`] ? <div style={fieldErrorText}>{fieldErrors[`cancel-${item.id}`]}</div> : null}
                                   <div style={cancelActions}>
                                     <button type="button" onClick={() => onCancelBooking(item.id)} disabled={cancelSavingId === item.id} style={dangerConfirmButton}>
                                       {cancelSavingId === item.id ? "Отказване..." : "Потвърди отказа"}
@@ -305,7 +314,10 @@ export default function BookingsPage() {
                                       <button
                                         key={value}
                                         type="button"
-                                        onClick={() => setReviewDraftById((current) => ({ ...current, [item.id]: { ...reviewDraft, rating: value } }))}
+                                        onClick={() => {
+                                          setReviewDraftById((current) => ({ ...current, [item.id]: { ...reviewDraft, rating: value } }));
+                                          setFieldErrors((current) => ({ ...current, [`review-${item.id}`]: "" }));
+                                        }}
                                         style={{
                                           ...ratingButton,
                                           background: value <= Number(reviewDraft.rating || 0) ? "#2563eb" : "rgba(15,23,42,0.42)",
@@ -316,6 +328,7 @@ export default function BookingsPage() {
                                       </button>
                                     ))}
                                   </div>
+                                  {fieldErrors[`review-${item.id}`] ? <div style={fieldErrorText}>{fieldErrors[`review-${item.id}`]}</div> : null}
                                   <textarea
                                     value={reviewDraft.comment}
                                     onChange={(event) => setReviewDraftById((current) => ({ ...current, [item.id]: { ...reviewDraft, comment: event.target.value } }))}
@@ -403,6 +416,13 @@ function formatStatus(status) {
   if (status === "REJECTED") return "Отказана";
   if (status === "CANCELED") return "Отменена";
   return status;
+}
+
+function displayStatusReason(reason) {
+  if (reason === "Обявата или бизнес профилът вече не е активен.") {
+    return "Обявата или бизнес профилът вече не е активен. Проверете дали обявата отново е активна, преди да направите нова резервация.";
+  }
+  return reason;
 }
 
 function statusBadge(status) {
@@ -614,6 +634,18 @@ const cancelTextarea = {
   font: "inherit",
 };
 
+const inputError = {
+  border: "1px solid rgba(248,113,113,0.72)",
+  boxShadow: "0 0 0 3px rgba(248,113,113,0.12)",
+};
+
+const fieldErrorText = {
+  color: "#fca5a5",
+  fontSize: 12,
+  fontWeight: 800,
+  lineHeight: 1.35,
+};
+
 const cancelActions = {
   display: "flex",
   gap: 10,
@@ -719,6 +751,8 @@ function statusReasonBox(status) {
 }
 const noteLabel = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b" };
 const noteText = { marginTop: 8, color: "rgba(226,232,240,0.78)", lineHeight: 1.7 };
+const statusReasonLabel = { fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", color: "#9f1239" };
+const statusReasonText = { marginTop: 8, color: "#7f1d1d", lineHeight: 1.7, fontWeight: 800 };
 const ctaRow = { display: "flex", gap: 10, flexWrap: "wrap" };
 const primaryAction = {
   textDecoration: "none",

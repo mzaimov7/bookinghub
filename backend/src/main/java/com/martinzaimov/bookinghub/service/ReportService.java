@@ -12,6 +12,7 @@ import com.martinzaimov.bookinghub.repo.ReviewRepository;
 import com.martinzaimov.bookinghub.repo.ServiceRepository;
 import com.martinzaimov.bookinghub.repo.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -28,19 +29,25 @@ public class ReportService {
     private final CommentRepository comments;
     private final ReviewRepository reviews;
     private final ServiceRepository services;
+    private final EmailService emailService;
+    private final String supportEmail;
 
     public ReportService(
             ReportRepository reports,
             UserRepository users,
             CommentRepository comments,
             ReviewRepository reviews,
-            ServiceRepository services
+            ServiceRepository services,
+            EmailService emailService,
+            @Value("${app.support.email:bookinghub.support@gmail.com}") String supportEmail
     ) {
         this.reports = reports;
         this.users = users;
         this.comments = comments;
         this.reviews = reviews;
         this.services = services;
+        this.emailService = emailService;
+        this.supportEmail = supportEmail;
     }
 
     @Transactional
@@ -81,6 +88,7 @@ public class ReportService {
         report.setUpdatedAt(now);
 
         Report saved = reports.save(report);
+        notifyReportedAccount(saved, reporter);
         return toDto(saved, reporter);
     }
 
@@ -155,9 +163,49 @@ public class ReportService {
         };
     }
 
+    private void notifyReportedAccount(Report report, User reporter) {
+        ReportTarget target = resolveReportedTarget(report);
+        if (target == null || target.user == null || target.user.getEmail() == null || target.user.getEmail().isBlank()) {
+            return;
+        }
+
+        emailService.send(
+                target.user.getEmail(),
+                "Получен е сигнал в BookingHub",
+                "Здравейте,\n\n" +
+                        "Получен е сигнал, свързан с Вашия профил в BookingHub.\n\n" +
+                        "Обект на сигнала: " + target.label + "\n" +
+                        "Подаден от: " + reporter.getUsername() + "\n" +
+                        "Причина: " + report.getReasonText() + "\n\n" +
+                        "Екипът на BookingHub ще прегледа сигнала. Ако смятате, че това е грешка, можете да се свържете с " + supportEmail + "."
+        );
+    }
+
+    private ReportTarget resolveReportedTarget(Report report) {
+        return switch (report.getTargetType()) {
+            case USER -> users.findById(report.getTargetId())
+                    .map(user -> new ReportTarget(user, "профил " + user.getUsername()))
+                    .orElse(null);
+            case COMMENT -> comments.findById(report.getTargetId())
+                    .flatMap(comment -> users.findById(comment.getAuthorUserId())
+                            .map(user -> new ReportTarget(user, "коментар #" + comment.getId())))
+                    .orElse(null);
+            case REVIEW -> reviews.findById(report.getTargetId())
+                    .flatMap(review -> users.findById(review.getAuthorUserId())
+                            .map(user -> new ReportTarget(user, "отзив #" + review.getId())))
+                    .orElse(null);
+            case SERVICE -> services.findById(report.getTargetId())
+                    .flatMap(service -> users.findById(service.getBusinessUserId())
+                            .map(user -> new ReportTarget(user, "обява \"" + service.getTitle() + "\"")))
+                    .orElse(null);
+        };
+    }
+
     private String normalize(String value) {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isBlank() ? null : trimmed;
     }
+
+    private record ReportTarget(User user, String label) {}
 }

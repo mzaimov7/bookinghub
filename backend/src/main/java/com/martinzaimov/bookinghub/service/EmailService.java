@@ -15,17 +15,24 @@ public class EmailService {
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final String from;
+    private final String mailUsername;
 
     public EmailService(
             ObjectProvider<JavaMailSender> mailSenderProvider,
-            @Value("${app.email.from:no-reply@bookinghub.local}") String from
+            @Value("${app.email.from:no-reply@bookinghub.local}") String from,
+            @Value("${spring.mail.username:}") String mailUsername
     ) {
         this.mailSenderProvider = mailSenderProvider;
         this.from = from;
+        this.mailUsername = mailUsername;
     }
 
     public void send(String to, String subject, String body) {
         if (to == null || to.isBlank()) {
+            return;
+        }
+        if (mailUsername == null || mailUsername.isBlank()) {
+            log.info("Email skipped, no SMTP account configured. To: {}, Subject: {}, Body: {}", to, subject, body);
             return;
         }
 

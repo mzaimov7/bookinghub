@@ -35,7 +35,7 @@ public class ServiceService {
     }
 
     public ServiceOTD getById(Long id) {
-        com.martinzaimov.bookinghub.entity.Service s = repo.findByIdAndActiveTrueAndApprovalStatus(id, com.martinzaimov.bookinghub.entity.Service.ApprovalStatus.APPROVED)
+        com.martinzaimov.bookinghub.entity.Service s = repo.findPublicById(id)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
         return toDetailedDto(s);
     }

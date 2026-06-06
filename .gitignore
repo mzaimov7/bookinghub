@@ -42,3 +42,4 @@ node_modules/
 ~$*.docx
 frontend/dist/
 backend/uploads/
+.env.local

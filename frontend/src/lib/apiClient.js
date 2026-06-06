@@ -2,6 +2,7 @@ async function readJsonOrThrow(response) {
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     let message = text || `HTTP ${response.status}`;
+    let errors = null;
 
     if (text) {
       try {
@@ -9,12 +10,19 @@ async function readJsonOrThrow(response) {
         if (typeof parsed?.message === "string" && parsed.message.trim()) {
           message = parsed.message.trim();
         }
+        if (typeof parsed?.errors === "object" && parsed.errors !== null) {
+          errors = parsed.errors;
+        }
       } catch {
         message = text;
       }
     }
 
-    throw new Error(message);
+    const error = new Error(message);
+    if (errors) {
+      error.errors = errors;
+    }
+    throw error;
   }
 
   if (response.status === 204) {

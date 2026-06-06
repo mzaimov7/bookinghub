@@ -5,6 +5,7 @@ import {
   mapAdminCategory,
   mapAdminComment,
   mapAdminReport,
+  mapAdminRestriction,
   mapAdminReview,
   mapAdminUserProfile,
   mapBusinessBooking,
@@ -84,6 +85,18 @@ export async function listMyServices() {
   return mapCollection(data, mapService);
 }
 
+export async function listMyServiceStats() {
+  const data = await apiGet("/api/business/services/stats", { headers: businessHeaders() });
+  return mapCollection(data, (item) => ({
+    serviceId: Number(item?.serviceId ?? 0),
+    title: item?.title ?? "",
+    averageRating: Number(item?.averageRating ?? 0),
+    bookingCount: Number(item?.bookingCount ?? 0),
+    commentCount: Number(item?.commentCount ?? 0),
+    reviewCount: Number(item?.reviewCount ?? 0),
+  }));
+}
+
 export async function listBusinessBookings() {
   const data = await apiGet("/api/business/bookings", { headers: businessHeaders() });
   return mapCollection(data, mapBusinessBooking);
@@ -115,6 +128,15 @@ export async function listAdminServices() {
 export async function listAdminBookings() {
   const data = await apiGet("/api/admin/bookings", { headers: adminHeaders() });
   return mapCollection(data, mapAdminBooking);
+}
+
+export async function updateAdminBooking(bookingId, payload) {
+  const data = await apiSend(`/api/admin/bookings/${bookingId}`, {
+    method: "PUT",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return mapAdminBooking(data);
 }
 
 export async function listAdminCategories() {
@@ -178,6 +200,16 @@ export async function deleteServiceAsAdmin(serviceId, payload) {
   return mapService(data);
 }
 
+export async function updateServiceAsAdmin(serviceId, payload) {
+  const data = await apiSend(`/api/admin/services/${serviceId}`, {
+    method: "PUT",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  return mapService(data);
+}
+
 export async function listAdminComments() {
   const data = await apiGet("/api/admin/comments", { headers: adminHeaders() });
   return mapCollection(data, mapAdminComment);
@@ -197,6 +229,15 @@ export async function hideReviewAsAdmin(reviewId, payload) {
   return mapAdminReview(data);
 }
 
+export async function updateReviewAsAdmin(reviewId, payload) {
+  const data = await apiSend(`/api/admin/reviews/${reviewId}`, {
+    method: "PUT",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return mapAdminReview(data);
+}
+
 export async function restoreReviewAsAdmin(reviewId) {
   const data = await apiSend(`/api/admin/reviews/${reviewId}/restore`, {
     method: "PATCH",
@@ -208,6 +249,29 @@ export async function restoreReviewAsAdmin(reviewId) {
 export async function listAdminReports() {
   const data = await apiGet("/api/admin/reports", { headers: adminHeaders() });
   return mapCollection(data, mapAdminReport);
+}
+
+export async function listAdminRestrictions() {
+  const data = await apiGet("/api/admin/restrictions", { headers: adminHeaders() });
+  return mapCollection(data, mapAdminRestriction);
+}
+
+export async function createAdminRestriction(payload) {
+  const data = await apiSend("/api/admin/restrictions", {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return mapAdminRestriction(data);
+}
+
+export async function updateAdminRestriction(restrictionId, payload) {
+  const data = await apiSend(`/api/admin/restrictions/${restrictionId}`, {
+    method: "PUT",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return mapAdminRestriction(data);
 }
 
 export async function updateAdminReport(reportId, payload) {
@@ -222,6 +286,16 @@ export async function updateAdminReport(reportId, payload) {
 export async function hideCommentAsAdmin(commentId, payload) {
   const data = await apiSend(`/api/admin/comments/${commentId}/hide`, {
     method: "PATCH",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  return mapAdminComment(data);
+}
+
+export async function updateAdminComment(commentId, payload) {
+  const data = await apiSend(`/api/admin/comments/${commentId}`, {
+    method: "PUT",
     headers: { ...adminHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
@@ -251,6 +325,15 @@ export async function listAdminBusinesses() {
 export async function updateAdminUserStatus(userId, payload) {
   const data = await apiSend(`/api/admin/users/${userId}/status`, {
     method: "PATCH",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return mapAdminUserProfile(data);
+}
+
+export async function updateAdminUser(userId, payload) {
+  const data = await apiSend(`/api/admin/users/${userId}`, {
+    method: "PUT",
     headers: { ...adminHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });

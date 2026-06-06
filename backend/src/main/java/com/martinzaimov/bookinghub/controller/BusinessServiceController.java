@@ -42,6 +42,11 @@ public class BusinessServiceController {
         return businessServiceService.getMyServices(businessUserId);
     }
 
+    @GetMapping("/services/stats")
+    public List<?> listServiceStats(@RequestHeader("X-Business-User-Id") Long businessUserId) {
+        return businessServiceService.getMyServiceStats(businessUserId);
+    }
+
     @GetMapping("/services/{serviceId}")
     public Object getService(
             @RequestHeader("X-Business-User-Id") Long businessUserId,

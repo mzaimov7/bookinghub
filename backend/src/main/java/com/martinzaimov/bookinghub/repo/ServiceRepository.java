@@ -21,7 +21,20 @@ public interface ServiceRepository extends JpaRepository<Service, Long> {
     @Query("""
         select s
         from Service s
+        join User u on u.id = s.businessUserId
+        where s.id = :id
+          and s.active = true
+          and u.active = true
+          and s.approvalStatus = com.martinzaimov.bookinghub.entity.Service.ApprovalStatus.APPROVED
+    """)
+    Optional<Service> findPublicById(@Param("id") Long id);
+
+    @Query("""
+        select s
+        from Service s
+        join User u on u.id = s.businessUserId
         where s.active = true
+          and u.active = true
           and s.approvalStatus = com.martinzaimov.bookinghub.entity.Service.ApprovalStatus.APPROVED
           and (:categoryId is null or s.category.id = :categoryId)
           and (:city is null or lower(s.city) = lower(:city))
@@ -45,6 +58,7 @@ public interface ServiceRepository extends JpaRepository<Service, Long> {
     @Query("""
         select s
         from Service s
+        join User u on u.id = s.businessUserId
         left join Booking b
           on b.serviceId = s.id
          and b.status in (
@@ -53,6 +67,7 @@ public interface ServiceRepository extends JpaRepository<Service, Long> {
               com.martinzaimov.bookinghub.entity.Booking.Status.COMPLETED
          )
         where s.active = true
+          and u.active = true
           and s.approvalStatus = com.martinzaimov.bookinghub.entity.Service.ApprovalStatus.APPROVED
           and (:categoryId is null or s.category.id = :categoryId)
           and (:city is null or lower(s.city) = lower(:city))

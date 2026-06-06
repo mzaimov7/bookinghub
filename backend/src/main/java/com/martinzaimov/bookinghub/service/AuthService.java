@@ -1,13 +1,17 @@
 package com.martinzaimov.bookinghub.service;
 
 import com.martinzaimov.bookinghub.dto.AuthResponse;
+import com.martinzaimov.bookinghub.dto.ForgotPasswordRequest;
 import com.martinzaimov.bookinghub.dto.LoginRequest;
 import com.martinzaimov.bookinghub.dto.RegisterRequest;
+import com.martinzaimov.bookinghub.dto.ResetPasswordRequest;
+import com.martinzaimov.bookinghub.entity.PasswordResetToken;
 import com.martinzaimov.bookinghub.entity.BusinessProfile;
 import com.martinzaimov.bookinghub.entity.ClientProfile;
 import com.martinzaimov.bookinghub.entity.User;
 import com.martinzaimov.bookinghub.repo.BusinessProfileRepository;
 import com.martinzaimov.bookinghub.repo.ClientProfileRepository;
+import com.martinzaimov.bookinghub.repo.PasswordResetTokenRepository;
 import com.martinzaimov.bookinghub.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,9 +20,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -30,39 +38,54 @@ public class AuthService {
     private final UserRepository users;
     private final ClientProfileRepository clientProfiles;
     private final BusinessProfileRepository businessProfiles;
+    private final PasswordResetTokenRepository passwordResetTokens;
     private final PasswordEncoder encoder;
     private final EmailService emailService;
     private final Path uploadDir;
+    private final String frontendBaseUrl;
+    private final String supportEmail;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository users,
                        ClientProfileRepository clientProfiles,
                        BusinessProfileRepository businessProfiles,
+                       PasswordResetTokenRepository passwordResetTokens,
                        PasswordEncoder encoder,
                        EmailService emailService,
-                       @Value("${app.upload.dir:uploads}") String uploadDir) {
+                       @Value("${app.upload.dir:uploads}") String uploadDir,
+                       @Value("${app.frontend.base-url:http://localhost:3000}") String frontendBaseUrl,
+                       @Value("${app.support.email:bookinghub.support@gmail.com}") String supportEmail) {
         this.users = users;
         this.clientProfiles = clientProfiles;
         this.businessProfiles = businessProfiles;
+        this.passwordResetTokens = passwordResetTokens;
         this.encoder = encoder;
         this.emailService = emailService;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
+        this.frontendBaseUrl = stripTrailingSlash(frontendBaseUrl);
+        this.supportEmail = supportEmail;
     }
 
     @Transactional
     public AuthResponse login(LoginRequest req) {
         String identifier = safeTrim(req.identifier);
         if (identifier == null) {
-            throw new IllegalArgumentException("Username or email is required");
+            throw new IllegalArgumentException("Въведи потребителско име или имейл");
         }
 
         User user = users.findByUsernameIgnoreCaseOrEmailIgnoreCase(identifier, identifier)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid username/email or password"));
+                .orElseThrow(() -> new IllegalArgumentException("Невалидно потребителско име, имейл или парола"));
 
         if (!user.isActive()) {
-            throw new IllegalArgumentException("This account is disabled");
+            String reason = safeTrim(user.getBanReason());
+            throw new IllegalArgumentException(
+                    "Вашият профил е ограничен."
+                            + (reason == null ? "" : " Причина: " + reason + ".")
+                            + " Ако смятате, че това е грешка, свържете се с " + supportEmail + "."
+            );
         }
         if (!encoder.matches(req.password, user.getPasswordHash())) {
-            throw new IllegalArgumentException("Invalid username/email or password");
+            throw new IllegalArgumentException("Невалидно потребителско име, имейл или парола");
         }
 
         user.setLastLoginAt(LocalDateTime.now());
@@ -75,6 +98,55 @@ public class AuthService {
                 user.getRole().name(),
                 false
         );
+    }
+
+    @Transactional
+    public void requestPasswordReset(ForgotPasswordRequest req) {
+        String email = safeTrim(req.email);
+        if (email == null) {
+            return;
+        }
+
+        users.findByEmailIgnoreCase(email).ifPresent(user -> {
+            String token = createRawToken();
+            PasswordResetToken resetToken = new PasswordResetToken();
+            resetToken.setUserId(user.getId());
+            resetToken.setTokenHash(hashToken(token));
+            resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(30));
+            passwordResetTokens.save(resetToken);
+
+            String link = frontendBaseUrl + "/reset-password?token=" + token;
+            emailService.send(
+                    user.getEmail(),
+                    "Смяна на парола в BookingHub",
+                    "Здравей, " + user.getUsername() + "!\n\n" +
+                            "Получихме заявка за смяна на паролата ти. Отвори линка и въведи нова парола:\n" +
+                            link + "\n\n" +
+                            "Линкът е валиден 30 минути. Ако не си правил тази заявка, можеш да игнорираш имейла."
+            );
+        });
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest req) {
+        if (!safe(req.newPassword).equals(safe(req.confirmPassword))) {
+            throw new IllegalArgumentException("Новата парола и потвърждението не съвпадат");
+        }
+        validatePassword(req.newPassword);
+
+        PasswordResetToken token = passwordResetTokens.findByTokenHashAndUsedAtIsNull(hashToken(req.token))
+                .orElseThrow(() -> new IllegalArgumentException("Линкът за смяна на парола е невалиден или вече е използван"));
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Линкът за смяна на парола е изтекъл");
+        }
+
+        User user = users.findById(token.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("Потребителят не е намерен"));
+        user.setPasswordHash(encoder.encode(req.newPassword));
+        users.save(user);
+
+        token.setUsedAt(LocalDateTime.now());
+        passwordResetTokens.save(token);
     }
 
     @Transactional
@@ -196,6 +268,7 @@ public class AuthService {
 
     private boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
     private String safeTrim(String s) { return isBlank(s) ? null : s.trim(); }
+    private String safe(String s) { return s == null ? "" : s; }
 
     private User.Role parseDevRole(String rawRole) {
         String role = rawRole == null ? "" : rawRole.trim().toUpperCase();
@@ -279,6 +352,36 @@ public class AuthService {
         if (originalFilename == null) return "";
         int index = originalFilename.lastIndexOf('.');
         return index >= 0 ? originalFilename.substring(index) : "";
+    }
+
+    private String stripTrailingSlash(String value) {
+        if (value == null || value.isBlank()) {
+            return "http://localhost:3000";
+        }
+        String trimmed = value.trim();
+        while (trimmed.endsWith("/")) {
+            trimmed = trimmed.substring(0, trimmed.length() - 1);
+        }
+        return trimmed;
+    }
+
+    private String createRawToken() {
+        byte[] bytes = new byte[32];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String hashToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("Линкът за смяна на парола е невалиден");
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.trim().getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Неуспешна обработка на линка за смяна на парола");
+        }
     }
 
 }

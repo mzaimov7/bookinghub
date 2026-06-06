@@ -12,7 +12,30 @@ import java.time.LocalDateTime;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findAllByOrderByCreatedAtDesc();
     List<Booking> findByClientUserIdOrderByCreatedAtDesc(Long clientUserId);
+    long countByServiceId(Long serviceId);
     boolean existsBySlotIdAndStatusIn(Long slotId, List<Booking.Status> statuses);
+
+    @Query("""
+        select b
+        from Booking b
+        join ResourceSlot rs on rs.id = b.slotId
+        where b.status = com.martinzaimov.bookinghub.entity.Booking.Status.CONFIRMED
+          and rs.startAt < :now
+    """)
+    List<Booking> findPastConfirmedBookings(@Param("now") LocalDateTime now);
+
+    @Query("""
+        select b
+        from Booking b
+        join Service s on s.id = b.serviceId
+        join User u on u.id = s.businessUserId
+        where b.status in (
+            com.martinzaimov.bookinghub.entity.Booking.Status.PENDING,
+            com.martinzaimov.bookinghub.entity.Booking.Status.CONFIRMED
+        )
+          and (s.active = false or u.active = false)
+    """)
+    List<Booking> findActiveBookingsForInactiveServicesOrBusinesses();
 
     @Query("""
         select b

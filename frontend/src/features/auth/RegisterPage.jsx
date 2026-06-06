@@ -28,12 +28,15 @@ export default function RegisterPage() {
   const [providerType, setProviderType] = useState("COMPANY");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [form, setForm] = useState(initialForm);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
 
   function onChange(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+    setFieldErrors((current) => ({ ...current, [event.target.name]: "" }));
+    setError("");
   }
 
   function onPhotoChange(event) {
@@ -45,6 +48,7 @@ export default function RegisterPage() {
   async function onSubmit(event) {
     event.preventDefault();
     setError("");
+    setFieldErrors({});
 
     setLoading(true);
 
@@ -84,7 +88,9 @@ export default function RegisterPage() {
       alert("Профилът беше създаден успешно. Вече можеш да влезеш.");
       navigate("/login");
     } catch (error) {
-      setError(error.message || "Неуспешна регистрация");
+      const { fieldErrors: nextFieldErrors, formError } = fieldErrorsForRegistration(error);
+      setFieldErrors(nextFieldErrors);
+      setError(formError);
     } finally {
       setLoading(false);
     }
@@ -131,6 +137,7 @@ export default function RegisterPage() {
                   onChange={onChange}
                   placeholder="Избери потребителско име"
                   disabled={loading}
+                  error={fieldErrors.username}
                   required
                 />
                 <Field
@@ -141,6 +148,7 @@ export default function RegisterPage() {
                   onChange={onChange}
                   placeholder="name@email.com"
                   disabled={loading}
+                  error={fieldErrors.email}
                   required
                 />
               </div>
@@ -153,6 +161,7 @@ export default function RegisterPage() {
                 onChange={onChange}
                 placeholder="Създай парола"
                 disabled={loading}
+                error={fieldErrors.password}
                 required
               />
               <div style={passwordHint}>Поне 8 символа, с главна буква, малка буква и цифра.</div>
@@ -168,6 +177,7 @@ export default function RegisterPage() {
                       onChange={onChange}
                       placeholder="Име"
                       disabled={loading}
+                      error={fieldErrors.firstName}
                       required
                     />
                     <Field
@@ -177,6 +187,7 @@ export default function RegisterPage() {
                       onChange={onChange}
                       placeholder="Фамилия"
                       disabled={loading}
+                      error={fieldErrors.lastName}
                       required
                     />
                   </div>
@@ -187,6 +198,7 @@ export default function RegisterPage() {
                     onChange={onChange}
                     placeholder="По желание"
                     disabled={loading}
+                    error={fieldErrors.phone}
                   />
                   <TextAreaField
                     label="Биография"
@@ -195,6 +207,7 @@ export default function RegisterPage() {
                     onChange={onChange}
                     placeholder="Разкажи накратко за себе си"
                     disabled={loading}
+                    error={fieldErrors.bio}
                   />
                   <PhotoUploadCard
                     role={role}
@@ -227,6 +240,7 @@ export default function RegisterPage() {
                     onChange={onChange}
                     placeholder="Име на бизнеса"
                     disabled={loading}
+                    error={fieldErrors.businessName}
                     required
                   />
 
@@ -239,6 +253,7 @@ export default function RegisterPage() {
                         onChange={onChange}
                         placeholder="Юридическо име на фирмата"
                         disabled={loading}
+                        error={fieldErrors.companyLegalName}
                         required
                       />
                       <div style={gridTwo}>
@@ -249,6 +264,7 @@ export default function RegisterPage() {
                         onChange={onChange}
                         placeholder="ЕИК на фирмата"
                         disabled={loading}
+                        error={fieldErrors.companyEik}
                         required
                       />
                       <Field
@@ -258,6 +274,7 @@ export default function RegisterPage() {
                         onChange={onChange}
                         placeholder="Материално отговорно лице"
                         disabled={loading}
+                        error={fieldErrors.companyRepresentative}
                         required
                       />
                       </div>
@@ -272,6 +289,7 @@ export default function RegisterPage() {
                       onChange={onChange}
                       placeholder="Град"
                       disabled={loading}
+                      error={fieldErrors.city}
                       required
                     />
                     <Field
@@ -281,6 +299,7 @@ export default function RegisterPage() {
                       onChange={onChange}
                       placeholder="Телефон за контакт"
                       disabled={loading}
+                      error={fieldErrors.businessPhone}
                       required
                     />
                   </div>
@@ -292,6 +311,7 @@ export default function RegisterPage() {
                     onChange={onChange}
                     placeholder="Адрес на бизнеса"
                     disabled={loading}
+                    error={fieldErrors.address}
                     required
                   />
                   <TextAreaField
@@ -301,6 +321,7 @@ export default function RegisterPage() {
                     onChange={onChange}
                     placeholder="Разкажи накратко какви услуги предлага бизнесът ти"
                     disabled={loading}
+                    error={fieldErrors.businessDescription}
                     required
                   />
                   <PhotoUploadCard
@@ -327,28 +348,73 @@ export default function RegisterPage() {
   );
 }
 
-function Field({ label, required, ...props }) {
+function Field({ label, required, error, ...props }) {
   return (
     <label style={fieldWrap}>
       <span style={labelStyle}>
         {label}
         {required ? " *" : ""}
       </span>
-      <input {...props} style={input} />
+      <input {...props} style={{ ...input, ...(error ? inputError : null) }} />
+      {error ? <span style={fieldErrorText}>{error}</span> : null}
     </label>
   );
 }
 
-function TextAreaField({ label, required, ...props }) {
+function TextAreaField({ label, required, error, ...props }) {
   return (
     <label style={fieldWrap}>
       <span style={labelStyle}>
         {label}
         {required ? " *" : ""}
       </span>
-      <textarea {...props} style={{ ...input, minHeight: 110, resize: "vertical" }} />
+      <textarea {...props} style={{ ...input, ...(error ? inputError : null), minHeight: 110, resize: "vertical" }} />
+      {error ? <span style={fieldErrorText}>{error}</span> : null}
     </label>
   );
+}
+
+function fieldErrorsForRegistration(error) {
+  if (error?.errors) {
+    return { fieldErrors: error.errors, formError: "" };
+  }
+
+  const message = error?.message || "Неуспешна регистрация";
+  if (message.includes("Потребителското име")) {
+    return { fieldErrors: { username: message }, formError: "" };
+  }
+  if (message.includes("Имейл")) {
+    return { fieldErrors: { email: message }, formError: "" };
+  }
+  if (message.includes("Паролата")) {
+    return { fieldErrors: { password: message }, formError: "" };
+  }
+  if (message.includes("Името и фамилията")) {
+    return { fieldErrors: { firstName: message, lastName: message }, formError: "" };
+  }
+  if (message.includes("Името на бизнеса")) {
+    return {
+      fieldErrors: {
+        businessName: message,
+        city: message,
+        address: message,
+        businessPhone: message,
+        businessDescription: message,
+      },
+      formError: "",
+    };
+  }
+  if (message.includes("Име на фирмата")) {
+    return {
+      fieldErrors: {
+        companyLegalName: message,
+        companyEik: message,
+        companyRepresentative: message,
+      },
+      formError: "",
+    };
+  }
+  return { fieldErrors: {}, formError: message };
 }
 
 function PhotoUploadCard({ role, photoPreview, photoFile, onPhotoChange }) {
@@ -560,6 +626,18 @@ const input = {
   fontSize: 15,
   boxSizing: "border-box",
   boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+};
+
+const inputError = {
+  border: "1px solid rgba(248,113,113,0.72)",
+  boxShadow: "0 0 0 3px rgba(248,113,113,0.12)",
+};
+
+const fieldErrorText = {
+  color: "#fca5a5",
+  fontSize: 12,
+  fontWeight: 800,
+  lineHeight: 1.35,
 };
 
 const passwordHint = {

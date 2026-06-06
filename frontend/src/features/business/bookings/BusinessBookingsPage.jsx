@@ -145,9 +145,11 @@ export default function BusinessBookingsPage() {
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
                     <button type="button" onClick={() => onReportClient(item)} style={reportClientButton}>
                       Докладвай клиента
                     </button>
+                    </div>
                   </div>
 
                   {item.clientNote && (

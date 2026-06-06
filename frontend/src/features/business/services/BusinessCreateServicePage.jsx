@@ -26,6 +26,7 @@ export default function BusinessCreateServicePage() {
   const [openCategoryPicker, setOpenCategoryPicker] = useState(false);
   const [openSuggestionForm, setOpenSuggestionForm] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
@@ -54,6 +55,7 @@ export default function BusinessCreateServicePage() {
   function onChange(event) {
     const { name, value, type, checked } = event.target;
     setForm((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
+    setFieldErrors((current) => ({ ...current, [name]: "" }));
   }
 
   function toggleResource(resourceId) {
@@ -66,6 +68,7 @@ export default function BusinessCreateServicePage() {
           : [...current.resourceIds, resourceId],
       };
     });
+    setFieldErrors((current) => ({ ...current, resourceIds: "" }));
   }
 
   async function loadResources() {
@@ -149,6 +152,7 @@ export default function BusinessCreateServicePage() {
 
   async function onSubmit(event) {
     event.preventDefault();
+    setError("");
 
     const payload = {
       categoryId: Number(form.categoryId),
@@ -169,25 +173,20 @@ export default function BusinessCreateServicePage() {
       coverIndex,
     };
 
-    if (!payload.categoryId || !payload.title || !payload.city || !payload.address) {
-      alert("Моля попълни: categoryId, заглавие, град, адрес.");
-      return;
-    }
+    const nextFieldErrors = {};
+    if (!payload.categoryId) nextFieldErrors.categoryId = "Избери категория.";
+    if (!payload.title) nextFieldErrors.title = "Въведи заглавие.";
+    if (!payload.city) nextFieldErrors.city = "Въведи град.";
+    if (!payload.address) nextFieldErrors.address = "Въведи адрес.";
+    if (!payload.price || payload.price <= 0) nextFieldErrors.price = "Цената трябва да е по-голяма от 0.";
+    if (!payload.durationMinutes || payload.durationMinutes <= 0) nextFieldErrors.durationMinutes = "Продължителността трябва да е по-голяма от 0.";
+    if (!payload.resourceIds.length) nextFieldErrors.resourceIds = "Избери поне един служител или екип.";
 
-    if (!payload.price || payload.price <= 0) {
-      alert("Цена трябва да е > 0");
+    if (Object.keys(nextFieldErrors).length) {
+      setFieldErrors(nextFieldErrors);
       return;
     }
-
-    if (!payload.durationMinutes || payload.durationMinutes <= 0) {
-      alert("Продължителност трябва да е > 0");
-      return;
-    }
-
-    if (!payload.resourceIds.length) {
-      alert("Избери поне един човек/екип.");
-      return;
-    }
+    setFieldErrors({});
 
     try {
       setUploading(true);
@@ -207,7 +206,10 @@ export default function BusinessCreateServicePage() {
       const data = isEditMode ? await updateService(id, payload) : await createService(payload);
       navigate(`/business/services${data?.id ? `#service-${data.id}` : ""}`);
     } catch (error) {
-      setError(error.message);
+      setFieldErrors(fieldErrorsForServiceForm(error));
+      if (!Object.keys(fieldErrorsForServiceForm(error)).length) {
+        setError(error.message);
+      }
     } finally {
       setUploading(false);
     }
@@ -285,6 +287,7 @@ export default function BusinessCreateServicePage() {
                       type="button"
                       onClick={() => {
                         setForm((current) => ({ ...current, categoryId: String(category.id) }));
+                        setFieldErrors((current) => ({ ...current, categoryId: "" }));
                         setOpenCategoryPicker(false);
                       }}
                       style={categoryPickerItem}
@@ -303,6 +306,7 @@ export default function BusinessCreateServicePage() {
                 {selectedCategory?.description?.trim() || "Избери категория, за да видиш какви услуги най-често попадат в нея."}
               </div>
             </div>
+            {fieldErrors.categoryId ? <div style={fieldErrorText}>{fieldErrors.categoryId}</div> : null}
 
             <div style={categorySuggestionWrap}>
               <button type="button" onClick={() => setOpenSuggestionForm((current) => !current)} style={categorySuggestionToggle}>
@@ -330,27 +334,32 @@ export default function BusinessCreateServicePage() {
         )}
 
         <label style={label}>Заглавие</label>
-        <input name="title" value={form.title} onChange={onChange} style={input} />
+        <input name="title" value={form.title} onChange={onChange} style={{ ...input, ...(fieldErrors.title ? inputError : null) }} />
+        {fieldErrors.title ? <div style={fieldErrorText}>{fieldErrors.title}</div> : null}
 
         <label style={label}>Описание</label>
         <textarea name="description" value={form.description} onChange={onChange} style={{ ...input, minHeight: 90 }} />
 
         <label style={label}>Град</label>
-        <input name="city" value={form.city} onChange={onChange} style={input} />
+        <input name="city" value={form.city} onChange={onChange} style={{ ...input, ...(fieldErrors.city ? inputError : null) }} />
+        {fieldErrors.city ? <div style={fieldErrorText}>{fieldErrors.city}</div> : null}
 
         <label style={label}>Адрес</label>
-        <input name="address" value={form.address} onChange={onChange} style={input} />
+        <input name="address" value={form.address} onChange={onChange} style={{ ...input, ...(fieldErrors.address ? inputError : null) }} />
+        {fieldErrors.address ? <div style={fieldErrorText}>{fieldErrors.address}</div> : null}
 
         <div style={metricBlock}>
           <div style={metricField}>
             <label style={label}>Цена</label>
             <span style={metricHint}>В евро</span>
-            <input name="price" value={form.price} onChange={onChange} style={input} placeholder="25.00" />
+            <input name="price" value={form.price} onChange={onChange} style={{ ...input, ...(fieldErrors.price ? inputError : null) }} placeholder="25.00" />
+            {fieldErrors.price ? <div style={fieldErrorText}>{fieldErrors.price}</div> : null}
           </div>
           <div style={metricField}>
             <label style={label}>Продължителност</label>
             <span style={metricHint}>В минути</span>
-            <input name="durationMinutes" value={form.durationMinutes} onChange={onChange} style={input} placeholder="60" />
+            <input name="durationMinutes" value={form.durationMinutes} onChange={onChange} style={{ ...input, ...(fieldErrors.durationMinutes ? inputError : null) }} placeholder="60" />
+            {fieldErrors.durationMinutes ? <div style={fieldErrorText}>{fieldErrors.durationMinutes}</div> : null}
           </div>
         </div>
 
@@ -468,6 +477,7 @@ export default function BusinessCreateServicePage() {
             )}
           </div>
         )}
+        {fieldErrors.resourceIds ? <div style={fieldErrorText}>{fieldErrors.resourceIds}</div> : null}
 
         <div style={divider} />
 
@@ -490,9 +500,24 @@ export default function BusinessCreateServicePage() {
   );
 }
 
+function fieldErrorsForServiceForm(error) {
+  if (error?.errors) return error.errors;
+  const message = error?.message || "";
+  if (message.includes("categoryId") || message.toLowerCase().includes("category")) return { categoryId: message };
+  if (message.toLowerCase().includes("title") || message.includes("заглав")) return { title: message };
+  if (message.includes("град") || message.toLowerCase().includes("city")) return { city: message };
+  if (message.includes("адрес") || message.toLowerCase().includes("address")) return { address: message };
+  if (message.includes("Цена") || message.toLowerCase().includes("price")) return { price: message };
+  if (message.includes("Продължителност") || message.toLowerCase().includes("duration")) return { durationMinutes: message };
+  if (message.includes("resource") || message.includes("служител") || message.includes("екип")) return { resourceIds: message };
+  return {};
+}
+
 const pageBackground = "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 16%, #eaf2ff 44%, #f6f9ff 100%)";
 const label = { fontWeight: 800, color: "#eff6ff" };
 const input = { width: "100%", padding: "12px 14px", border: "1px solid rgba(96,165,250,0.22)", borderRadius: 14, boxSizing: "border-box", background: "rgba(15,23,42,0.3)", color: "#eff6ff" };
+const inputError = { border: "1px solid rgba(248,113,113,0.72)", boxShadow: "0 0 0 3px rgba(248,113,113,0.12)" };
+const fieldErrorText = { color: "#fca5a5", fontSize: 12, fontWeight: 800, lineHeight: 1.35 };
 const btn = { marginTop: 6, padding: "14px 18px", borderRadius: 16, border: "none", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", fontWeight: 900, cursor: "pointer" };
 const smallBtn = { width: "fit-content", border: "1px solid rgba(96,165,250,0.22)", background: "rgba(15,23,42,0.34)", color: "#eff6ff", borderRadius: 12, padding: "8px 10px", cursor: "pointer", fontWeight: 800 };
 const grid2 = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 };

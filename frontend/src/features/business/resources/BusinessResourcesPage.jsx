@@ -59,6 +59,8 @@ export default function BusinessResourcesPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [createErrors, setCreateErrors] = useState({});
+  const [editErrors, setEditErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [create, setCreate] = useState({ type: "STAFF", name: "", photoUrl: "", photoFile: null, weeklyOffDays: [] });
   const [previewUrl, setPreviewUrl] = useState("");
@@ -129,9 +131,10 @@ export default function BusinessResourcesPage() {
 
   async function onCreate(event) {
     event.preventDefault();
+    setCreateErrors({});
 
     if (!create.name.trim()) {
-      alert("Въведи име");
+      setCreateErrors({ name: "Въведи име." });
       return;
     }
 
@@ -155,7 +158,7 @@ export default function BusinessResourcesPage() {
       await load();
       await loadSchedule();
     } catch (createError) {
-      alert(createError?.message || "Неуспешно създаване");
+      setCreateErrors({ name: createError?.message || "Неуспешно създаване" });
     } finally {
       setSubmitting(false);
     }
@@ -199,6 +202,7 @@ export default function BusinessResourcesPage() {
   }
 
   function updateEditForm(resourceId, updates) {
+    setEditErrors((current) => ({ ...current, [resourceId]: "" }));
     setEditForms((current) => ({
       ...current,
       [resourceId]: { ...(current[resourceId] || {}), ...updates },
@@ -231,8 +235,9 @@ export default function BusinessResourcesPage() {
 
   async function saveEdit(resource) {
     const form = editForms[resource.id];
+    setEditErrors((current) => ({ ...current, [resource.id]: "" }));
     if (!form?.name?.trim()) {
-      alert("Въведи име");
+      setEditErrors((current) => ({ ...current, [resource.id]: "Въведи име." }));
       return;
     }
 
@@ -254,7 +259,7 @@ export default function BusinessResourcesPage() {
       await load();
       await loadSchedule();
     } catch (updateError) {
-      alert(updateError?.message || "Неуспешно обновяване");
+      setEditErrors((current) => ({ ...current, [resource.id]: updateError?.message || "Неуспешно обновяване" }));
     }
   }
 
@@ -338,7 +343,18 @@ export default function BusinessResourcesPage() {
               <option value="STAFF">СЛУЖИТЕЛ</option>
               <option value="TEAM">ЕКИП</option>
             </select>
-            <input value={create.name} onChange={(event) => setCreate((current) => ({ ...current, name: event.target.value }))} style={input} placeholder="Име (пример: Иван Петров / Екип #1)" />
+            <div style={{ display: "grid", gap: 6 }}>
+              <input
+                value={create.name}
+                onChange={(event) => {
+                  setCreate((current) => ({ ...current, name: event.target.value }));
+                  setCreateErrors((current) => ({ ...current, name: "" }));
+                }}
+                style={{ ...input, ...(createErrors.name ? inputError : null) }}
+                placeholder="Име (пример: Иван Петров / Екип #1)"
+              />
+              {createErrors.name ? <div style={fieldErrorText}>{createErrors.name}</div> : null}
+            </div>
           </div>
 
         <label style={uploadWrap}>
@@ -458,6 +474,7 @@ export default function BusinessResourcesPage() {
                   onRemoveDayOffDate={(dateValue) => removeEditDayOffDate(resource.id, dateValue)}
                   onSave={() => saveEdit(resource)}
                   onCancel={() => cancelEdit(resource.id)}
+                  error={editErrors[resource.id]}
                 />
               ) : (
               <>
@@ -527,7 +544,7 @@ export default function BusinessResourcesPage() {
   );
 }
 
-function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay, onAddDayOffDate, onRemoveDayOffDate, onSave, onCancel }) {
+function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay, onAddDayOffDate, onRemoveDayOffDate, onSave, onCancel, error }) {
   const current = form || {
     type: resource.type,
     name: resource.name,
@@ -553,7 +570,8 @@ function EditResourceCard({ form, resource, onChange, onFileChange, onToggleDay,
             <option value="STAFF">СЛУЖИТЕЛ</option>
             <option value="TEAM">ЕКИП</option>
           </select>
-          <input value={current.name} onChange={(event) => onChange({ name: event.target.value })} style={input} placeholder="Име" />
+          <input value={current.name} onChange={(event) => onChange({ name: event.target.value })} style={{ ...input, ...(error ? inputError : null) }} placeholder="Име" />
+          {error ? <div style={fieldErrorText}>{error}</div> : null}
         </div>
       </div>
 
@@ -653,6 +671,8 @@ function DayOffDateList({ dates, onRemove, emptyText }) {
 
 const pageBackground = "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 16%, #eaf2ff 44%, #f6f9ff 100%)";
 const input = { width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid rgba(96,165,250,0.22)", borderRadius: 12, background: "rgba(15,23,42,0.3)", color: "#eff6ff" };
+const inputError = { border: "1px solid rgba(248,113,113,0.72)", boxShadow: "0 0 0 3px rgba(248,113,113,0.12)" };
+const fieldErrorText = { color: "#fca5a5", fontSize: 12, fontWeight: 800, lineHeight: 1.35 };
 const btn = { padding: "12px 14px", borderRadius: 12, border: "none", background: "#2563eb", color: "#fff", fontWeight: 900, cursor: "pointer" };
 const smallBtn = { boxSizing: "border-box", border: "1px solid rgba(96,165,250,0.22)", background: "rgba(15,23,42,0.34)", color: "#eff6ff", borderRadius: 12, padding: "8px 10px", cursor: "pointer", fontWeight: 800 };
 const uploadWrap = { display: "grid", padding: 12, border: "1px dashed rgba(96,165,250,0.24)", borderRadius: 14, background: "rgba(15,23,42,0.26)" };

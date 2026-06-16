@@ -46,7 +46,7 @@ public class CommentService {
             BusinessProfileRepository businessProfiles,
             ActionLimitService actionLimitService,
             ServiceUserRestrictionRepository serviceUserRestrictions,
-            @Value("${app.support.email:bookingsupport@bookinghub.local}") String supportEmail
+            @Value("${app.support.email:bookinghub.support@gmail.com}") String supportEmail
     ) {
         this.comments = comments;
         this.services = services;

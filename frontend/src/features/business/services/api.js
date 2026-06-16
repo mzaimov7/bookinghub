@@ -67,6 +67,13 @@ export async function updateService(serviceId, payload) {
   });
 }
 
+export async function deleteMyService(serviceId) {
+  return apiSend(`/api/business/services/${serviceId}`, {
+    method: "DELETE",
+    headers: businessHeaders(),
+  });
+}
+
 export async function uploadServiceImage(file) {
   const formData = new FormData();
   formData.append("file", file);
@@ -327,6 +334,14 @@ export async function updateAdminUserStatus(userId, payload) {
     method: "PATCH",
     headers: { ...adminHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(payload),
+  });
+  return mapAdminUserProfile(data);
+}
+
+export async function restoreAdminBusinessServices(userId) {
+  const data = await apiSend(`/api/admin/users/${userId}/restore-services`, {
+    method: "PATCH",
+    headers: adminHeaders(),
   });
   return mapAdminUserProfile(data);
 }

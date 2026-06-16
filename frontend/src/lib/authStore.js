@@ -1,5 +1,6 @@
 const KEY = "bookinghub_auth";
 const ADMIN_RETURN_KEY = "bookinghub_admin_return_auth";
+const LAST_ACTIVITY_KEY = "bookinghub_last_activity";
 
 export function isLoggedIn() {
   return !!getAuth();
@@ -26,6 +27,16 @@ export function getUserId() {
 
 export function saveAuth(auth) {
   localStorage.setItem(KEY, JSON.stringify(auth));
+  markSessionActivity();
+}
+
+export function markSessionActivity() {
+  localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+}
+
+export function getLastSessionActivity() {
+  const value = Number(localStorage.getItem(LAST_ACTIVITY_KEY));
+  return Number.isFinite(value) && value > 0 ? value : null;
 }
 
 export function startAdminPreview(auth) {
@@ -65,4 +76,5 @@ export function updateStoredAuth(updates = {}) {
 export function logoutLocal() {
   localStorage.removeItem(KEY);
   localStorage.removeItem(ADMIN_RETURN_KEY);
+  localStorage.removeItem(LAST_ACTIVITY_KEY);
 }

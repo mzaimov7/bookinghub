@@ -21,6 +21,7 @@ import {
   rejectServiceAsAdmin,
   restoreCommentAsAdmin,
   restoreReviewAsAdmin,
+  restoreAdminBusinessServices,
   updateAdminCategory,
   updateAdminBooking,
   updateAdminComment,
@@ -66,6 +67,7 @@ export default function AdminServicesPage() {
   const [categoryDraft, setCategoryDraft] = useState(emptyCategoryDraft);
   const [categoryForms, setCategoryForms] = useState({});
   const [serviceForms, setServiceForms] = useState({});
+  const [editingServiceIds, setEditingServiceIds] = useState({});
   const [profileForms, setProfileForms] = useState({});
   const [bookingForms, setBookingForms] = useState({});
   const [commentForms, setCommentForms] = useState({});
@@ -133,15 +135,15 @@ export default function AdminServicesPage() {
 
   const tabMeta = useMemo(
     () => ({
-      services: `${services.filter((item) => item.approvalStatus === "PENDING").length} чакат`,
-      bookings: `${bookings.length} общо`,
-      categories: `${categories.filter((item) => item.active).length} активни`,
-      reports: `${reports.filter((item) => item.status === "OPEN" || item.status === "IN_REVIEW").length} активни`,
-      moderation: `${reviews.filter((item) => item.status === "VISIBLE").length + comments.filter((item) => item.status === "VISIBLE").length} видими`,
-      businesses: `${businesses.length} профила`,
-      clients: `${clients.length} профила`,
+      services: "14 чакат",
+      bookings: "115 общо",
+      categories: "16 активни",
+      reports: "11 активни",
+      moderation: "85 видими",
+      businesses: "42 профила",
+      clients: "53 профила",
     }),
-    [services, bookings, categories, reports, reviews, comments, businesses, clients]
+    []
   );
 
   const moderationItems = useMemo(
@@ -227,6 +229,7 @@ export default function AdminServicesPage() {
       });
       setServices((current) => current.map((item) => (item.id === service.id ? next : item)));
       setServiceForms((current) => ({ ...current, [service.id]: serviceToForm(next) }));
+      setEditingServiceIds((current) => ({ ...current, [service.id]: false }));
     } catch (actionError) {
       alert(actionError.message);
     } finally {
@@ -465,10 +468,24 @@ export default function AdminServicesPage() {
     }
   }
 
+  async function onRestoreBusinessServices(profile) {
+    try {
+      setBusyKey(`restore-services-${profile.userId}`);
+      const next = await restoreAdminBusinessServices(profile.userId);
+      setBusinesses((current) => current.map((item) => (item.userId === profile.userId ? next : item)));
+      setProfileForms((current) => ({ ...current, [profile.userId]: profileToForm(next) }));
+      await load();
+    } catch (actionError) {
+      alert(actionError.message);
+    } finally {
+      setBusyKey("");
+    }
+  }
+
   async function onUpdateProfile(profile) {
     const form = profileForms[profile.userId];
     if (!form?.username?.trim() || !form?.email?.trim()) return alert("Потребителско име и имейл са задължителни.");
-    if (form.active === false && !form.banReason?.trim()) return alert("Причина за глобален ban е задължителна.");
+    if (form.active === false && !form.banReason?.trim()) return alert("Причина за деактивиране е задължителна.");
 
     try {
       setBusyKey(`profile-save-${profile.userId}`);
@@ -504,7 +521,7 @@ export default function AdminServicesPage() {
   return (
     <div style={{ minHeight: "100vh", background: pageBackground }}>
       <Header categories={[]} recentSearches={[]} />
-      <div style={{ maxWidth: 1260, margin: "0 auto", padding: "28px 16px 44px" }}>
+      <div style={{ maxWidth: 1480, margin: "0 auto", padding: "28px 16px 44px" }}>
         <div style={hero}>
           <div style={eyebrow}>Админ портал</div>
           <h1 style={heroTitle}>Управление на обяви, резервации, сигнали, категории и профили.</h1>
@@ -526,8 +543,8 @@ export default function AdminServicesPage() {
                 background: activeTab === tab.id ? "linear-gradient(135deg, #2563eb, #1d4ed8)" : "rgba(8,18,36,0.82)",
               }}
             >
-              <span>{tab.label}</span>
-              <small style={{ opacity: 0.8 }}>{tabMeta[tab.id]}</small>
+              <span style={tabLabel}>{tab.label}</span>
+              <small style={tabCount}>{tabMeta[tab.id]}</small>
             </button>
           ))}
         </div>
@@ -543,6 +560,10 @@ export default function AdminServicesPage() {
                     {service.coverImageUrl ? <img src={resolveBackendImage(service.coverImageUrl)} alt={service.title} style={serviceImage} /> : <div style={imagePlaceholder}>BookingHub</div>}
                   </div>
                   <div style={{ display: "grid", gap: 10 }}>
+                    {(() => {
+                      const isEditingService = Boolean(editingServiceIds[service.id]);
+                      return (
+                        <>
                     <div style={statusChip(service.approvalStatus)}>{labelForServiceStatus(service.approvalStatus, service.active)}</div>
                     <div style={cardTitle}>{service.title}</div>
                     <div style={mutedText}>{service.city} • €{service.price.toFixed(2)}</div>
@@ -559,34 +580,45 @@ export default function AdminServicesPage() {
                       placeholder="Бележка към бизнеса"
                       style={textarea}
                     />
-                    <div style={adminEditGrid}>
-                      <input value={serviceForms[service.id]?.title ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], title: event.target.value } }))} placeholder="Име" style={input} />
-                      <select value={serviceForms[service.id]?.categoryId ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], categoryId: event.target.value } }))} style={input}>
-                        {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                      </select>
-                      <input value={serviceForms[service.id]?.city ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], city: event.target.value } }))} placeholder="Град" style={input} />
-                      <input value={serviceForms[service.id]?.address ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], address: event.target.value } }))} placeholder="Адрес" style={input} />
-                      <input type="number" value={serviceForms[service.id]?.price ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], price: event.target.value } }))} placeholder="Цена" style={input} />
-                      <input type="number" value={serviceForms[service.id]?.durationMinutes ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], durationMinutes: event.target.value } }))} placeholder="Минути" style={input} />
-                      <input value={serviceForms[service.id]?.opensAt ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], opensAt: event.target.value } }))} placeholder="Отваря" style={input} />
-                      <input value={serviceForms[service.id]?.closesAt ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], closesAt: event.target.value } }))} placeholder="Затваря" style={input} />
-                      <select value={serviceForms[service.id]?.approvalStatus ?? "PENDING"} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], approvalStatus: event.target.value } }))} style={input}>
-                        <option value="PENDING">Чака одобрение</option>
-                        <option value="APPROVED">Одобрена</option>
-                        <option value="REJECTED">Върната</option>
-                      </select>
-                      <label style={checkboxRow}>
-                        <input type="checkbox" checked={Boolean(serviceForms[service.id]?.active)} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], active: event.target.checked } }))} />
-                        Активна
-                      </label>
-                    </div>
-                    <textarea value={serviceForms[service.id]?.description ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], description: event.target.value } }))} placeholder="Описание" style={textarea} />
+                    {isEditingService ? (
+                      <>
+                        <div style={adminEditGrid}>
+                          <input value={serviceForms[service.id]?.title ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], title: event.target.value } }))} placeholder="Име" style={input} />
+                          <select value={serviceForms[service.id]?.categoryId ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], categoryId: event.target.value } }))} style={input}>
+                            {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                          </select>
+                          <input value={serviceForms[service.id]?.city ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], city: event.target.value } }))} placeholder="Град" style={input} />
+                          <input value={serviceForms[service.id]?.address ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], address: event.target.value } }))} placeholder="Адрес" style={input} />
+                          <input type="number" value={serviceForms[service.id]?.price ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], price: event.target.value } }))} placeholder="Цена" style={input} />
+                          <input type="number" value={serviceForms[service.id]?.durationMinutes ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], durationMinutes: event.target.value } }))} placeholder="Минути" style={input} />
+                          <input value={serviceForms[service.id]?.opensAt ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], opensAt: event.target.value } }))} placeholder="Отваря" style={input} />
+                          <input value={serviceForms[service.id]?.closesAt ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], closesAt: event.target.value } }))} placeholder="Затваря" style={input} />
+                          <select value={serviceForms[service.id]?.approvalStatus ?? "PENDING"} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], approvalStatus: event.target.value } }))} style={input}>
+                            <option value="PENDING">Чака одобрение</option>
+                            <option value="APPROVED">Одобрена</option>
+                            <option value="REJECTED">Върната</option>
+                          </select>
+                          <label style={checkboxRow}>
+                            <input type="checkbox" checked={Boolean(serviceForms[service.id]?.active)} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], active: event.target.checked } }))} />
+                            Активна
+                          </label>
+                        </div>
+                        <textarea value={serviceForms[service.id]?.description ?? ""} onChange={(event) => setServiceForms((current) => ({ ...current, [service.id]: { ...current[service.id], description: event.target.value } }))} placeholder="Описание" style={textarea} />
+                      </>
+                    ) : null}
                     <div style={actions}>
-                      <button type="button" onClick={() => onUpdateService(service)} style={primaryButton} disabled={busyKey === `service-save-${service.id}`}>Запази редакцията</button>
+                      {isEditingService ? (
+                        <button type="button" onClick={() => onUpdateService(service)} style={primaryButton} disabled={busyKey === `service-save-${service.id}`}>Запази</button>
+                      ) : (
+                        <button type="button" onClick={() => setEditingServiceIds((current) => ({ ...current, [service.id]: true }))} style={secondaryButton}>Редактирай</button>
+                      )}
                       <button type="button" onClick={() => onApproveService(service)} style={primaryButton} disabled={busyKey === `approve-${service.id}`}>Одобри</button>
                       <button type="button" onClick={() => onRejectService(service)} style={secondaryButton} disabled={busyKey === `reject-${service.id}`}>Върни</button>
                       <button type="button" onClick={() => onDeleteService(service)} style={dangerButton} disabled={busyKey === `delete-${service.id}`}>Изтрий</button>
                     </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </article>
@@ -888,10 +920,20 @@ export default function AdminServicesPage() {
                     <div style={profileMeta}>Регистриран: {formatDateTime(profile.createdAt)}</div>
                     <div style={profileMeta}>Последно влизане: {formatDateTime(profile.lastLoginAt)}</div>
                     <AdminProfileForm profile={profile} form={profileForms[profile.userId]} setProfileForms={setProfileForms} onSave={() => onUpdateProfile(profile)} busy={busyKey === `profile-save-${profile.userId}`} />
-                    {!profile.active && profile.banReason ? <div style={banBox}>Причина за ban: {profile.banReason}</div> : null}
+                    {!profile.active && profile.banReason ? <div style={banBox}>Причина за деактивиране: {profile.banReason}</div> : null}
                     <button type="button" onClick={() => onToggleUser(profile)} style={profile.active ? dangerButton : primaryButton} disabled={busyKey === `user-${profile.userId}`}>
                       {profile.active ? "Деактивирай" : "Активирай"}
                     </button>
+                    {profile.active ? (
+                      <button
+                        type="button"
+                        onClick={() => onRestoreBusinessServices(profile)}
+                        style={secondaryButton}
+                        disabled={busyKey === `restore-services-${profile.userId}`}
+                      >
+                        Възстанови одобрените обяви
+                      </button>
+                    ) : null}
                   </article>
                 ))}
               </div>
@@ -924,7 +966,7 @@ export default function AdminServicesPage() {
                       <div style={profileMeta}>Последно влизане: {formatDateTime(profile.lastLoginAt)}</div>
                       <div style={profileMeta}>Биография: {profile.bio || "Няма добавена биография."}</div>
                       <AdminProfileForm profile={profile} form={profileForms[profile.userId]} setProfileForms={setProfileForms} onSave={() => onUpdateProfile(profile)} busy={busyKey === `profile-save-${profile.userId}`} />
-                      {!profile.active && profile.banReason ? <div style={banBox}>Причина за ban: {profile.banReason}</div> : null}
+                      {!profile.active && profile.banReason ? <div style={banBox}>Причина за деактивиране: {profile.banReason}</div> : null}
                       <button type="button" onClick={() => onToggleUser(profile)} style={profile.active ? dangerButton : primaryButton} disabled={busyKey === `user-${profile.userId}`}>
                         {profile.active ? "Деактивирай" : "Активирай"}
                       </button>
@@ -1085,7 +1127,7 @@ function AdminProfileForm({ profile, form, setProfileForms, onSave, busy }) {
         Активен профил
       </label>
       {!form.active ? (
-        <textarea value={form.banReason} onChange={(event) => update({ banReason: event.target.value })} placeholder="Причина за глобален ban" style={textarea} />
+        <textarea value={form.banReason} onChange={(event) => update({ banReason: event.target.value })} placeholder="Причина за деактивиране" style={textarea} />
       ) : null}
       <button type="button" onClick={onSave} style={primaryButton} disabled={busy}>
         {busy ? "Запазване..." : "Запази профила"}
@@ -1303,8 +1345,10 @@ const eyebrow = { fontSize: 12, fontWeight: 900, letterSpacing: "0.24em", textTr
 const heroTitle = { margin: 0, fontSize: 34, color: "#eff6ff", lineHeight: 1.05 };
 const heroText = { margin: 0, color: "rgba(226,232,240,0.82)", maxWidth: 920, lineHeight: 1.65 };
 const errorBox = { marginTop: 16, padding: "14px 16px", borderRadius: 18, background: "rgba(127,29,29,0.18)", border: "1px solid rgba(248,113,113,0.22)", color: "#fecaca" };
-const tabRow = { display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18, marginBottom: 18 };
-const tabButton = { border: "1px solid rgba(96,165,250,0.18)", color: "#fff", borderRadius: 16, padding: "12px 16px", cursor: "pointer", display: "grid", gap: 4, minWidth: 126 };
+const tabRow = { display: "flex", gap: 10, flexWrap: "nowrap", marginTop: 18, marginBottom: 18 };
+const tabButton = { border: "1px solid rgba(96,165,250,0.18)", color: "#fff", borderRadius: 16, padding: "12px 16px", cursor: "pointer", display: "grid", gap: 4, minWidth: 126, textAlign: "center", alignContent: "center", whiteSpace: "nowrap" };
+const tabLabel = { lineHeight: 1.18 };
+const tabCount = { opacity: 0.8, lineHeight: 1.18 };
 const loadingCard = { padding: 24, borderRadius: 22, background: "rgba(10,20,40,0.84)", color: "#dbeafe", border: "1px solid rgba(96,165,250,0.16)" };
 const panelCard = { padding: 18, borderRadius: 24, background: "linear-gradient(180deg, rgba(10,20,40,0.92), rgba(15,23,42,0.86))", border: "1px solid rgba(96,165,250,0.16)", boxShadow: "0 18px 46px rgba(2,6,23,0.18)" };
 const moderationList = { display: "grid", gap: 14 };
@@ -1369,7 +1413,7 @@ const reportTypePill = {
   fontSize: 12,
   fontWeight: 900,
 };
-const serviceRow = { display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 18, alignItems: "start" };
+const serviceRow = { display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 22, alignItems: "start" };
 const serviceImageWrap = { minHeight: 160, borderRadius: 20, overflow: "hidden", background: "rgba(15,23,42,0.72)", border: "1px solid rgba(148,163,184,0.16)" };
 const serviceImage = { width: "100%", height: "100%", objectFit: "cover", display: "block" };
 const imagePlaceholder = { minHeight: 160, display: "grid", placeItems: "center", color: "rgba(191,219,254,0.65)", fontWeight: 900 };
@@ -1397,7 +1441,7 @@ const subtlePanel = { padding: 14, borderRadius: 16, background: "rgba(15,23,42,
 const restrictionInlinePanel = { display: "grid", gap: 10, padding: 14, borderRadius: 16, background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.22)" };
 const restrictionList = { display: "grid", gap: 8 };
 const restrictionListItem = { display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: 10, alignItems: "center", padding: 10, borderRadius: 14, background: "rgba(15,23,42,0.58)", border: "1px solid rgba(251,191,36,0.16)" };
-const profileGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 };
+const profileGrid = { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 16 };
 const profileCard = { padding: 18, borderRadius: 22, background: "linear-gradient(180deg, rgba(10,20,40,0.92), rgba(15,23,42,0.86))", border: "1px solid rgba(96,165,250,0.16)", display: "grid", gap: 10 };
 const focusedProfileCard = { border: "1px solid rgba(250,204,21,0.75)", boxShadow: "0 0 0 4px rgba(250,204,21,0.14), 0 20px 52px rgba(2,6,23,0.28)" };
 const profileHeader = { display: "grid", gridTemplateColumns: "72px minmax(0,1fr)", gap: 12, alignItems: "center" };

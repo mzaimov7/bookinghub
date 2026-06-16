@@ -65,6 +65,15 @@ public class BusinessServiceController {
         return Map.of("id", id);
     }
 
+    @DeleteMapping("/services/{serviceId}")
+    public Map<String, Object> deleteService(
+            @RequestHeader("X-Business-User-Id") Long businessUserId,
+            @PathVariable Long serviceId
+    ) {
+        businessServiceService.deleteService(businessUserId, serviceId);
+        return Map.of("deleted", true);
+    }
+
     @PostMapping(path = "/services/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadListingImage(
             @RequestHeader("X-Business-User-Id") Long businessUserId,

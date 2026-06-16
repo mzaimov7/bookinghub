@@ -159,16 +159,21 @@ public class BusinessServiceService {
     }
 
     public List<ServiceOTD> getMyServices(Long businessUserId) {
-        requireBusinessUser(businessUserId);
+        User user = requireBusinessUser(businessUserId);
+        syncApprovedServicesForActiveBusiness(user);
         return services.findAllByBusinessUserIdOrderByIdDesc(businessUserId)
                 .stream()
+                .filter(service -> service.getBusinessDeletedAt() == null)
                 .map(this::toServiceDto)
                 .toList();
     }
 
     public List<BusinessServiceStatsDTO> getMyServiceStats(Long businessUserId) {
         requireBusinessUser(businessUserId);
-        List<Service> ownedServices = services.findAllByBusinessUserIdOrderByIdDesc(businessUserId);
+        List<Service> ownedServices = services.findAllByBusinessUserIdOrderByIdDesc(businessUserId)
+                .stream()
+                .filter(service -> service.getBusinessDeletedAt() == null)
+                .toList();
         if (ownedServices.isEmpty()) {
             return List.of();
         }
@@ -205,6 +210,7 @@ public class BusinessServiceService {
         requireBusinessUser(businessUserId);
         Service service = services.findById(serviceId)
                 .filter(item -> item.getBusinessUserId().equals(businessUserId))
+                .filter(item -> item.getBusinessDeletedAt() == null)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
         return toServiceDto(service);
     }
@@ -215,6 +221,7 @@ public class BusinessServiceService {
 
         Service service = services.findById(serviceId)
                 .filter(item -> item.getBusinessUserId().equals(businessUserId))
+                .filter(item -> item.getBusinessDeletedAt() == null)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
 
         var cat = categories.findById(req.categoryId)
@@ -266,6 +273,20 @@ public class BusinessServiceService {
         }
 
         return serviceId;
+    }
+
+    @Transactional
+    public void deleteService(Long businessUserId, Long serviceId) {
+        requireBusinessUser(businessUserId);
+
+        Service service = services.findById(serviceId)
+                .filter(item -> item.getBusinessUserId().equals(businessUserId))
+                .filter(item -> item.getBusinessDeletedAt() == null)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Service not found"));
+
+        service.setActive(false);
+        service.setBusinessDeletedAt(LocalDateTime.now());
+        services.save(service);
     }
 
     public List<BusinessBookingDTO> getBookings(Long businessUserId) {
@@ -396,6 +417,21 @@ public class BusinessServiceService {
             throw new ResponseStatusException(BAD_REQUEST, "This business account is disabled");
         }
         return user;
+    }
+
+    private void syncApprovedServicesForActiveBusiness(User user) {
+        if (!user.isActive()) {
+            return;
+        }
+
+        services.findAllByBusinessUserIdOrderByIdDesc(user.getId())
+                .stream()
+                .filter(service -> service.getBusinessDeletedAt() == null)
+                .filter(service -> service.getApprovalStatus() == Service.ApprovalStatus.APPROVED && !service.isActive())
+                .forEach(service -> {
+                    service.setActive(true);
+                    services.save(service);
+                });
     }
 
     private ServiceOTD toServiceDto(Service service) {

@@ -23,9 +23,9 @@ export default function Footer() {
         <div>
           <div style={{ fontWeight: 900, fontSize: 18, color: "#eff6ff" }}>Контакти</div>
           <p style={{ marginTop: 8, color: "rgba(226,232,240,0.78)" }}>
-            Email: support@bookinghub.dev
+            Email: bookinghub.support@gmail.com
             <br />
-            Тел: +359 88 000 0000
+            Тел: 0892729438
           </p>
         </div>
 

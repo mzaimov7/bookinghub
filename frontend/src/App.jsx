@@ -1,5 +1,5 @@
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import LoginPage from "./features/auth/LoginPage";
 import ForgotPasswordPage from "./features/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./features/auth/ResetPasswordPage";
@@ -17,10 +17,15 @@ import BusinessServicesPage from "./features/business/services/BusinessServicesP
 import HomePage from "./features/home/HomePage";
 import SearchResultsPage from "./features/search/SearchResultsPage";
 import ServiceDetailsPage from "./features/services/ServiceDetailsPage";
+import { getLastSessionActivity, isLoggedIn, logoutLocal, markSessionActivity } from "./lib/authStore";
+
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const ACTIVITY_EVENTS = ["click", "mousemove", "keydown", "scroll", "touchstart"];
 
 export default function App() {
   return (
     <BrowserRouter>
+      <SessionTimeoutGuard />
       <Routes>
         <Route path="/business/resources" element={<BusinessResourcesPage />} />
         <Route path="/business/bookings" element={<BusinessBookingsPage />} />
@@ -44,4 +49,52 @@ export default function App() {
       </Routes>
     </BrowserRouter>
   );
+}
+
+function SessionTimeoutGuard() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    function expireSession() {
+      logoutLocal();
+      navigate("/login", { replace: true });
+      window.alert("Сесията изтече поради бездействие. Моля, влез отново.");
+    }
+
+    function checkSession() {
+      if (!isLoggedIn()) return;
+
+      const lastActivity = getLastSessionActivity();
+      if (!lastActivity) {
+        markSessionActivity();
+        return;
+      }
+
+      if (Date.now() - lastActivity >= SESSION_TIMEOUT_MS) {
+        expireSession();
+      }
+    }
+
+    function resetSessionTimer() {
+      if (isLoggedIn()) {
+        markSessionActivity();
+      }
+    }
+
+    ACTIVITY_EVENTS.forEach((eventName) => {
+      window.addEventListener(eventName, resetSessionTimer, { passive: true });
+    });
+
+    const intervalId = window.setInterval(checkSession, 30 * 1000);
+    checkSession();
+
+    return () => {
+      ACTIVITY_EVENTS.forEach((eventName) => {
+        window.removeEventListener(eventName, resetSessionTimer);
+      });
+      window.clearInterval(intervalId);
+    };
+  }, [navigate]);
+
+  return null;
 }

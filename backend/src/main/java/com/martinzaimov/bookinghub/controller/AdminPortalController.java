@@ -238,6 +238,14 @@ public class AdminPortalController {
         return adminPortalService.updateUserStatus(adminUserId, userId, request);
     }
 
+    @PatchMapping("/users/{userId}/restore-services")
+    public AdminUserProfileOTD restoreBusinessServices(
+            @RequestHeader("X-Admin-User-Id") Long adminUserId,
+            @PathVariable Long userId
+    ) {
+        return adminPortalService.restoreBusinessServices(adminUserId, userId);
+    }
+
     @PutMapping("/users/{userId}")
     public AdminUserProfileOTD updateUser(
             @RequestHeader("X-Admin-User-Id") Long adminUserId,

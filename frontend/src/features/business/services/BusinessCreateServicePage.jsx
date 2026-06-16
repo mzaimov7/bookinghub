@@ -11,6 +11,135 @@ import {
   uploadServiceImage,
 } from "./api";
 
+const CATEGORY_DETAIL_TEMPLATES = [
+  {
+    match: ["медицина", "здрав", "психология", "терапия"],
+    fields: [
+      { key: "specialty", label: "Специалност", placeholder: "Например: дерматология, физиотерапия" },
+      { key: "consultationType", label: "Тип консултация", placeholder: "Първичен преглед, контролен преглед" },
+      { key: "preparation", label: "Подготовка", placeholder: "Необходима подготовка преди посещението" },
+      { key: "documents", label: "Необходими документи", placeholder: "Направление, изследвания, здравна книжка" },
+    ],
+  },
+  {
+    match: ["красота", "уелнес", "масажи", "spa", "релакс"],
+    fields: [
+      { key: "procedureArea", label: "Зона/процедура", placeholder: "Лице, тяло, релакс терапия" },
+      { key: "skinType", label: "Подходящо за", placeholder: "Всички типове кожа, чувствителна кожа" },
+      { key: "products", label: "Използвани продукти", placeholder: "Професионална козметика, био продукти" },
+      { key: "aftercare", label: "Препоръки след процедура", placeholder: "Без спорт, хидратация, избягване на слънце" },
+    ],
+  },
+  {
+    match: ["фризьор", "бръснар"],
+    fields: [
+      { key: "hairLength", label: "Дължина на косата", placeholder: "Къса, средна, дълга" },
+      { key: "serviceType", label: "Тип услуга", placeholder: "Подстригване, боядисване, брада" },
+      { key: "products", label: "Продукти", placeholder: "Боя, стилизиращи продукти, терапия" },
+      { key: "maintenance", label: "Поддръжка", placeholder: "Препоръчителен период до следващо посещение" },
+    ],
+  },
+  {
+    match: ["фитнес", "йога", "спорт"],
+    fields: [
+      { key: "level", label: "Ниво", placeholder: "Начинаещи, напреднали, всички нива" },
+      { key: "equipment", label: "Необходима екипировка", placeholder: "Постелка, спортни обувки, без екипировка" },
+      { key: "intensity", label: "Интензивност", placeholder: "Лека, средна, висока" },
+      { key: "groupSize", label: "Брой участници", placeholder: "Индивидуално, малка група, групово" },
+    ],
+  },
+  {
+    match: ["ремонти", "майстори", "дом"],
+    fields: [
+      { key: "propertyType", label: "Тип обект", placeholder: "Апартамент, офис, къща" },
+      { key: "materials", label: "Материали", placeholder: "Осигурени от клиента или от изпълнителя" },
+      { key: "visitNeeded", label: "Оглед", placeholder: "Необходим предварителен оглед или не" },
+      { key: "estimatedTime", label: "Приблизителен срок", placeholder: "1 час, 1 ден, няколко дни" },
+    ],
+  },
+  {
+    match: ["образование", "уроци", "курсове"],
+    fields: [
+      { key: "lessonFormat", label: "Формат", placeholder: "Онлайн, присъствено, индивидуално" },
+      { key: "targetGroup", label: "Подходящо за", placeholder: "Ученици, студенти, начинаещи" },
+      { key: "subjectLevel", label: "Ниво на подготовка", placeholder: "A1, B2, начален курс, напреднали" },
+      { key: "materialsIncluded", label: "Учебни материали", placeholder: "Включени, отделно, не са необходими" },
+    ],
+  },
+  {
+    match: ["автомобил", "авто"],
+    fields: [
+      { key: "vehicleType", label: "Тип автомобил", placeholder: "Лек автомобил, SUV, бус" },
+      { key: "serviceScope", label: "Обхват на услугата", placeholder: "Диагностика, смяна, профилактика" },
+      { key: "partsIncluded", label: "Части/консумативи", placeholder: "Включени, по заявка, от клиента" },
+      { key: "vehicleStay", label: "Престой на автомобила", placeholder: "На място, няколко часа, един ден" },
+    ],
+  },
+  {
+    match: ["почистване", "хигиен"],
+    fields: [
+      { key: "spaceType", label: "Тип помещение", placeholder: "Дом, офис, търговски обект" },
+      { key: "areaSize", label: "Приблизителна площ", placeholder: "До 50 кв.м, 50-100 кв.м" },
+      { key: "cleaningType", label: "Тип почистване", placeholder: "Основно, абонаментно, след ремонт" },
+      { key: "supplies", label: "Препарати и техника", placeholder: "Осигурени от фирмата или клиента" },
+    ],
+  },
+  {
+    match: ["фото", "видео", "творчески"],
+    fields: [
+      { key: "eventType", label: "Тип събитие", placeholder: "Сватба, рожден ден, продуктова фотосесия" },
+      { key: "deliveryTime", label: "Срок за предаване", placeholder: "До 7 дни, до 14 дни" },
+      { key: "editedFiles", label: "Обработени файлове", placeholder: "Брой снимки, видео монтаж, кратък клип" },
+      { key: "locationType", label: "Локация", placeholder: "Студио, външна локация, при клиента" },
+    ],
+  },
+  {
+    match: ["ветеринар"],
+    fields: [
+      { key: "petType", label: "Вид животно", placeholder: "Куче, котка, друг домашен любимец" },
+      { key: "petSize", label: "Размер/порода", placeholder: "Малка порода, голяма порода" },
+      { key: "serviceNeed", label: "Причина за посещение", placeholder: "Преглед, ваксина, груминг" },
+      { key: "documents", label: "Документи", placeholder: "Паспорт, ваксинационен картон" },
+    ],
+  },
+  {
+    match: ["финансов", "счетовод"],
+    fields: [
+      { key: "clientType", label: "Тип клиент", placeholder: "Физическо лице, фирма, самоосигуряващо се лице" },
+      { key: "servicePeriod", label: "Период", placeholder: "Месечно, еднократно, годишно" },
+      { key: "documents", label: "Необходими документи", placeholder: "Фактури, отчети, договори" },
+      { key: "consultationGoal", label: "Цел на консултацията", placeholder: "Декларация, данъци, отчетност" },
+    ],
+  },
+  {
+    match: ["транспорт", "шофьор"],
+    fields: [
+      { key: "routeType", label: "Тип маршрут", placeholder: "Градски, междуградски, летищен трансфер" },
+      { key: "vehicleClass", label: "Тип превозно средство", placeholder: "Лек автомобил, бус, учебен автомобил" },
+      { key: "passengers", label: "Брой пътници", placeholder: "1-4, група, индивидуално" },
+      { key: "luggage", label: "Багаж/условия", placeholder: "Без багаж, куфари, специални изисквания" },
+    ],
+  },
+  {
+    match: ["правни", "юридически", "административни"],
+    fields: [
+      { key: "legalArea", label: "Правна област", placeholder: "Трудово, семейно, търговско право" },
+      { key: "documentType", label: "Тип документ", placeholder: "Договор, жалба, консултация" },
+      { key: "caseUrgency", label: "Спешност", placeholder: "Стандартно, спешно, с краен срок" },
+      { key: "meetingFormat", label: "Формат", placeholder: "Онлайн, в офис, по телефон" },
+    ],
+  },
+  {
+    match: ["татуировки", "пиърсинг"],
+    fields: [
+      { key: "style", label: "Стил/тип", placeholder: "Минималистична, реалистична, пиърсинг" },
+      { key: "bodyArea", label: "Място по тялото", placeholder: "Ръка, гръб, ухо, нос" },
+      { key: "designReady", label: "Готов дизайн", placeholder: "Да, не, нужда от консултация" },
+      { key: "healingInfo", label: "Грижа след процедура", placeholder: "Инструкции, крем, период на заздравяване" },
+    ],
+  },
+];
+
 export default function BusinessCreateServicePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -45,17 +174,32 @@ export default function BusinessCreateServicePage() {
     bookingHorizonDays: 90,
     resourceIds: [],
     categorySuggestion: "",
+    categoryDetails: {},
   });
 
   const selectedCategory = useMemo(
     () => categories.find((item) => String(item.id) === form.categoryId) || null,
     [categories, form.categoryId]
   );
+  const selectedCategoryTemplate = useMemo(
+    () => getCategoryDetailTemplate(selectedCategory),
+    [selectedCategory]
+  );
 
   function onChange(event) {
     const { name, value, type, checked } = event.target;
     setForm((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
     setFieldErrors((current) => ({ ...current, [name]: "" }));
+  }
+
+  function onCategoryDetailChange(key, value) {
+    setForm((current) => ({
+      ...current,
+      categoryDetails: {
+        ...current.categoryDetails,
+        [key]: value,
+      },
+    }));
   }
 
   function toggleResource(resourceId) {
@@ -133,6 +277,7 @@ export default function BusinessCreateServicePage() {
           bookingHorizonDays: data.bookingHorizonDays ? String(data.bookingHorizonDays) : "90",
           resourceIds: Array.isArray(data.resourceIds) ? data.resourceIds : [],
           categorySuggestion: data.categorySuggestion ?? "",
+          categoryDetails: {},
         }));
         setExistingImages(Array.isArray(data.imageUrls) ? data.imageUrls.filter(Boolean) : []);
       } catch (loadError) {
@@ -158,7 +303,11 @@ export default function BusinessCreateServicePage() {
       categoryId: Number(form.categoryId),
       categorySuggestion: form.categorySuggestion.trim() || null,
       title: form.title.trim(),
-      description: form.description?.trim() || null,
+      description: buildDescriptionWithCategoryDetails(
+        form.description,
+        selectedCategoryTemplate,
+        form.categoryDetails
+      ),
       city: form.city.trim(),
       address: form.address.trim(),
       price: Number(form.price),
@@ -285,11 +434,11 @@ export default function BusinessCreateServicePage() {
                     <button
                       key={category.id}
                       type="button"
-                      onClick={() => {
-                        setForm((current) => ({ ...current, categoryId: String(category.id) }));
-                        setFieldErrors((current) => ({ ...current, categoryId: "" }));
-                        setOpenCategoryPicker(false);
-                      }}
+	                      onClick={() => {
+	                        setForm((current) => ({ ...current, categoryId: String(category.id), categoryDetails: {} }));
+	                        setFieldErrors((current) => ({ ...current, categoryId: "" }));
+	                        setOpenCategoryPicker(false);
+	                      }}
                       style={categoryPickerItem}
                     >
                       <span>{category.name}</span>
@@ -305,12 +454,12 @@ export default function BusinessCreateServicePage() {
               <div style={selectedCategoryText}>
                 {selectedCategory?.description?.trim() || "Избери категория, за да видиш какви услуги най-често попадат в нея."}
               </div>
-            </div>
-            {fieldErrors.categoryId ? <div style={fieldErrorText}>{fieldErrors.categoryId}</div> : null}
+	            </div>
+	            {fieldErrors.categoryId ? <div style={fieldErrorText}>{fieldErrors.categoryId}</div> : null}
 
-            <div style={categorySuggestionWrap}>
-              <button type="button" onClick={() => setOpenSuggestionForm((current) => !current)} style={categorySuggestionToggle}>
-                Не намираш подходяща категория?
+	            <div style={categorySuggestionWrap}>
+	              <button type="button" onClick={() => setOpenSuggestionForm((current) => !current)} style={categorySuggestionToggle}>
+	                Не намираш подходяща категория?
               </button>
 
               {openSuggestionForm ? (
@@ -336,6 +485,28 @@ export default function BusinessCreateServicePage() {
         <label style={label}>Заглавие</label>
         <input name="title" value={form.title} onChange={onChange} style={{ ...input, ...(fieldErrors.title ? inputError : null) }} />
         {fieldErrors.title ? <div style={fieldErrorText}>{fieldErrors.title}</div> : null}
+
+        {selectedCategoryTemplate ? (
+          <div style={categoryDetailsCard}>
+            <div>
+              <div style={selectedCategoryTitle}>Допълнителни данни</div>
+              <div style={categorySuggestionHint}>Полетата се променят според избраната категория и помагат обявата да бъде по-точна.</div>
+            </div>
+            <div style={metricBlock}>
+              {selectedCategoryTemplate.fields.map((field) => (
+                <div key={field.key} style={metricField}>
+                  <label style={label}>{field.label}</label>
+                  <input
+                    value={form.categoryDetails[field.key] || ""}
+                    onChange={(event) => onCategoryDetailChange(field.key, event.target.value)}
+                    style={input}
+                    placeholder={field.placeholder}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <label style={label}>Описание</label>
         <textarea name="description" value={form.description} onChange={onChange} style={{ ...input, minHeight: 90 }} />
@@ -513,6 +684,35 @@ function fieldErrorsForServiceForm(error) {
   return {};
 }
 
+function getCategoryDetailTemplate(category) {
+  const categoryName = (category?.name || "").toLowerCase();
+  if (!categoryName) return null;
+  return CATEGORY_DETAIL_TEMPLATES.find((template) =>
+    template.match.some((keyword) => categoryName.includes(keyword))
+  ) || null;
+}
+
+function buildDescriptionWithCategoryDetails(description, template, details = {}) {
+  const baseDescription = description?.trim() || "";
+  if (!template) return baseDescription || null;
+
+  const filledDetails = template.fields
+    .map((field) => ({
+      label: field.label,
+      value: details[field.key]?.trim(),
+    }))
+    .filter((item) => item.value);
+
+  if (!filledDetails.length) return baseDescription || null;
+
+  const detailsText = [
+    "Допълнителни данни:",
+    ...filledDetails.map((item) => `${item.label}: ${item.value}`),
+  ].join("\n");
+
+  return [baseDescription, detailsText].filter(Boolean).join("\n\n");
+}
+
 const pageBackground = "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 16%, #eaf2ff 44%, #f6f9ff 100%)";
 const label = { fontWeight: 800, color: "#eff6ff" };
 const input = { width: "100%", padding: "12px 14px", border: "1px solid rgba(96,165,250,0.22)", borderRadius: 14, boxSizing: "border-box", background: "rgba(15,23,42,0.3)", color: "#eff6ff" };
@@ -685,6 +885,14 @@ const categorySuggestionCard = {
   borderRadius: 18,
   border: "1px solid rgba(96,165,250,0.18)",
   background: "rgba(15,23,42,0.22)",
+};
+const categoryDetailsCard = {
+  display: "grid",
+  gap: 12,
+  padding: 14,
+  borderRadius: 18,
+  border: "1px solid rgba(96,165,250,0.18)",
+  background: "rgba(37,99,235,0.12)",
 };
 const categorySuggestionHint = {
   color: "rgba(191,219,254,0.72)",

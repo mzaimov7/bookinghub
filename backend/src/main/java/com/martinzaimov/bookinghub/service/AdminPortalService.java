@@ -530,6 +530,11 @@ public class AdminPortalService {
         requireAdminUser(adminUserId);
         return users.findAllByRoleOrderByIdDesc(User.Role.BUSINESS)
                 .stream()
+                .peek(user -> {
+                    if (user.isActive()) {
+                        syncBusinessServicesForStatus(user);
+                    }
+                })
                 .map(this::toBusinessUserDto)
                 .toList();
     }
@@ -555,15 +560,11 @@ public class AdminPortalService {
             user.setBannedAt(null);
         }
         users.save(user);
+        if (wasActive != user.isActive() || (user.getRole() == User.Role.BUSINESS && user.isActive())) {
+            syncBusinessServicesForStatus(user);
+        }
+
         if (wasActive && !request.active) {
-            if (user.getRole() == User.Role.BUSINESS) {
-                services.findAllByBusinessUserIdOrderByIdDesc(user.getId())
-                        .forEach(service -> {
-                            service.setActive(false);
-                            services.save(service);
-                        });
-                bookingStatusSync.syncBookingStatuses();
-            }
             emailService.send(
                     user.getEmail(),
                     "Профилът ти беше деактивиран",
@@ -575,6 +576,22 @@ public class AdminPortalService {
             return toBusinessUserDto(user);
         }
         return toClientUserDto(user);
+    }
+
+    @Transactional
+    public AdminUserProfileOTD restoreBusinessServices(Long adminUserId, Long businessUserId) {
+        requireAdminUser(adminUserId);
+        User user = users.findById(businessUserId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Business user not found"));
+        if (user.getRole() != User.Role.BUSINESS) {
+            throw new ResponseStatusException(BAD_REQUEST, "Only business profiles have services");
+        }
+        if (!user.isActive()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Business profile must be active before restoring services");
+        }
+
+        restoreAllBusinessServices(user);
+        return toBusinessUserDto(user);
     }
 
     @Transactional
@@ -625,15 +642,11 @@ public class AdminPortalService {
         }
         users.save(user);
 
+        if (wasActive != user.isActive() || (user.getRole() == User.Role.BUSINESS && user.isActive())) {
+            syncBusinessServicesForStatus(user);
+        }
+
         if (wasActive && !user.isActive()) {
-            if (user.getRole() == User.Role.BUSINESS) {
-                services.findAllByBusinessUserIdOrderByIdDesc(user.getId())
-                        .forEach(service -> {
-                            service.setActive(false);
-                            services.save(service);
-                        });
-                bookingStatusSync.syncBookingStatuses();
-            }
             emailService.send(
                     user.getEmail(),
                     "Профилът Ви беше ограничен",
@@ -1002,6 +1015,39 @@ public class AdminPortalService {
             return businessProfile.getBusinessName();
         }
         return users.findById(userId).map(User::getUsername).orElse("Потребител");
+    }
+
+    private void syncBusinessServicesForStatus(User user) {
+        if (user.getRole() != User.Role.BUSINESS) {
+            return;
+        }
+
+        services.findAllByBusinessUserIdOrderByIdDesc(user.getId())
+                .forEach(service -> {
+                    boolean shouldBeActive = user.isActive()
+                            && service.getBusinessDeletedAt() == null
+                            && service.getApprovalStatus() != Service.ApprovalStatus.REJECTED;
+                    service.setActive(shouldBeActive);
+                    services.save(service);
+                });
+
+        if (!user.isActive()) {
+            bookingStatusSync.syncBookingStatuses();
+        }
+    }
+
+    private void restoreAllBusinessServices(User user) {
+        services.findAllByBusinessUserIdOrderByIdDesc(user.getId())
+                .stream()
+                .filter(service -> service.getApprovalStatus() == Service.ApprovalStatus.APPROVED)
+                .filter(service -> service.getBusinessDeletedAt() == null)
+                .forEach(service -> {
+                    service.setActive(true);
+                    service.setAdminDeletionReason(null);
+                    service.setAdminDeletedByUserId(null);
+                    service.setAdminDeletedAt(null);
+                    services.save(service);
+                });
     }
 
     private AdminUserProfileOTD toClientUserDto(User user) {

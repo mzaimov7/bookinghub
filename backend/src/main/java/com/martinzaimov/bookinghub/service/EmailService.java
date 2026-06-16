@@ -19,7 +19,7 @@ public class EmailService {
 
     public EmailService(
             ObjectProvider<JavaMailSender> mailSenderProvider,
-            @Value("${app.email.from:no-reply@bookinghub.local}") String from,
+            @Value("${app.email.from:bookinghub.support@gmail.com}") String from,
             @Value("${spring.mail.username:}") String mailUsername
     ) {
         this.mailSenderProvider = mailSenderProvider;

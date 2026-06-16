@@ -80,6 +80,9 @@ public class Service {
     @Column(name = "admin_deleted_at")
     private LocalDateTime adminDeletedAt;
 
+    @Column(name = "business_deleted_at")
+    private LocalDateTime businessDeletedAt;
+
     public Service() {}
 
     public Long getId() { return id; }
@@ -104,6 +107,7 @@ public class Service {
     public String getAdminDeletionReason() { return adminDeletionReason; }
     public Long getAdminDeletedByUserId() { return adminDeletedByUserId; }
     public LocalDateTime getAdminDeletedAt() { return adminDeletedAt; }
+    public LocalDateTime getBusinessDeletedAt() { return businessDeletedAt; }
 
     public void setId(Long id) { this.id = id; }
     public void setBusinessUserId(Long businessUserId) { this.businessUserId = businessUserId; }
@@ -127,4 +131,5 @@ public class Service {
     public void setAdminDeletionReason(String adminDeletionReason) { this.adminDeletionReason = adminDeletionReason; }
     public void setAdminDeletedByUserId(Long adminDeletedByUserId) { this.adminDeletedByUserId = adminDeletedByUserId; }
     public void setAdminDeletedAt(LocalDateTime adminDeletedAt) { this.adminDeletedAt = adminDeletedAt; }
+    public void setBusinessDeletedAt(LocalDateTime businessDeletedAt) { this.businessDeletedAt = businessDeletedAt; }
 }

@@ -135,15 +135,15 @@ export default function AdminServicesPage() {
 
   const tabMeta = useMemo(
     () => ({
-      services: "14 чакат",
-      bookings: "115 общо",
-      categories: "16 активни",
-      reports: "11 активни",
-      moderation: "85 видими",
-      businesses: "42 профила",
-      clients: "53 профила",
+      services: `${services.filter((item) => item.approvalStatus === "PENDING").length} чакат`,
+      bookings: `${bookings.length} общо`,
+      categories: `${categories.filter((item) => item.active).length} активни`,
+      reports: `${reports.filter((item) => item.status !== "RESOLVED" && item.status !== "REJECTED").length} активни`,
+      moderation: `${reviews.filter((item) => item.status !== "HIDDEN").length + comments.filter((item) => item.status !== "HIDDEN").length} видими`,
+      businesses: `${businesses.length} профила`,
+      clients: `${clients.length} профила`,
     }),
-    []
+    [bookings, businesses, categories, clients, comments, reports, reviews, services]
   );
 
   const moderationItems = useMemo(

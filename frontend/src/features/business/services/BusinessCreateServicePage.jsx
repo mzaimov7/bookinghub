@@ -186,6 +186,20 @@ export default function BusinessCreateServicePage() {
     [selectedCategory]
   );
 
+  useEffect(() => {
+    if (!isEditMode || !selectedCategoryTemplate) return;
+    if (Object.keys(form.categoryDetails).length > 0) return;
+
+    const parsed = splitDescriptionAndCategoryDetails(form.description, selectedCategoryTemplate);
+    if (!parsed.hasDetails) return;
+
+    setForm((current) => ({
+      ...current,
+      description: parsed.description,
+      categoryDetails: parsed.details,
+    }));
+  }, [form.categoryDetails, form.description, isEditMode, selectedCategoryTemplate]);
+
   function onChange(event) {
     const { name, value, type, checked } = event.target;
     setForm((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
@@ -693,7 +707,7 @@ function getCategoryDetailTemplate(category) {
 }
 
 function buildDescriptionWithCategoryDetails(description, template, details = {}) {
-  const baseDescription = description?.trim() || "";
+  const baseDescription = splitDescriptionAndCategoryDetails(description, template).description;
   if (!template) return baseDescription || null;
 
   const filledDetails = template.fields
@@ -711,6 +725,39 @@ function buildDescriptionWithCategoryDetails(description, template, details = {}
   ].join("\n");
 
   return [baseDescription, detailsText].filter(Boolean).join("\n\n");
+}
+
+function splitDescriptionAndCategoryDetails(description, template) {
+  const text = description?.trim() || "";
+  const marker = "Допълнителни данни:";
+  const markerIndex = text.lastIndexOf(marker);
+
+  if (!template || markerIndex < 0) {
+    return { description: text, details: {}, hasDetails: false };
+  }
+
+  const detailLines = text
+    .slice(markerIndex + marker.length)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const details = {};
+
+  template.fields.forEach((field) => {
+    const prefix = `${field.label}:`;
+    const line = detailLines.find((item) => item.startsWith(prefix));
+    if (line) details[field.key] = line.slice(prefix.length).trim();
+  });
+
+  if (!Object.keys(details).length) {
+    return { description: text, details: {}, hasDetails: false };
+  }
+
+  return {
+    description: text.slice(0, markerIndex).trim(),
+    details,
+    hasDetails: true,
+  };
 }
 
 const pageBackground = "radial-gradient(circle at top left, rgba(96,165,250,0.24) 0%, rgba(96,165,250,0) 24%), linear-gradient(180deg, #081224 0%, #0f2f6a 16%, #eaf2ff 44%, #f6f9ff 100%)";

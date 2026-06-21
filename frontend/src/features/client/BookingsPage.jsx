@@ -25,6 +25,17 @@ function formatTime(value) {
   });
 }
 
+function matchesBookingFilter(item, filter, now = new Date()) {
+  if (filter === "upcoming") {
+    return new Date(item.startAt) >= now && item.status === "CONFIRMED";
+  }
+  if (filter === "pending") return item.status === "PENDING";
+  if (filter === "confirmed") return item.status === "CONFIRMED";
+  if (filter === "completed") return item.status === "COMPLETED";
+  if (filter === "closed") return item.status === "REJECTED" || item.status === "CANCELED";
+  return true;
+}
+
 export default function BookingsPage() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
@@ -51,28 +62,20 @@ export default function BookingsPage() {
   }, [navigate]);
 
   const summary = useMemo(() => {
-    return { total: bookings.length, upcoming: 2, pending: 3, confirmed: 2, completed: 15, closed: 5 };
-  }, [bookings.length]);
+    const now = new Date();
+    return {
+      total: bookings.length,
+      upcoming: bookings.filter((item) => matchesBookingFilter(item, "upcoming", now)).length,
+      pending: bookings.filter((item) => matchesBookingFilter(item, "pending", now)).length,
+      confirmed: bookings.filter((item) => matchesBookingFilter(item, "confirmed", now)).length,
+      completed: bookings.filter((item) => matchesBookingFilter(item, "completed", now)).length,
+      closed: bookings.filter((item) => matchesBookingFilter(item, "closed", now)).length,
+    };
+  }, [bookings]);
 
   const visibleBookings = useMemo(() => {
     const now = new Date();
-
-    if (activeFilter === "upcoming") {
-      return bookings.filter((item) => new Date(item.startAt) >= now && item.status === "CONFIRMED");
-    }
-    if (activeFilter === "pending") {
-      return bookings.filter((item) => item.status === "PENDING");
-    }
-    if (activeFilter === "confirmed") {
-      return bookings.filter((item) => item.status === "CONFIRMED");
-    }
-    if (activeFilter === "completed") {
-      return bookings.filter((item) => item.status === "COMPLETED");
-    }
-    if (activeFilter === "closed") {
-      return bookings.filter((item) => item.status === "REJECTED" || item.status === "CANCELED");
-    }
-    return bookings;
+    return bookings.filter((item) => matchesBookingFilter(item, activeFilter, now));
   }, [activeFilter, bookings]);
 
   async function onCancelBooking(bookingId) {
